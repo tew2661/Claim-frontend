@@ -1,0 +1,166 @@
+/* @tailwind base; */
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+body {
+  font-size: 14px;
+  color: var(--foreground);
+  background: var(--background);
+  font-family: var(--font-niramit), sans-serif;
+}
+
+.p-component {
+  font-size: 14px;
+  padding: 8px 15px;
+  font-family: var(--font-niramit);
+  &.p-dropdown-panel {
+    padding: 0px;
+  }
+}
+
+.p-dropdown {
+  display: flex;
+  align-items: center;
+  &.p-component {
+    padding: 5px 0px;
+    height: 35px;
+  }
+}
+
+.p-paginator-element {
+  height: 35px;
+  width: 35px;
+}
+
+.p-paginator-pages .p-paginator-page {
+  height: 35px !important;
+  width: 35px !important;
+  line-height: 35px; /* Ensure text is centered */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px
+}
+
+.p-dropdown-label {
+  padding: 8px 15px;
+}
+
+.p-button {
+  padding: 6px 15px;
+  font-family: var(--font-niramit);
+}
+
+.p-inputtext {
+  padding: 6px 15px;
+  font-family: var(--font-niramit);
+}
+
+.p-button-icon-only {
+  padding: 6px 0px;
+}
+
+.p-button {
+  align-items: flex-end;
+  .p-button-icon + .p-button-label {
+    display: flex;
+    align-items: center
+  }
+  &.p-button-icon-only {
+    align-items: center;
+    height: 35px;
+    width: 35px;
+  }
+}
+
+.p-dropdown-items {
+  padding: .25rem 0;
+  li {
+    padding: .5rem 1.25rem;
+  }
+}
+
+.class-custom-bar {
+  position: fixed;
+  width: 100vw;
+  z-index: 999;
+  top: 0px;
+}
+
+.table-header-center .p-datatable-wrapper {
+  scrollbar-width: thin; 
+  -ms-overflow-style: scrollbar; 
+  height: 60vh;
+  border: 1px solid #e9ecef;
+}
+
+.table-header-center .p-datatable-wrapper::-webkit-scrollbar {
+  width: 6px;
+  height: 10px;
+}
+
+.table-header-center .p-datatable-wrapper::-webkit-scrollbar-track {
+  background: #f1f1f1; 
+}
+
+.table-header-center .p-datatable-wrapper::-webkit-scrollbar-thumb {
+  background: rgba(120, 54, 15, 0.144);
+}
+
+.table-header-center .p-datatable-wrapper::-webkit-scrollbar-thumb:hover {
+  background: rgba(120, 54, 15, 0.314);
+}
+
+.table-header-center.p-datatable .p-column-header-content{
+  justify-content: center;
+}
+
+.text-center .p-column-header-content{
+  justify-content: center;
+}
+
+.class-custom-bar + div {
+  font-family: --font-kanit-sans !important;
+}
+
+.p-datatable .p-datatable-tbody > tr > td {
+  padding: 0.5rem 1rem;
+}
+
+.p-datatable.p-datatable-striped .p-datatable-tbody > tr.p-row-odd {
+  background: #f5f5f5;
+}
+
+.p-datatable.p-datatable-gridlines .p-datatable-thead > tr > th {
+  background-color: #373535;
+  color: #e9ecef;
+  font-weight: 800;
+}
+
+.p-datatable .p-datatable-footer {
+  padding: 0;
+}
+
+table {
+  thead {
+    font-size: 14px;
+  }
+  tbody {
+    font-size: 14px;
+  }
+}
+
+/* อนุญาตให้เลือกข้อความใน td และ div ที่อยู่ภายใน */
+.p-datatable td,
+.p-datatable td div {
+  -webkit-user-drag: none;
+  user-drag: none;
+  pointer-events: auto;
+  user-select: text
+}
+
