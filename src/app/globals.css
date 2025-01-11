@@ -124,10 +124,6 @@ body {
   justify-content: center;
 }
 
-.class-custom-bar + div {
-  font-family: --font-kanit-sans !important;
-}
-
 .p-datatable .p-datatable-tbody > tr > td {
   padding: 0.5rem 1rem;
 }
@@ -144,6 +140,23 @@ body {
 
 .p-datatable .p-datatable-footer {
   padding: 0;
+}
+
+.input-number-bg-blue-100 {
+  input {
+    --tw-bg-opacity: 1;
+    background-color: rgb(219 234 254 / var(--tw-bg-opacity, 1));
+
+    --tw-border-opacity: 1;
+    border-color: rgb(209 213 219 / var(--tw-border-opacity, 1));
+
+    border-top-color: #171717;
+    border-left-color: #171717;
+
+    &:focus-visible {
+      border-color: #015fcc;
+    }
+  }
 }
 
 table {

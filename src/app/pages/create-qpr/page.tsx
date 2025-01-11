@@ -1,5 +1,9 @@
 'use client';
 import Footer from "@/components/footer";
+import { Button } from "primereact/button";
+import { Calendar } from "primereact/calendar";
+import { Dropdown, DropdownChangeEvent } from "primereact/dropdown";
+import { InputNumber } from "primereact/inputnumber";
 import { useState } from "react";
 
 export default function QPRForm() {
@@ -16,24 +20,32 @@ export default function QPRForm() {
         when: "",
         who: "",
         whereFound: {
-            receiving: "",
-            inprocess: "",
-            fg: "",
-            wh: "",
-            customerClaim: "",
-            warrantyClaim: "",
+            receiving: false,
+            receivingDetails: "",
+            inprocess: false,
+            inprocessDetails: "",
+            fg: false,
+            fgDetails: "",
+            wh: false,
+            whDetails: "",
+            customerClaim: false,
+            customerClaimDetails: "",
+            warrantyClaim: false,
+            warrantyClaimDetails: "",
         },
         defect: {
-            dimension: "",
-            material: "",
-            appearance: "",
-            characteristics: "",
-            other: "",
+            dimension: false,
+            material: false,
+            appearance: false,
+            characteristics: false,
+            other: false,
+            otherDetails: "",
         },
         importanceLevel: "",
         frequency: {
             firstDefective: false,
-            reoccurrence: "",
+            reoccurrence: false,
+            reoccurrenceDetails: undefined,
             chronicDisease: false,
         },
         defectiveContents: {
@@ -48,19 +60,63 @@ export default function QPRForm() {
     });
 
     // Handle Input Changes
-    const handleInputChange = (e: any, field: string, section:any = null) => {
-        if (section) {
+    const handleInputChange = (e: any, field: string, section: any = null, fieldMaster?: string) => {
+        const { type, checked, value } = e.target;
+        const newValue = type === "checkbox" ? checked : value;
+        if (section === "defect" && fieldMaster === "other") {
             setFormData({
                 ...formData,
                 [section]: {
                     ...formData[section],
-                    [field]: e.target.value,
+                    ...fieldMaster ? { [fieldMaster]: formData[section][fieldMaster] || true } : {},
+                    [field]: newValue,
+                },
+            });
+        } else if (section === "frequency") {
+            
+            setFormData({
+                ...formData,
+                frequency: {
+                    firstDefective: false,
+                    reoccurrence: false,
+                    chronicDisease: false,
+                    ...fieldMaster ? { [fieldMaster]: formData[section][fieldMaster] || true } : {},
+                    [field]: newValue
+                },
+            });
+        } else if (section === "whereFound") {
+            setFormData({
+                ...formData,
+                whereFound: {
+                    receiving: false,
+                    receivingDetails: "",
+                    inprocess: false,
+                    inprocessDetails: "",
+                    fg: false,
+                    fgDetails: "",
+                    wh: false,
+                    whDetails: "",
+                    customerClaim: false,
+                    customerClaimDetails: "",
+                    warrantyClaim: false,
+                    warrantyClaimDetails: "",
+                    ...fieldMaster ? { [fieldMaster]: formData['whereFound'][fieldMaster] || true } : {},
+                    [field]: newValue
+                }
+            });
+
+        } else if (section) {
+            setFormData({
+                ...formData,
+                [section]: {
+                    ...formData[section],
+                    [field]: newValue,
                 },
             });
         } else {
             setFormData({
                 ...formData,
-                [field]: e.target.value,
+                [field]: newValue,
             });
         }
     };
@@ -68,279 +124,302 @@ export default function QPRForm() {
     return (
         <div className="p-6 bg-gray-100 min-h-screen">
             <div className="bg-white p-6 shadow-md rounded-md border">
-                <h1 className="text-2xl font-bold text-center mb-6">Quality Problem Rejection (QPR)</h1>
+                <h1 className="text-2xl font-bold text-center mb-3 border border-solid p-3 border-gray-300 rounded-md">
+                    Quality Problem Rejection (QPR)
+                </h1>
                 {/* QPR Details */}
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div>
-                        <label className="block text-sm font-bold">QPR Issue No.</label>
-                        <input
-                            type="text"
-                            value={formData.qprIssueNo}
-                            onChange={(e) => handleInputChange(e, "qprIssueNo")}
-                            className="w-full bg-yellow-100 border border-gray-300 rounded-md p-2"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-bold">Occurrence Date</label>
-                        <input
-                            type="date"
-                            value={formData.occurrenceDate}
-                            onChange={(e) => handleInputChange(e, "occurrenceDate")}
-                            className="w-full bg-yellow-100 border border-gray-300 rounded-md p-2"
-                        />
-                    </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div>
-                        <label className="block text-sm font-bold">Date Reported</label>
-                        <input
-                            type="text"
-                            value={formData.dateReported}
-                            onChange={(e) => handleInputChange(e, "dateReported")}
-                            placeholder="Auto-generated"
-                            disabled
-                            className="w-full bg-gray-200 border border-gray-300 rounded-md p-2"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-bold">Reply Quick Action</label>
-                        <input
-                            type="text"
-                            value={formData.replyQuickAction}
-                            onChange={(e) => handleInputChange(e, "replyQuickAction")}
-                            className="w-full bg-yellow-100 border border-gray-300 rounded-md p-2"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-bold">REPLY REPORT</label>
-                        <input
-                            type="text"
-                            value={formData.replyReport}
-                            onChange={(e) => handleInputChange(e, "replyReport")}
-                            className="w-full bg-yellow-100 border border-gray-300 rounded-md p-2"
-                        />
-                    </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div>
-                        <label className="block text-sm font-bold">Parts Name</label>
-                        <input
-                            type="text"
-                            value={formData.partName}
-                            onChange={(e) => handleInputChange(e, "partName")}
-                            className="w-full bg-yellow-100 border border-gray-300 rounded-md p-2"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-bold">Supplier Name</label>
-                        <input
-                            type="text"
-                            value={formData.supplierName}
-                            onChange={(e) => handleInputChange(e, "supplierName")}
-                            className="w-full bg-yellow-100 border border-gray-300 rounded-md p-2"
-                        />
-                    </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div>
-                        <label className="block text-sm font-bold">Parts No</label>
-                        <input
-                            type="text"
-                            value={formData.partNo}
-                            onChange={(e) => handleInputChange(e, "partNo")}
-                            className="w-full bg-yellow-100 border border-gray-300 rounded-md p-2"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-bold">Model</label>
-                        <input
-                            type="text"
-                            value={formData.model}
-                            onChange={(e) => handleInputChange(e, "model")}
-                            className="w-full bg-yellow-100 border border-gray-300 rounded-md p-2"
-                        />
-                    </div>
-                </div>
-
-                {/* Middle Section */}
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div>
-                        <label className="block text-sm font-bold">When</label>
-                        <input
-                            type="text"
-                            value={formData.when}
-                            onChange={(e) => handleInputChange(e, "when")}
-                            className="w-full bg-yellow-100 border border-gray-300 rounded-md p-2"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-bold">WHO</label>
-                        <input
-                            type="text"
-                            value={formData.who}
-                            onChange={(e) => handleInputChange(e, "who")}
-                            className="w-full bg-yellow-100 border border-gray-300 rounded-md p-2"
-                        />
-                    </div>
-                </div>
-
-                {/* WHERE FOUND */}
-                <div className="mb-6">
-                    <h2 className="text-lg font-semibold">WHERE FOUND</h2>
-                    <div className="flex flex-col gap-4 mt-2">
-                        {/* Receiving */}
-                        <div className="flex items-start gap-4">
-                            <label className="flex items-center">
+                <div className="flex grid-cols-2 gap-4">
+                    <div className="w-[70%] border border-solid p-3 border-gray-300 rounded-md">
+                        <div className="grid grid-cols-2 gap-2 mb-4">
+                            <div>
+                                <label className="block text-sm font-bold">Parts Name</label>
                                 <input
-                                    type="checkbox"
-                                    checked={!!formData.whereFound.receiving}
-                                    onChange={(e) =>
-                                        handleInputChange(e, "receiving", "whereFound")
-                                    }
-                                    className="mr-2"
+                                    type="text"
+                                    value={formData.partName}
+                                    onChange={(e) => handleInputChange(e, "partName")}
+                                    className="w-full bg-blue-100 border border-gray-300 rounded-md p-2"
                                 />
-                                Receiving
-                            </label>
-                            <input
-                                type="text"
-                                placeholder="Enter additional info"
-                                value={formData.whereFound.receiving}
-                                onChange={(e) =>
-                                    handleInputChange(e, "receiving", "whereFound")
-                                }
-                                className="w-full bg-yellow-100 border border-gray-300 rounded-md p-2"
-                            />
-                        </div>
-                        {/* Inprocess */}
-                        <div className="flex items-start gap-4">
-                            <label className="flex items-center">
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold">Supplier Name</label>
+                                {/* <input
+                                    type="text"
+                                    value={formData.supplierName}
+                                    onChange={(e) => handleInputChange(e, "supplierName")}
+                                    className="w-full bg-blue-100 border border-gray-300 rounded-md p-2"
+                                /> */}
+                                <Dropdown 
+                                    value={formData.supplierName || ""} 
+                                    onChange={(e: DropdownChangeEvent) => handleInputChange({ target: { value: e.value }}, "supplierName")} 
+                                    options={[
+                                        { label: 'Supplier A', value: 'Supplier A' },
+                                        { label: 'Supplier B', value: 'Supplier B' }
+                                    ]} 
+                                    optionLabel="label" 
+                                    // placeholder="Select Supplier" 
+                                    className="w-full bg-blue-100 border border-gray-300 rounded-md p-2 border-t-black border-l-black" 
+                                />
+                                
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold">Parts No</label>
                                 <input
-                                    type="checkbox"
-                                    checked={!!formData.whereFound.inprocess}
-                                    onChange={(e) =>
-                                        handleInputChange(e, "inprocess", "whereFound")
-                                    }
-                                    className="mr-2"
+                                    type="text"
+                                    value={formData.partNo}
+                                    onChange={(e) => handleInputChange(e, "partNo")}
+                                    className="w-full bg-blue-100 border border-gray-300 rounded-md p-2"
                                 />
-                                Inprocess
-                            </label>
-                            <input
-                                type="text"
-                                placeholder="Enter additional info"
-                                value={formData.whereFound.inprocess}
-                                onChange={(e) =>
-                                    handleInputChange(e, "inprocess", "whereFound")
-                                }
-                                className="w-full bg-yellow-100 border border-gray-300 rounded-md p-2"
-                            />
-                        </div>
-                        {/* F/G */}
-                        <div className="flex items-start gap-4">
-                            <label className="flex items-center">
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold">Model</label>
                                 <input
-                                    type="checkbox"
-                                    checked={!!formData.whereFound.fg}
-                                    onChange={(e) =>
-                                        handleInputChange(e, "fg", "whereFound")
-                                    }
-                                    className="mr-2"
+                                    type="text"
+                                    value={formData.model}
+                                    onChange={(e) => handleInputChange(e, "model")}
+                                    className="w-full bg-blue-100 border border-gray-300 rounded-md p-2"
                                 />
-                                F/G
-                            </label>
-                            <input
-                                type="text"
-                                placeholder="Enter additional info"
-                                value={formData.whereFound.fg}
-                                onChange={(e) =>
-                                    handleInputChange(e, "fg", "whereFound")
-                                }
-                                className="w-full bg-yellow-100 border border-gray-300 rounded-md p-2"
-                            />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold">When</label>
+                                <input
+                                    type="text"
+                                    value={formData.when}
+                                    onChange={(e) => handleInputChange(e, "when")}
+                                    className="w-full bg-blue-100 border border-gray-300 rounded-md p-2"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold">Who</label>
+                                <input
+                                    type="text"
+                                    value={formData.who}
+                                    onChange={(e) => handleInputChange(e, "who")}
+                                    className="w-full bg-blue-100 border border-gray-300 rounded-md p-2"
+                                />
+                            </div>
                         </div>
+                        <div className="mb-6">
+                            <label className="font-semibold">WHERE FOUND</label>
+                            <div className="grid grid-cols-2 gap-2 mt-2">
+                                {/* Receiving */}
+                                <div className="flex items-start gap-4">
+                                    <label className="flex items-center">
+                                        <input
+                                            type="checkbox"
+                                            checked={formData.whereFound.receiving}
+                                            onChange={(e) =>
+                                                handleInputChange(e, "receiving", "whereFound")
+                                            }
+                                            className="mr-2"
+                                        />
+                                        Receiving
+                                    </label>
+                                    <input
+                                        type="text"
+                                        placeholder="Enter additional info"
+                                        value={formData.whereFound.receivingDetails}
+                                        onChange={(e) =>
+                                            handleInputChange(e, "receivingDetails", "whereFound", "receiving")
+                                        }
+                                        className="w-full bg-blue-100 border border-gray-300 rounded-md p-2"
+                                    />
+                                </div>
+                                {/* Inprocess */}
+                                <div className="flex items-start gap-4">
+                                    <label className="flex items-center">
+                                        <input
+                                            type="checkbox"
+                                            checked={formData.whereFound.inprocess}
+                                            onChange={(e) =>
+                                                handleInputChange(e, "inprocess", "whereFound")
+                                            }
+                                            className="mr-2"
+                                        />
+                                        Inprocess
+                                    </label>
+                                    <input
+                                        type="text"
+                                        placeholder="Enter additional info"
+                                        value={formData.whereFound.inprocessDetails}
+                                        onChange={(e) =>
+                                            handleInputChange(e, "inprocessDetails", "whereFound", "inprocess")
+                                        }
+                                        className="w-full bg-blue-100 border border-gray-300 rounded-md p-2"
+                                    />
+                                </div>
+                                {/* F/G */}
+                                <div className="flex items-start gap-4">
+                                    <label className="flex items-center">
+                                        <input
+                                            type="checkbox"
+                                            checked={formData.whereFound.fg}
+                                            onChange={(e) =>
+                                                handleInputChange(e, "fg", "whereFound")
+                                            }
+                                            className="mr-2"
+                                        />
+                                        F/G
+                                    </label>
+                                    <input
+                                        type="text"
+                                        placeholder="Enter additional info"
+                                        value={formData.whereFound.fgDetails}
+                                        onChange={(e) =>
+                                            handleInputChange(e, "fgDetails", "whereFound", "fg")
+                                        }
+                                        className="w-full bg-blue-100 border border-gray-300 rounded-md p-2"
+                                    />
+                                </div>
 
-                        {/* W/H */}
-                        <div className="flex items-start gap-4">
-                            <label className="flex items-center">
-                                <input
-                                    type="checkbox"
-                                    checked={!!formData.whereFound.wh}
-                                    onChange={(e) =>
-                                        handleInputChange(e, "wh", "whereFound")
-                                    }
-                                    className="mr-2"
-                                />
-                                W/H
-                            </label>
-                            <input
-                                type="text"
-                                placeholder="Enter additional info"
-                                value={formData.whereFound.wh}
-                                onChange={(e) =>
-                                    handleInputChange(e, "wh", "whereFound")
-                                }
-                                className="w-full bg-yellow-100 border border-gray-300 rounded-md p-2"
-                            />
-                        </div>
+                                {/* W/H */}
+                                <div className="flex items-start gap-4">
+                                    <label className="flex items-center">
+                                        <input
+                                            type="checkbox"
+                                            checked={formData.whereFound.wh}
+                                            onChange={(e) =>
+                                                handleInputChange(e, "wh", "whereFound")
+                                            }
+                                            className="mr-2"
+                                        />
+                                        W/H
+                                    </label>
+                                    <input
+                                        type="text"
+                                        placeholder="Enter additional info"
+                                        value={formData.whereFound.whDetails}
+                                        onChange={(e) =>
+                                            handleInputChange(e, "whDetails", "whereFound", "wh")
+                                        }
+                                        className="w-full bg-blue-100 border border-gray-300 rounded-md p-2"
+                                    />
+                                </div>
 
-                        {/* Customer Claim */}
-                        <div className="flex items-start gap-4">
-                            <label className="flex items-center">
-                                <input
-                                    type="checkbox"
-                                    checked={!!formData.whereFound.customerClaim}
-                                    onChange={(e) =>
-                                        handleInputChange(e, "customerClaim", "whereFound")
-                                    }
-                                    className="mr-2"
-                                />
-                                Customer Claim (Line Claim)
-                            </label>
-                            <input
-                                type="text"
-                                placeholder="Enter additional info"
-                                value={formData.whereFound.customerClaim}
-                                onChange={(e) =>
-                                    handleInputChange(e, "customerClaim", "whereFound")
-                                }
-                                className="w-full bg-yellow-100 border border-gray-300 rounded-md p-2"
-                            />
-                        </div>
+                                {/* Customer Claim */}
+                                <div className="flex items-start gap-4">
+                                    <label className="flex items-center">
+                                        <input
+                                            type="checkbox"
+                                            checked={formData.whereFound.customerClaim}
+                                            onChange={(e) =>
+                                                handleInputChange(e, "customerClaim", "whereFound")
+                                            }
+                                            className="mr-2"
+                                        />
+                                        Customer Claim (Line Claim)
+                                    </label>
+                                    <input
+                                        type="text"
+                                        placeholder="Enter additional info"
+                                        value={formData.whereFound.customerClaimDetails}
+                                        onChange={(e) =>
+                                            handleInputChange(e, "customerClaimDetails", "whereFound", "customerClaim")
+                                        }
+                                        className="w-full bg-blue-100 border border-gray-300 rounded-md p-2"
+                                    />
+                                </div>
 
-                        {/* Warranty Claim */}
-                        <div className="flex items-start gap-4">
-                            <label className="flex items-center">
+                                {/* Warranty Claim */}
+                                <div className="flex items-start gap-4">
+                                    <label className="flex items-center">
+                                        <input
+                                            type="checkbox"
+                                            checked={formData.whereFound.warrantyClaim}
+                                            onChange={(e) =>
+                                                handleInputChange(e, "warrantyClaim", "whereFound")
+                                            }
+                                            className="mr-2"
+                                        />
+                                        Warranty Claim
+                                    </label>
+                                    <input
+                                        type="text"
+                                        placeholder="Enter additional info"
+                                        value={formData.whereFound.warrantyClaimDetails}
+                                        onChange={(e) =>
+                                            handleInputChange(
+                                                e,
+                                                "warrantyClaimDetails",
+                                                "whereFound",
+                                                "warrantyClaim"
+                                            )
+                                        }
+                                        className="w-full bg-blue-100 border border-gray-300 rounded-md p-2"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="w-[30%] border border-solid p-3 border-gray-300 rounded-md">
+                        <div className="grid grid-cols-1 gap-2 mb-4">
+                            <div>
+                                <label className="block text-sm font-bold">QPR Issue No.</label>
                                 <input
-                                    type="checkbox"
-                                    checked={!!formData.whereFound.warrantyClaim}
-                                    onChange={(e) =>
-                                        handleInputChange(e, "warrantyClaim", "whereFound")
-                                    }
-                                    className="mr-2"
+                                    type="text"
+                                    value={formData.qprIssueNo}
+                                    onChange={(e) => handleInputChange(e, "qprIssueNo")}
+                                    className="w-full bg-blue-100 border border-gray-300 rounded-md p-2"
                                 />
-                                Warranty Claim
-                            </label>
-                            <input
-                                type="text"
-                                placeholder="Enter additional info"
-                                value={formData.whereFound.warrantyClaim}
-                                onChange={(e) =>
-                                    handleInputChange(e, "warrantyClaim", "whereFound")
-                                }
-                                className="w-full bg-yellow-100 border border-gray-300 rounded-md p-2"
-                            />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold">Occurrence Date</label>
+                                <Calendar 
+                                    value={formData.occurrenceDate} 
+                                    dateFormat="dd/mm/yy"
+                                    placeholder="dd/mm/yy"
+                                    onChange={(e) => handleInputChange({ target: { value: e.value || undefined } }, "occurrenceDate")} 
+                                    className="w-full input-number-bg-blue-100"
+                                    showButtonBar
+                                    style={{ paddingLeft: 0 , paddingRight: 0 }}
+                                />
+                                
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold">Date Reported</label>
+                                <input
+                                    type="text"
+                                    value={formData.dateReported}
+                                    onChange={(e) => handleInputChange(e, "dateReported")}
+                                    placeholder="Auto-generated"
+                                    disabled
+                                    className="w-full bg-gray-200 border border-gray-300 rounded-md p-2"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold">Reply Quick Action</label>
+                                <input
+                                    type="text"
+                                    value={formData.replyQuickAction}
+                                    onChange={(e) => handleInputChange(e, "replyQuickAction")}
+                                    className="w-full bg-blue-100 border border-gray-300 rounded-md p-2"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold">REPLY REPORT</label>
+                                <Calendar 
+                                    value={formData.replyReport} 
+                                    dateFormat="dd/mm/yy"
+                                    placeholder="dd/mm/yy"
+                                    onChange={(e) => handleInputChange({ target: { value: e.value || undefined } }, "replyReport")} 
+                                    className="w-full input-number-bg-blue-100"
+                                    showButtonBar
+                                    style={{ paddingLeft: 0 , paddingRight: 0 }}
+                                />
+                            </div>
                         </div>
-                        </div>
+                    </div>
+
                 </div>
-
                 {/* DEFECT */}
-                <div className="mb-6">
-                    <h2 className="text-lg font-semibold">DEFECT</h2>
-                    <div className="flex flex-col gap-4 mt-2">
-                        <div className="flex items-start gap-4">
+                <div className="flex flex-col gap-1 mt-3 border border-solid p-3 border-gray-300 rounded-md">
+                    <label className="font-semibold">DEFECT</label>
+                    <div className="flex flex-wrap gap-4 mt-2">
+                        <div className="flex items-center gap-4">
                             <label className="flex items-center">
                                 <input
                                     type="checkbox"
-                                    checked={!!formData.defect.dimension}
+                                    checked={formData.defect.dimension}
                                     onChange={(e) =>
                                         handleInputChange(e, "dimension", "defect")
                                     }
@@ -348,23 +427,13 @@ export default function QPRForm() {
                                 />
                                 Dimension
                             </label>
-                            <input
-                                type="text"
-                                placeholder="Enter additional info"
-                                value={formData.defect.dimension}
-                                onChange={(e) =>
-                                    handleInputChange(e, "dimension", "defect")
-                                }
-                                className="w-full bg-yellow-100 border border-gray-300 rounded-md p-2"
-                            />
                         </div>
 
-                        {/* Material */}
-                        <div className="flex items-start gap-4">
+                        <div className="flex items-center gap-4">
                             <label className="flex items-center">
                                 <input
                                     type="checkbox"
-                                    checked={!!formData.defect.material}
+                                    checked={formData.defect.material}
                                     onChange={(e) =>
                                         handleInputChange(e, "material", "defect")
                                     }
@@ -372,22 +441,13 @@ export default function QPRForm() {
                                 />
                                 Material
                             </label>
-                            <input
-                                type="text"
-                                placeholder="Enter additional info"
-                                value={formData.defect.material}
-                                onChange={(e) =>
-                                    handleInputChange(e, "material", "defect")
-                                }
-                                className="w-full bg-yellow-100 border border-gray-300 rounded-md p-2"
-                            />
                         </div>
 
-                        <div className="flex items-start gap-4">
+                        <div className="flex items-center gap-4">
                             <label className="flex items-center">
                                 <input
                                     type="checkbox"
-                                    checked={!!formData.defect.appearance}
+                                    checked={formData.defect.appearance}
                                     onChange={(e) =>
                                         handleInputChange(e, "appearance", "defect")
                                     }
@@ -395,23 +455,13 @@ export default function QPRForm() {
                                 />
                                 Appearance
                             </label>
-                            <input
-                                type="text"
-                                placeholder="Enter additional info"
-                                value={formData.defect.appearance}
-                                onChange={(e) =>
-                                    handleInputChange(e, "appearance", "defect")
-                                }
-                                className="w-full bg-yellow-100 border border-gray-300 rounded-md p-2"
-                            />
                         </div>
 
-                        {/* Characteristics */}
-                        <div className="flex items-start gap-4">
+                        <div className="flex items-center gap-4">
                             <label className="flex items-center">
                                 <input
                                     type="checkbox"
-                                    checked={!!formData.defect.characteristics}
+                                    checked={formData.defect.characteristics}
                                     onChange={(e) =>
                                         handleInputChange(e, "characteristics", "defect")
                                     }
@@ -419,25 +469,19 @@ export default function QPRForm() {
                                 />
                                 Characteristics
                             </label>
-                            <input
-                                type="text"
-                                placeholder="Enter additional info"
-                                value={formData.defect.characteristics}
-                                onChange={(e) =>
-                                    handleInputChange(e, "characteristics", "defect")
-                                }
-                                className="w-full bg-yellow-100 border border-gray-300 rounded-md p-2"
-                            />
                         </div>
 
-                        {/* Other */}
-                        <div className="flex items-start gap-4">
+                        <div className="flex items-center gap-4">
                             <label className="flex items-center">
                                 <input
                                     type="checkbox"
                                     checked={!!formData.defect.other}
                                     onChange={(e) =>
-                                        handleInputChange(e, "other", "defect")
+                                        handleInputChange(
+                                            { target: { value: e.target.checked } },
+                                            "other",
+                                            "defect"
+                                        )
                                     }
                                     className="mr-2"
                                 />
@@ -446,17 +490,17 @@ export default function QPRForm() {
                             <input
                                 type="text"
                                 placeholder="Specify Other defect"
-                                value={formData.defect.other}
-                                onChange={(e) =>
-                                    handleInputChange(e, "other", "defect")
-                                }
-                                className="w-full bg-yellow-100 border border-gray-300 rounded-md p-2"
+                                value={formData.defect.otherDetails}
+                                onChange={(e) => handleInputChange(e, "otherDetails", "defect", "other")}
+                                className={`w-full bg-blue-100 border border-gray-300 rounded-md p-2`}
                             />
                         </div>
                     </div>
                 </div>
-                <div className="mb-6">
-                    <h2 className="text-lg font-semibold">STATE</h2>
+
+                {/* STATE */}
+                <div className="mt-3 border border-solid p-3 border-gray-300 rounded-md">
+                    <label className="font-semibold">STATE</label>
                     <div className="flex items-center gap-4 mt-2">
                         <label className="flex items-center">
                             <input
@@ -495,8 +539,8 @@ export default function QPRForm() {
                 </div>
 
                 {/* IMPORTANCE LEVEL */}
-                <div className="mb-6">
-                    <h2 className="text-lg font-semibold">IMPORTANCE LEVEL</h2>
+                <div className="mt-3 border border-solid p-3 border-gray-300 rounded-md">
+                    <label className="font-semibold">IMPORTANCE LEVEL</label>
                     <div className="flex items-center gap-4 mt-2">
                         <label className="flex items-center">
                             <input
@@ -555,8 +599,10 @@ export default function QPRForm() {
                         </label>
                     </div>
                 </div>
-                <div className="mb-6">
-                    <h2 className="text-lg font-semibold">FREQUENCY</h2>
+
+                {/* FREQUENCY */}
+                <div className="mt-3 border border-solid p-3 border-gray-300 rounded-md">
+                    <label className="font-semibold">FREQUENCY</label>
                     <div className="flex items-center gap-4 mt-2">
                         <label className="flex items-center">
                             <input
@@ -564,7 +610,7 @@ export default function QPRForm() {
                                 checked={formData.frequency.firstDefective}
                                 onChange={(e) =>
                                     handleInputChange(
-                                        { target: { value: e.target.checked } },
+                                        e,
                                         "firstDefective",
                                         "frequency"
                                     )
@@ -575,13 +621,27 @@ export default function QPRForm() {
                         </label>
                         <label className="flex items-center">
                             <input
-                                type="text"
-                                placeholder="Reoccurrence"
-                                value={formData.frequency.reoccurrence}
+                                type="checkbox"
+                                checked={formData.frequency.reoccurrence}
                                 onChange={(e) =>
-                                    handleInputChange(e, "reoccurrence", "frequency")
+                                    handleInputChange(
+                                        e,
+                                        "reoccurrence",
+                                        "frequency"
+                                    )
                                 }
-                                className="w-full bg-yellow-100 border border-gray-300 rounded-md p-2"
+                                className="mr-2"
+                            />
+                            Reoccurrence
+
+                            <InputNumber 
+                                value={formData.frequency.reoccurrenceDetails} 
+                                onChange={(e) => handleInputChange({ target: { value: e.value , type: 'text' }}, "reoccurrenceDetails", "frequency" , "reoccurrence")} 
+                                min={1}
+                                max={99}
+                                placeholder="1-99"
+                                className="w-full bg-blue-100 border border-gray-300 rounded-md ml-2 input-number-bg-blue-100 "
+                                style={{ padding: 0 }}
                             />
                         </label>
                         <label className="flex items-center">
@@ -590,9 +650,9 @@ export default function QPRForm() {
                                 checked={formData.frequency.chronicDisease}
                                 onChange={(e) =>
                                     handleInputChange(
-                                        { target: { value: e.target.checked } },
+                                        e,
                                         "chronicDisease",
-                                        "frequency"
+                                        "frequency",
                                     )
                                 }
                                 className="mr-2"
@@ -601,11 +661,12 @@ export default function QPRForm() {
                         </label>
                     </div>
                 </div>
-
                 {/* DEFECTIVE CONTENTS */}
-                <div className="mb-6">
-                    <h2 className="text-lg font-semibold">DEFECTIVE CONTENTS ( Entry of contents, Illustration, Selection results, …. Etc.)</h2>
-                    <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="mt-3 border border-solid p-3 border-gray-300 rounded-md">
+                    <h2 className="text-lg font-semibold">
+                        DEFECTIVE CONTENTS (Entry of contents, Illustration, Selection results, etc.)
+                    </h2>
+                    <div className="grid grid-cols-2 gap-2 mb-4">
                         <div>
                             <label className="block text-sm font-bold">Problem Case</label>
                             <input
@@ -615,7 +676,7 @@ export default function QPRForm() {
                                 onChange={(e) =>
                                     handleInputChange(e, "problemCase", "defectiveContents")
                                 }
-                                className="w-full bg-yellow-100 border border-gray-300 rounded-md p-2"
+                                className="w-full bg-blue-100 border border-gray-300 rounded-md p-2"
                             />
                         </div>
                         <div>
@@ -627,7 +688,7 @@ export default function QPRForm() {
                                 onChange={(e) =>
                                     handleInputChange(e, "specification", "defectiveContents")
                                 }
-                                className="w-full bg-yellow-100 border border-gray-300 rounded-md p-2"
+                                className="w-full bg-blue-100 border border-gray-300 rounded-md p-2"
                             />
                         </div>
                         <div>
@@ -639,7 +700,7 @@ export default function QPRForm() {
                                 onChange={(e) =>
                                     handleInputChange(e, "action", "defectiveContents")
                                 }
-                                className="w-full bg-yellow-100 border border-gray-300 rounded-md p-2"
+                                className="w-full bg-blue-100 border border-gray-300 rounded-md p-2"
                             />
                         </div>
                         <div>
@@ -651,7 +712,7 @@ export default function QPRForm() {
                                 onChange={(e) =>
                                     handleInputChange(e, "ngEffective", "defectiveContents")
                                 }
-                                className="w-full bg-yellow-100 border border-gray-300 rounded-md p-2"
+                                className="w-full bg-blue-100 border border-gray-300 rounded-md p-2"
                             />
                         </div>
                         <div>
@@ -663,45 +724,42 @@ export default function QPRForm() {
                                 onChange={(e) =>
                                     handleInputChange(e, "lot", "defectiveContents")
                                 }
-                                className="w-full bg-yellow-100 border border-gray-300 rounded-md p-2"
+                                className="w-full bg-blue-100 border border-gray-300 rounded-md p-2"
                             />
                         </div>
                     </div>
                 </div>
 
                 {/* FIGURES */}
-                <div className="mb-6">
-                    <h2 className="text-lg font-semibold">FIGURE</h2>
+                <div className="mt-3 border border-solid p-3 border-gray-300 rounded-md">
+                    <label className="font-semibold">FIGURE</label>
                     <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-yellow-100 border border-gray-300 p-6 text-center">
+                        <div className="bg-blue-100 border border-gray-300 p-6 text-center">
                             <span className="text-gray-500">Picture #1</span>
                         </div>
-                        <div className="bg-yellow-100 border border-gray-300 p-6 text-center">
+                        <div className="bg-blue-100 border border-gray-300 p-6 text-center">
                             <span className="text-gray-500">Picture #2</span>
                         </div>
-                        <div className="bg-yellow-100 border border-gray-300 p-6 text-center">
+                        <div className="bg-blue-100 border border-gray-300 p-6 text-center">
                             <span className="text-gray-500">Picture #3</span>
                         </div>
-                        <div className="bg-yellow-100 border border-gray-300 p-6 text-center">
+                        <div className="bg-blue-100 border border-gray-300 p-6 text-center">
                             <span className="text-gray-500">Picture #4</span>
                         </div>
                     </div>
                 </div>
             </div>
             <Footer>
-                <div className="flex justify-end gap-4">
-                    <button
-                        className="bg-gray-200 px-4 py-2 rounded-md"
+                <div className="flex justify-end mt-2 w-full gap-2">
+                    <Button
+                        label="Cancel"
+                        severity="secondary"
                         onClick={() => console.log("Cancelled")}
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        className="bg-blue-500 text-white px-4 py-2 rounded-md"
+                    />
+                    <Button
+                        label="Submit"
                         onClick={() => console.log("Submitted Data:", formData)}
-                    >
-                        Submit
-                    </button>
+                    />
                 </div>
             </Footer>
         </div>

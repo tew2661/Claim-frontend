@@ -114,7 +114,7 @@ export default function UserManagement() {
                     <Column field="role" header="Role" style={{ width: '15%', textAlign: 'center' }}></Column>
                     <Column field="email" header="Email" style={{ width: '20%' }}></Column>
                     <Column field="action" header="Action" style={{ width: '10%', textAlign: 'center' }} body={(arr) => {
-                        return <div className="flex gap-2">
+                        return <div className="flex justify-center gap-2">
                             <Button icon="pi pi-pen-to-square" outlined onClick={()=> {
                                 setNewUser(arr);
                                 setAddOrEdit('E');

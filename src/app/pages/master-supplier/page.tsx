@@ -127,11 +127,14 @@ export default function UserManagement() {
                         })}</div>
                     }}></Column>
                     <Column field="action" header="Action" style={{ width: '10%', textAlign: 'center' }} body={(arr) => {
-                        return <Button icon="pi pi-pen-to-square" outlined onClick={()=> {
-                            setNewSupplier(arr);
-                            setAddOrEdit('E');
-                            setVisibleAdd(true);
-                        }} />
+                        return <div className="flex justify-center gap-2"> 
+                            <Button icon="pi pi-pen-to-square" outlined onClick={()=> {
+                                setNewSupplier(arr);
+                                setAddOrEdit('E');
+                                setVisibleAdd(true);
+                            }} />
+                            <Button icon="pi pi-trash" severity="danger" outlined onClick={() => {}} />
+                        </div>
                     }}></Column>
                 </DataTable>
             </div>
