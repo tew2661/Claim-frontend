@@ -6,13 +6,75 @@ import { Dropdown, DropdownChangeEvent } from "primereact/dropdown";
 import { InputNumber } from "primereact/inputnumber";
 import { useState } from "react";
 
+interface WhereFound {
+    receiving: boolean;
+    receivingDetails: string;
+    inprocess: boolean;
+    inprocessDetails: string;
+    fg: boolean;
+    fgDetails: string;
+    wh: boolean;
+    whDetails: string;
+    customerClaim: boolean;
+    customerClaimDetails: string;
+    warrantyClaim: boolean;
+    warrantyClaimDetails: string;
+}
+
+interface Defect {
+    dimension: boolean;
+    material: boolean;
+    appearance: boolean;
+    characteristics: boolean;
+    other: boolean;
+    otherDetails: string;
+}
+
+interface Frequency {
+    firstDefective: boolean;
+    reoccurrence: boolean;
+    reoccurrenceDetails: number | undefined;
+    chronicDisease: boolean;
+}
+
+interface DefectiveContents {
+    problemCase: string;
+    specification: string;
+    action: string;
+    ngEffective: string;
+    lot: string;
+}
+
+interface FormData {
+    qprIssueNo: string;
+    occurrenceDate: Date | undefined;
+    dateReported: string;
+    replyQuickAction: string;
+    replyReport: Date | undefined;
+    supplierName: string;
+    partName: string;
+    partNo: string;
+    model: string;
+    when: string;
+    who: string;
+    whereFound: WhereFound;
+    defect: Defect;
+    state: string;
+    importanceLevel: string;
+    frequency: Frequency;
+    defectiveContents: DefectiveContents;
+    issue: string;
+    figures: any[]; // Specify a more specific type if you know the structure of figures
+}
+
+
 export default function QPRForm() {
-    const [formData, setFormData] = useState<any>({
+    const [formData, setFormData] = useState<FormData>({
         qprIssueNo: "",
-        occurrenceDate: "",
+        occurrenceDate: undefined,
         dateReported: "",
         replyQuickAction: "",
-        replyReport: "",
+        replyReport: undefined,
         supplierName: "",
         partName: "",
         partNo: "",
@@ -41,6 +103,7 @@ export default function QPRForm() {
             other: false,
             otherDetails: "",
         },
+        state: "",
         importanceLevel: "",
         frequency: {
             firstDefective: false,
@@ -60,33 +123,42 @@ export default function QPRForm() {
     });
 
     // Handle Input Changes
-    const handleInputChange = (e: any, field: string, section: any = null, fieldMaster?: string) => {
-        const { type, checked, value } = e.target;
-        const newValue = type === "checkbox" ? checked : value;
+    const handleInputChange = (
+        e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+        field: string,
+        section?: keyof FormData,
+        fieldMaster?: keyof WhereFound | keyof Defect | keyof Frequency
+    ) => {
+        const target = e.target;
+        const newValue =
+            target.type === "checkbox" ? (target as HTMLInputElement).checked : target.value;
+    
         if (section === "defect" && fieldMaster === "other") {
-            setFormData({
-                ...formData,
+            setFormData((prevData) => ({
+                ...prevData,
                 [section]: {
-                    ...formData[section],
-                    ...fieldMaster ? { [fieldMaster]: formData[section][fieldMaster] || true } : {},
+                    ...prevData[section],
+                    ...(fieldMaster
+                        ? { [fieldMaster]: (prevData[section] as Defect)[fieldMaster] || true }
+                        : {}),
                     [field]: newValue,
                 },
-            });
+            }));
         } else if (section === "frequency") {
-            
-            setFormData({
-                ...formData,
-                frequency: {
+            setFormData((prevData) => ({
+                ...prevData,
+                [section]: {
                     firstDefective: false,
                     reoccurrence: false,
                     chronicDisease: false,
-                    ...fieldMaster ? { [fieldMaster]: formData[section][fieldMaster] || true } : {},
-                    [field]: newValue
-                },
-            });
+                    ...(fieldMaster
+                        ? { [fieldMaster]: newValue }
+                        : { [field]: newValue }),
+                } as Frequency,
+            }));
         } else if (section === "whereFound") {
-            setFormData({
-                ...formData,
+            setFormData((prevData) => ({
+                ...prevData,
                 whereFound: {
                     receiving: false,
                     receivingDetails: "",
@@ -100,24 +172,28 @@ export default function QPRForm() {
                     customerClaimDetails: "",
                     warrantyClaim: false,
                     warrantyClaimDetails: "",
-                    ...fieldMaster ? { [fieldMaster]: formData['whereFound'][fieldMaster] || true } : {},
-                    [field]: newValue
-                }
-            });
-
-        } else if (section) {
-            setFormData({
-                ...formData,
-                [section]: {
-                    ...formData[section],
+                    ...(fieldMaster
+                        ? {
+                              [fieldMaster as keyof WhereFound]:
+                                  (prevData.whereFound as WhereFound)[fieldMaster as keyof WhereFound] || true,
+                          }
+                        : {}),
                     [field]: newValue,
                 },
-            });
+            }));
+        } else if (section) {
+            setFormData((prevData) => ({
+                ...prevData,
+                [section]: {
+                    ...(prevData[section] as Record<string, any>), // Use type assertion
+                    [field]: newValue,
+                },
+            }));
         } else {
-            setFormData({
-                ...formData,
+            setFormData((prevData) => ({
+                ...prevData,
                 [field]: newValue,
-            });
+            }));
         }
     };
 
@@ -150,7 +226,7 @@ export default function QPRForm() {
                                 /> */}
                                 <Dropdown 
                                     value={formData.supplierName || ""} 
-                                    onChange={(e: DropdownChangeEvent) => handleInputChange({ target: { value: e.value }}, "supplierName")} 
+                                    onChange={(e: DropdownChangeEvent) => handleInputChange({ target: { value: e.value }} as React.ChangeEvent<HTMLInputElement>, "supplierName")} 
                                     options={[
                                         { label: 'Supplier A', value: 'Supplier A' },
                                         { label: 'Supplier B', value: 'Supplier B' }
@@ -368,7 +444,7 @@ export default function QPRForm() {
                                     value={formData.occurrenceDate} 
                                     dateFormat="dd/mm/yy"
                                     placeholder="dd/mm/yy"
-                                    onChange={(e) => handleInputChange({ target: { value: e.value || undefined } }, "occurrenceDate")} 
+                                    onChange={(e) => handleInputChange({ target: { value: e.value || undefined }} as any as React.ChangeEvent<HTMLInputElement> , "occurrenceDate")} 
                                     className="w-full input-number-bg-blue-100"
                                     showButtonBar
                                     style={{ paddingLeft: 0 , paddingRight: 0 }}
@@ -401,7 +477,7 @@ export default function QPRForm() {
                                     value={formData.replyReport} 
                                     dateFormat="dd/mm/yy"
                                     placeholder="dd/mm/yy"
-                                    onChange={(e) => handleInputChange({ target: { value: e.value || undefined } }, "replyReport")} 
+                                    onChange={(e) => handleInputChange({ target: { value: e.value || undefined }} as any as React.ChangeEvent<HTMLInputElement>, "replyReport")} 
                                     className="w-full input-number-bg-blue-100"
                                     showButtonBar
                                     style={{ paddingLeft: 0 , paddingRight: 0 }}
@@ -478,7 +554,7 @@ export default function QPRForm() {
                                     checked={!!formData.defect.other}
                                     onChange={(e) =>
                                         handleInputChange(
-                                            { target: { value: e.target.checked } },
+                                            { target: { value: e.target.checked } } as any as React.ChangeEvent<HTMLInputElement>,
                                             "other",
                                             "defect"
                                         )
@@ -636,7 +712,7 @@ export default function QPRForm() {
 
                             <InputNumber 
                                 value={formData.frequency.reoccurrenceDetails} 
-                                onChange={(e) => handleInputChange({ target: { value: e.value , type: 'text' }}, "reoccurrenceDetails", "frequency" , "reoccurrence")} 
+                                onChange={(e) => handleInputChange({ target: { value: e.value , type: 'text' }} as any as React.ChangeEvent<HTMLInputElement> , "reoccurrenceDetails", "frequency" , "reoccurrence")} 
                                 min={1}
                                 max={99}
                                 placeholder="1-99"

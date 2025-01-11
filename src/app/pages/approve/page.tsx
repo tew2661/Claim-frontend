@@ -60,9 +60,9 @@ const mockData = [
 ];
 
 export default function ReportTable() {
-    const [first, setFirst] = useState(0);
-    const [rows, setRows] = useState(10);
-    const [totalRows, setTotalRows] = useState(10);
+    const [first, setFirst] = useState<number>(0);
+    const [rows, setRows] = useState<number>(10);
+    const [totalRows, ] = useState<number>(10);
 
     const [filters, setFilters] = useState<FilterApprove>({
         date: null,

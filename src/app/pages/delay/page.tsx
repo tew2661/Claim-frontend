@@ -59,7 +59,7 @@ const mockData = [
 export default function ReportTable() {
     const [first, setFirst] = useState(0);
     const [rows, setRows] = useState(10);
-    const [totalRows, setTotalRows] = useState(10);
+    const [totalRows,] = useState(10);
 
     const [filters, setFilters] = useState<FilterDelay>({
         supplier: "",
