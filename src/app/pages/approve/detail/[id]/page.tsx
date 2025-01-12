@@ -190,15 +190,15 @@ export default function PDFApproval() {
 
             </div>
             <Footer>
-                <div className="flex justify-end mt-2 w-full gap-2">
+                <div className="flex justify-end w-full gap-2">
                     <Button
                         label="Confirm"
-                        className="bg-green-600 text-white border-green-700"
+                        className="bg-green-600 text-white border-green-700 min-w-[150px]"
                     />
                     {
                         reportType == '8D Report' ? <Button
                             label="Confirm and complete"
-                            className="bg-blue-800 text-white"
+                            className="bg-blue-800 text-white min-w-[150px]"
                         /> : <></>
                     }
 

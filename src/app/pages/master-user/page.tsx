@@ -189,7 +189,7 @@ export default function UserManagement() {
             </Dialog>
             <Footer>
                 <div className='flex justify-end mt-2 w-full gap-2'>
-                    <Button label="Add New User" className="p-button-primary" onClick={addNewUser} />
+                    <Button label="Add New User" className="p-button-primary min-w-[150px]" onClick={addNewUser} />
                 </div>
             </Footer>
         </div>

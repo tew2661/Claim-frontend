@@ -1,5 +1,6 @@
 'use client';
 import Footer from "@/components/footer";
+import { useRouter } from "next/navigation";
 import { Button } from "primereact/button";
 import { Calendar } from "primereact/calendar";
 import { Dropdown, DropdownChangeEvent } from "primereact/dropdown";
@@ -69,6 +70,7 @@ interface FormData {
 
 
 export default function QPRForm() {
+    const router = useRouter()
     const [formData, setFormData] = useState<FormData>({
         qprIssueNo: "",
         occurrenceDate: undefined,
@@ -830,10 +832,12 @@ export default function QPRForm() {
                     <Button
                         label="Cancel"
                         severity="secondary"
-                        onClick={() => console.log("Cancelled")}
+                        className="min-w-[150px]"
+                        onClick={() => router.back()}
                     />
                     <Button
                         label="Submit"
+                        className="min-w-[150px]"
                         onClick={() => console.log("Submitted Data:", formData)}
                     />
                 </div>

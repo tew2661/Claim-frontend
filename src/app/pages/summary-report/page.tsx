@@ -144,17 +144,17 @@ export default function SummaryReport() {
                         }} />}
                 >
                     <Column field="supplier" header="Supplier"></Column>
-                    <Column field="problem" header="ปัญหา"></Column>
+                    <Column field="problem" header="ปัญหา" bodyStyle={{ width: '30%' }}></Column>
                     <Column field="importance" header="Importance Level"></Column>
                     <Column field="quickReport" header="Quick Report"></Column>
                     <Column field="report8D" header="8D Report"></Column>
-                    <Column field="status" header="Status"></Column>
+                    <Column field="status" header="Status" bodyStyle={{ width: '20%' }}></Column>
                 </DataTable>
 
                 {/* Export Button */}
                 <Footer>
                     <div className='flex justify-end mt-2 w-full gap-2'>
-                        <Button label="Export AS Excel" className="p-button-success" onClick={exportToExcel} />
+                        <Button label="Export AS Excel" className="p-button-success min-w-[150px]" onClick={exportToExcel} />
                     </div>
                 </Footer>
             </div>

@@ -44,7 +44,24 @@ const menuList: MenuCategory[] = [
         icon: undefined,
         url: "/pages/delay",
     },
-    
+    {
+        label: 'Action List',
+        items: [],
+        icon: undefined,
+        url: "/pages/action-list",
+    },
+    {
+        label: 'Create QPR Report',
+        items: [],
+        icon: undefined,
+        url: "/pages/qpr-report",
+    },
+    {
+        label: 'Create 8D Report',
+        items: [],
+        icon: undefined,
+        url: "/pages/8d-report",
+    },
 ];
 
 export { menuList }

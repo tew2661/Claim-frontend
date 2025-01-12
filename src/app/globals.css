@@ -126,6 +126,7 @@ body {
 
 .p-datatable .p-datatable-tbody > tr > td {
   padding: 0.5rem 1rem;
+  height: 49px !important;
 }
 
 .p-datatable.p-datatable-striped .p-datatable-tbody > tr.p-row-odd {

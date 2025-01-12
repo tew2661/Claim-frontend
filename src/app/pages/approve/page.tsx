@@ -108,6 +108,7 @@ export default function ReportTable() {
                             <Calendar
                                 id="date"
                                 showIcon
+                                showButtonBar
                                 value={filters.date}
                                 dateFormat="dd/mm/yy"
                                 onChange={(e) => setFilters({ ...filters, date: e.value })}
@@ -171,7 +172,7 @@ export default function ReportTable() {
                     <Column field="date" header="Date"></Column>
                     <Column field="supplier" header="Supplier"></Column>
                     <Column field="reportType" header="Report Type"></Column>
-                    <Column field="problem" header="ปัญหา"></Column>
+                    <Column field="problem" header="ปัญหา" bodyStyle={{ width: '30%' }}></Column>
                     <Column field="importance" header="Importance Level"></Column>
                     <Column field="status" header="Status" bodyStyle={{ textAlign: 'center' }}></Column>
                     <Column body={actionBodyTemplate} header="" bodyStyle={{ textAlign: 'center' }}></Column>
