@@ -8,6 +8,7 @@ import { Paginator } from "primereact/paginator";
 import { TemplatePaginator } from "@/components/template-pagination";
 import { Calendar } from "primereact/calendar";
 import { Nullable } from "primereact/ts-helpers";
+import { useRouter } from "next/navigation";
 
 interface FilterApprove {
     date: Nullable<Date>;
@@ -16,8 +17,19 @@ interface FilterApprove {
     status: string;
 }
 
-const mockData = [
+interface DataQPR {
+    id: number,
+    date: string,
+    supplier: string,
+    reportType: string,
+    problem: string,
+    importance: string,
+    status: string,
+}
+
+const mockData: DataQPR[] = [
     {
+        id: 1,
         date: "11/11/2024",
         supplier: "Supplier A",
         reportType: "Quick Report",
@@ -26,6 +38,7 @@ const mockData = [
         status: "Pending",
     },
     {
+        id: 2,
         date: "11/11/2024",
         supplier: "Supplier B",
         reportType: "8D Report",
@@ -34,6 +47,7 @@ const mockData = [
         status: "Pending",
     },
     {
+        id: 3,
         date: "11/11/2024",
         supplier: "Supplier C",
         reportType: "8D Report",
@@ -42,6 +56,7 @@ const mockData = [
         status: "Pending",
     },
     {
+        id: 4,
         date: "11/11/2024",
         supplier: "Supplier D",
         reportType: "8D Report",
@@ -50,6 +65,7 @@ const mockData = [
         status: "Approved",
     },
     {
+        id: 5,
         date: "11/11/2024",
         supplier: "Supplier E",
         reportType: "8D Report",
@@ -63,6 +79,7 @@ export default function ReportTable() {
     const [first, setFirst] = useState<number>(0);
     const [rows, setRows] = useState<number>(10);
     const [totalRows, ] = useState<number>(10);
+    const router = useRouter()
 
     const [filters, setFilters] = useState<FilterApprove>({
         date: null,
@@ -75,9 +92,9 @@ export default function ReportTable() {
         setFilters({ ...filters, [field]: e.target.value });
     };
 
-    const actionBodyTemplate = () => {
+    const actionBodyTemplate = (rowData: DataQPR) => {
         return (
-            <Button label="View" className="p-button-primary" outlined />
+            <Button label="View" className="p-button-primary" outlined onClick={() => router.push(`approve/detail/${rowData.id}`) } />
         );
     };
 
