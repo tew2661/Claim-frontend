@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "primereact/button";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
@@ -9,20 +9,33 @@ import { TemplatePaginator } from "@/components/template-pagination";
 import { Paginator } from "primereact/paginator";
 import { Dialog } from "primereact/dialog";
 import { InputText } from "primereact/inputtext";
+import { Delete, Get, Patch, Post, Put } from "@/components/fetch";
+import { Toast } from "primereact/toast";
+import { Dropdown } from "primereact/dropdown";
+import { InputSwitch } from "primereact/inputswitch";
 
-const mockData = [
-    { id: "670001", name: "Mr.A", department: "AAA", role: "Checker", email: "aaa@jtekt.co.th" },
-    { id: "620028", name: "Mr.B", department: "AAA", role: "Manager", email: "bbb@jtekt.co.th" },
-    { id: "610027", name: "Mr.C", department: "AAA", role: "DGM/GM", email: "ccc@jtekt.co.th" },
-    { id: "350012", name: "Mr.D", department: "AAA", role: "Plant Manager", email: "ddd@jtekt.co.th" },
-    { id: "570029", name: "Mr.E", department: "AAA", role: "Admin", email: "eee@jtekt.co.th" },
-    { id: "600009", name: "Mr.F", department: "AAA", role: "Checker", email: "fff@jtekt.co.th" },
-    { id: "320012", name: "Mr.G", department: "AAA", role: "Checker", email: "ggg@jtekt.co.th" },
+interface UserData {
+    id: number;
+    code: string;
+    name: string;
+    department: string;
+    role: string;
+    email: string;
+    active?: "Y" | "N";
+}
+
+const roleOptions = [
+    { label: "Checker", value: "Checker" },
+    { label: "Manager", value: "Manager" },
+    { label: "DGM/GM", value: "DGM/GM" },
+    { label: "Plant Manager", value: "Plant Manager" },
+    { label: "Admin", value: "Admin" },
 ];
 
 export default function UserManagement() {
     const defaultUser = {
-        id: '',
+        id: -1,
+        code: '',
         name: '',
         department: '',
         role: '',
@@ -30,21 +43,27 @@ export default function UserManagement() {
     }
 
     const defaultErrorUser = {
-        id: false,
+        code: false,
         name: false,
         department: false,
         role: false,
         email: false,
     }
 
+    const toast = useRef<Toast>(null);
     const [visibleAdd, setVisibleAdd] = useState<boolean>(false);
-    const [addOrEdit, setAddOrEdit] = useState<'A'|'E'>('A');
-    const [users, setUsers] = useState(mockData);
+    const [addOrEdit, setAddOrEdit] = useState<'A' | 'E' | 'P'>('A');
+    const [users, setUsers] = useState<UserData[]>([]);
     const [first, setFirst] = useState(0);
     const [rows, setRows] = useState(10);
     const [totalRows, setTotalRows] = useState(10);
     const [newUser, setNewUser] = useState(defaultUser)
     const [iInvalid, setIInvalid] = useState(defaultErrorUser);
+
+    const [password, setPassword] = useState({
+        pass1: '',
+        pass2: ''
+    })
 
     const addNewUser = () => {
         // Logic สำหรับการเพิ่มผู้ใช้ใหม่ (เปิด Modal หรือไปยังหน้าเพิ่มผู้ใช้งาน)
@@ -57,18 +76,18 @@ export default function UserManagement() {
     };
 
     const handleInputChangeAdd = (e: React.ChangeEvent<HTMLInputElement>, field: string) => {
-        setNewUser((old) => ({ ...old , [field]: e.target.value }))
+        setNewUser((old) => ({ ...old, [field]: e.target.value }))
     }
 
-    const chechInvalid = () => {
+    const chechInvalid = async () => {
         const inInvalid: any = {
-            id: false,
+            code: false,
             name: false,
             department: false,
             role: false,
             email: false,
         }
-        if (!newUser.id) {
+        if (!newUser.code) {
             inInvalid.id = true
         }
         if (!newUser.name) {
@@ -85,14 +104,145 @@ export default function UserManagement() {
         }
         setIInvalid(inInvalid);
 
-        if(Object.keys(inInvalid).filter((x: any) => (inInvalid[x])).length) {
+        if (Object.keys(inInvalid).filter((x: any) => (inInvalid[x])).length) {
             return;
+        }
+
+        let datareturn: Response | null = null
+        if (addOrEdit == 'A') {
+            datareturn = await Post({
+                url: `/users`,
+                body: JSON.stringify({
+                    code: newUser.code,
+                    name: newUser.name,
+                    department: newUser.department,
+                    role: newUser.role,
+                    email: newUser.email,
+                    password: '12345678',
+                }),
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+        } else {
+            datareturn = await Put({
+                url: `/users/${newUser.id}`,
+                body: JSON.stringify({
+                    code: newUser.code,
+                    name: newUser.name,
+                    department: newUser.department,
+                    role: newUser.role,
+                    email: newUser.email,
+                }),
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+        }
+
+        if (datareturn?.ok) {
+            GetDatas();
+            toast.current?.show({ severity: 'success', summary: 'บันทึกสำเร็จ', detail: addOrEdit == 'A' ? `เพิ่ม user ใหม่สำเร็จ` : `แก้ไขข้อมูล user สำเร็จ`, life: 3000 });
+        } else {
+            toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await datareturn!.json()).message)}`, life: 3000 });
+        }
+
+        setVisibleAdd(false);
+    }
+
+    const GetDatas = async () => {
+        const res = await Get({ url: `/users?limit=${rows}&offset=${first}` });
+        if (res.ok) {
+            const res_data = await res.json();
+            setTotalRows(res_data.total || 0)
+            setUsers((res_data.data || []).map((x: any) => {
+                return {
+                    id: x.id,
+                    code: x.code,
+                    name: x.name,
+                    department: x.department,
+                    role: x.role,
+                    email: x.email,
+                    active: x.active || 'N'
+                }
+            }))
+        } else {
+            toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await res!.json()).message)}`, life: 3000 });
+        }
+    }
+
+    const DeleteData = async (id: number) => {
+        const res = await Delete({
+            url: `/users/${id}`,
+            body: JSON.stringify({}),
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        if (res.ok) {
+            toast.current?.show({ severity: 'success', summary: 'บันทึกสำเร็จ', detail: `ลบข้อมูล user สำเร็จ`, life: 3000 });
+            GetDatas()
+        } else {
+            toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await res!.json()).message)}`, life: 3000 });
         }
         setVisibleAdd(false);
     }
 
+    const ActiveUser = async (id: number, active: "Y" | "N") => {
+        const res = await Put({
+            url: `/users/${id}`,
+            body: JSON.stringify({
+                active
+            }),
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        if (res.ok) {
+            toast.current?.show({ severity: 'success', summary: 'บันทึกสำเร็จ', detail: `${active == 'Y' ? "เปิดการใช้งาน" : "ปิดการใช้งาน"} user สำเร็จ`, life: 3000 });
+            GetDatas()
+        } else {
+            toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await res!.json()).message)}`, life: 3000 });
+        }
+        setVisibleAdd(false);
+    }
+
+    const FixPasswordData = async (id: number) => {
+        if (!password.pass1) {
+            toast.current?.show({ severity: 'warn', summary: 'Error', detail: `กรุณาระบุข้อมูล`, life: 3000 });
+            return;
+        } else if (password.pass1.length < 8) {
+            toast.current?.show({ severity: 'warn', summary: 'Error', detail: `รหัสผ่านอย่างน้อย 8 ตัว`, life: 3000 });
+            return;
+        } else if (password.pass1 !== password.pass2) {
+            toast.current?.show({ severity: 'warn', summary: 'Error', detail: `รหัสผ่านระบุไม่ตรงกัน`, life: 3000 });
+            return;
+        }
+        const res = await Put({
+            url: `/users/${id}`,
+            body: JSON.stringify({
+                password: password.pass1
+            }),
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        if (res.ok) {
+            toast.current?.show({ severity: 'success', summary: 'บันทึกสำเร็จ', detail: `เปลี่ยนรหัสผ่านสำเร็จ`, life: 3000 });
+            GetDatas()
+        } else {
+            toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await res!.json()).message)}`, life: 3000 });
+        }
+        setVisibleAdd(false);
+    }
+
+    useEffect(() => {
+        GetDatas()
+    }, [])
+
     return (
         <div className="flex justify-center pt-6 px-6">
+            <Toast ref={toast} />
             <div className="container">
                 <h1 className="text-2xl font-bold mb-4 mx-4">User Management</h1>
                 <DataTable value={users}
@@ -108,83 +258,116 @@ export default function UserManagement() {
                             setFirst(event.first);
                             setRows(event.rows);
                         }} />}>
-                    <Column field="id" header="รหัสพนักงาน" style={{ width: '10%' , textAlign: 'center' }}></Column>
+                    <Column field="code" header="รหัสพนักงาน" style={{ width: '10%', textAlign: 'center' }}></Column>
                     <Column field="name" header="ชื่อพนักงาน" style={{ width: '35%' }}></Column>
                     <Column field="department" header="หน่วยงาน" style={{ width: '20%' }}></Column>
                     <Column field="role" header="Role" style={{ width: '15%', textAlign: 'center' }}></Column>
                     <Column field="email" header="Email" style={{ width: '20%' }}></Column>
-                    <Column field="action" header="Action" style={{ width: '10%', textAlign: 'center' }} body={(arr) => {
+                    <Column field="active" header="Active" body={(arr: UserData) => {
+                        return <InputSwitch inputId="input-metakey" checked={arr.active == 'Y'} onChange={(e) => ActiveUser(arr.id, arr.active == 'Y' ? "N" : "Y")} />
+                    }} ></Column>
+                    <Column field="action" header="Action" style={{ width: '10%', textAlign: 'center' }} body={(arr: UserData) => {
                         return <div className="flex justify-center gap-2">
-                            <Button icon="pi pi-pen-to-square" outlined onClick={()=> {
+                            <Button icon="pi pi-key" severity="warning" outlined onClick={() => { 
+                                setNewUser(arr);
+                                setAddOrEdit('P');
+                                setVisibleAdd(true);
+                             }} />
+                            <Button icon="pi pi-pen-to-square" outlined onClick={() => {
                                 setNewUser(arr);
                                 setAddOrEdit('E');
                                 setVisibleAdd(true);
                             }} />
-                            <Button icon="pi pi-trash" severity="danger" outlined onClick={() => {}} />
-                            
+                            <Button icon="pi pi-trash" severity="danger" outlined onClick={() => { DeleteData(arr.id) }} />
                         </div>
                     }}></Column>
                 </DataTable>
             </div>
-            <Dialog header={addOrEdit == 'A' ? "Add User" : "Edit User"} visible={visibleAdd} onHide={() => { if (!visibleAdd) return; setVisibleAdd(false); }}
+            <Dialog header={addOrEdit == 'A' ? "Add User" : (addOrEdit == 'E' ? "Edit User" : "Fix Password")} visible={visibleAdd} onHide={() => { if (!visibleAdd) return; setVisibleAdd(false); }}
                 style={{ width: '50vw' }} breakpoints={{ '960px': '75vw', '641px': '100vw' }}>
                 <div className="flex flex-col gap-2">
-                    <div className="flex flex-col gap-2 w-full">
-                        <label htmlFor="id">รหัสพนักงาน</label>
-                        <InputText
-                            id="id"
-                            value={newUser.id}
-                            invalid={iInvalid.id && !newUser.id}
-                            onChange={(e) => handleInputChangeAdd(e, "id")}
-                            className="w-full"
-                        />
-                    </div>
-                    <div className="flex flex-col gap-2 w-full">
-                        <label htmlFor="name">ชื่อพนักงาน</label>
-                        <InputText
-                            id="name"
-                            value={newUser.name}
-                            invalid={iInvalid.name && !newUser.name}
-                            onChange={(e) => handleInputChangeAdd(e, "name")}
-                            className="w-full"
-                        />
-                    </div>
-                    <div className="flex flex-col gap-2 w-full">
-                        <label htmlFor="department">หน่วยงาน</label>
-                        <InputText
-                            id="department"
-                            value={newUser.department}
-                            invalid={iInvalid.department && !newUser.department}
-                            onChange={(e) => handleInputChangeAdd(e, "department")}
-                            className="w-full"
-                        />
-                    </div>
-                    <div className="flex flex-col gap-2 w-full">
-                        <label htmlFor="role">Role</label>
-                        <InputText
-                            id="role"
-                            value={newUser.role}
-                            invalid={iInvalid.role && !newUser.role}
-                            onChange={(e) => handleInputChangeAdd(e, "role")}
-                            className="w-full"
-                        />
-                    </div>
-                    <div className="flex flex-col gap-2 w-full">
-                        <label htmlFor="email">Email</label>
-                        <InputText
-                            id="email"
-                            type="email"
-                            value={newUser.email}
-                            invalid={iInvalid.email && !newUser.email}
-                            onChange={(e) => handleInputChangeAdd(e, "email")}
-                            className="w-full"
-                        />
-                    </div>
+                    {
+                        addOrEdit === 'P' ? <>
+                            <div className="flex flex-col gap-2 w-full">
+                                <label htmlFor="pass1">รหัสผ่านใหม่</label>
+                                <InputText
+                                    id="pass1"
+                                    value={password.pass1}
+                                    onChange={(e) => setPassword((old) => ({ ...old, pass1: e.target.value || "" }))}
+                                    className="w-full"
+                                />
+                            </div>
+                            <div className="flex flex-col gap-2 w-full">
+                                <label htmlFor="pass2">ยืนยันรหัสผ่าน</label>
+                                <InputText
+                                    id="pass2"
+                                    value={password.pass2}
+                                    onChange={(e) => setPassword((old) => ({ ...old, pass2: e.target.value || "" }))}
+                                    className="w-full"
+                                />
+                            </div>
+                            <div className='flex justify-end mt-2 w-full gap-2'>
+                                <Button label="Fix Password" className="p-button-primary" onClick={() => FixPasswordData(newUser.id)} />
+                            </div>
+                        </> : <>
+                            <div className="flex flex-col gap-2 w-full">
+                                <label htmlFor="code">รหัสพนักงาน</label>
+                                <InputText
+                                    id="code"
+                                    value={newUser.code}
+                                    invalid={iInvalid.code && !newUser.code}
+                                    onChange={(e) => handleInputChangeAdd(e, "code")}
+                                    className="w-full"
+                                />
+                            </div>
+                            <div className="flex flex-col gap-2 w-full">
+                                <label htmlFor="name">ชื่อพนักงาน</label>
+                                <InputText
+                                    id="name"
+                                    value={newUser.name}
+                                    invalid={iInvalid.name && !newUser.name}
+                                    onChange={(e) => handleInputChangeAdd(e, "name")}
+                                    className="w-full"
+                                />
+                            </div>
+                            <div className="flex flex-col gap-2 w-full">
+                                <label htmlFor="department">หน่วยงาน</label>
+                                <InputText
+                                    id="department"
+                                    value={newUser.department}
+                                    invalid={iInvalid.department && !newUser.department}
+                                    onChange={(e) => handleInputChangeAdd(e, "department")}
+                                    className="w-full"
+                                />
+                            </div>
+                            <div className="flex flex-col gap-2 w-full">
+                                <label htmlFor="role">Role</label>
+                                <Dropdown
+                                    id="role"
+                                    value={newUser.role}
+                                    options={roleOptions}
+                                    onChange={(e) => handleInputChangeAdd(e as any as React.ChangeEvent<HTMLInputElement>, "role")}
+                                    invalid={iInvalid.role && !newUser.role}
+                                    optionLabel="label"
+                                />
+                            </div>
+                            <div className="flex flex-col gap-2 w-full">
+                                <label htmlFor="email">Email</label>
+                                <InputText
+                                    id="email"
+                                    type="email"
+                                    value={newUser.email}
+                                    invalid={iInvalid.email && !newUser.email}
+                                    onChange={(e) => handleInputChangeAdd(e, "email")}
+                                    className="w-full"
+                                />
+                            </div>
+                            <div className='flex justify-end mt-2 w-full gap-2'>
+                                <Button label="Add User" className="p-button-primary" onClick={chechInvalid} />
+                            </div>
+                        </>
+                    }
 
-                    
-                    <div className='flex justify-end mt-2 w-full gap-2'>
-                        <Button label="Add User" className="p-button-primary" onClick={chechInvalid} />
-                    </div>
                 </div>
             </Dialog>
             <Footer>
@@ -195,3 +378,4 @@ export default function UserManagement() {
         </div>
     );
 }
+

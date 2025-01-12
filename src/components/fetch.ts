@@ -48,6 +48,7 @@ const RefreshToken = async () => {
 }
 
 const Get = async ({ url }:PropsGet): Promise<Response> => {
+    showSpinner();
     const token = localStorage.getItem('access_token')!;
     if(CheckEmtyToken(token)) {
         window.location.href = '/login'
@@ -77,12 +78,13 @@ const Get = async ({ url }:PropsGet): Promise<Response> => {
             res = data;
         }
     };
-
+    hideSpinner();
     return res ;
     
 }
 
 const Post = async ({ url , body , headers }:PropsPost): Promise<Response> => {
+    showSpinner();
     const token = localStorage.getItem('access_token')!;
     if(CheckEmtyToken(token)) {
         window.location.href = '/login'
@@ -113,7 +115,7 @@ const Post = async ({ url , body , headers }:PropsPost): Promise<Response> => {
             res = data
         }
     };
-    
+    hideSpinner();
     return res ;
     
 }
@@ -134,6 +136,7 @@ const Login = async ({ url , body }:PropsPost): Promise<any> => {
 
 const Put = async ({ url , body , headers }:PropsPost): Promise<Response> => {
     // const token:string = process.env.NEXT_PUBLIC_API_KEY ?? '';
+    showSpinner();
     const token = localStorage.getItem('access_token')!;
     if(CheckEmtyToken(token)) {
         window.location.href = '/login'
@@ -165,12 +168,53 @@ const Put = async ({ url , body , headers }:PropsPost): Promise<Response> => {
             res = data
         }
     };
+    hideSpinner();
+    return res ;
+    
+}
+
+const Patch = async ({ url , body , headers }:PropsPost): Promise<Response> => {
+    // const token:string = process.env.NEXT_PUBLIC_API_KEY ?? '';
+    showSpinner();
+    const token = localStorage.getItem('access_token')!;
+    if(CheckEmtyToken(token)) {
+        window.location.href = '/login'
+    }
+
+    const data = await fetch(domainURL+url , {
+        method: 'Patch',
+        headers: {
+            ...headers,
+            'Authorization': `Bearer ${token ?? ''}`,
+        },
+        body : body
+    });
+    let res: Response = data;
+    if(data.status == 401) {
+        if(await RefreshToken()) {
+            const token = localStorage.getItem('access_token')!;
+            const data = await fetch(domainURL+url,{
+                method: 'Patch' ,
+                headers: {
+                    ...headers,
+                    'Authorization': `Bearer ${token ?? ''}`,
+                },
+                body : body
+            });
+            if(data.status == 401) {
+                window.location.href = '/login';
+            }
+            res = data
+        }
+    };
+    hideSpinner();
     return res ;
     
 }
 
 const Delete = async ({ url , body , headers }:PropsPost): Promise<Response> => {
     // const token:string = process.env.NEXT_PUBLIC_API_KEY ?? '';
+    showSpinner();
     const token = localStorage.getItem('access_token')!;
     if(CheckEmtyToken(token)) {
         window.location.href = '/login'
@@ -202,12 +246,14 @@ const Delete = async ({ url , body , headers }:PropsPost): Promise<Response> => 
             res = data
         }
     };
+    hideSpinner();
     return res ;
     
 }
 
 async function fetchFileAsFile(fileUrl: string): Promise<Response> {
     const domainURL = process.env.NEXT_PUBLIC_URL_API!;
+    showSpinner();
     const token = localStorage.getItem('access_token')!;
     const response = await fetch(domainURL + fileUrl, {
         method: 'GET',
@@ -233,11 +279,26 @@ async function fetchFileAsFile(fileUrl: string): Promise<Response> {
             res = data
         }
     };
+    hideSpinner();
     return res;
     const blob = await res.blob();
     // return blob;
 }
 
+const showSpinner = async () => {
+    const $ = (await import('jquery')).default;
+    $(document).ready(function () {
+        $('#loadingSpinner').css('display', 'block');
+    });
+}
+
+const hideSpinner = async () => {
+    const $ = (await import('jquery')).default;
+    $(document).ready(function () {
+        $('#loadingSpinner').css('display', 'none');
+    });
+}
+
 export {
-    Get , Post , Put , Delete , Login , CheckEmtyToken ,fetchFileAsFile
+    Get , Post , Put , Patch, Delete , Login , CheckEmtyToken ,fetchFileAsFile
 };

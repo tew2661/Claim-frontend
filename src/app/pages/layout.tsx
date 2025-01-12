@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Loading from '@/components/loading/index';
 import Header from '@/components/header';
+import LoadingSpinner from '@/components/loading/index';
 
 function LayoutPages({
     children,
@@ -14,7 +15,7 @@ function LayoutPages({
     const [pages, setPages] = useState(<Loading />);
 
     useEffect(() => {
-        const isAuthenticated = true;
+        const isAuthenticated = localStorage.getItem('access_token')!;
         
         // ตรวจสอบสถานะล็อกอิน
         if (!isAuthenticated && pathname !== '/login') {
@@ -32,7 +33,9 @@ function LayoutPages({
         }
     }, [pathname]); // useEffect จะทำงานเมื่อ pathname หรือ router เปลี่ยน
 
-    return <>{pages}</>;
+    return <>
+        <div id="loadingSpinner" style={{ display: 'none' }}><LoadingSpinner/></div>{pages}
+    </>;
 }
 
 export default LayoutPages;

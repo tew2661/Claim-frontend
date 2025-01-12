@@ -17,8 +17,8 @@ const Header = () => {
         const localUser = localStorage.getItem('user') ?? ''
         if (localUser) {
             const jsonUser = JSON.parse(localUser);
-            setName(jsonUser.fullname);
-            setRole(jsonUser.role.name);
+            setName(jsonUser.name);
+            setRole(jsonUser.role);
         }
 
     }, [])
