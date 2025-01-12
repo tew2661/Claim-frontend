@@ -715,7 +715,7 @@ export default function QPRForm() {
                                 onChange={(e) => handleInputChange({ target: { value: e.value , type: 'text' }} as any as React.ChangeEvent<HTMLInputElement> , "reoccurrenceDetails", "frequency" , "reoccurrence")} 
                                 min={1}
                                 max={99}
-                                placeholder="1-99"
+                                placeholder="No."
                                 className="w-full bg-blue-100 border border-gray-300 rounded-md ml-2 input-number-bg-blue-100 "
                                 style={{ padding: 0 }}
                             />
