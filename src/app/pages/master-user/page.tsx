@@ -22,6 +22,8 @@ interface UserData {
     role: string;
     email: string;
     active?: "Y" | "N";
+    password?: string;
+    confirmPassword?: string;
 }
 
 const roleOptions = [
@@ -33,13 +35,15 @@ const roleOptions = [
 ];
 
 export default function UserManagement() {
-    const defaultUser = {
+    const defaultUser: UserData = {
         id: -1,
         code: '',
         name: '',
         department: '',
         role: '',
         email: '',
+        password: '',
+        confirmPassword: ''
     }
 
     const defaultErrorUser = {
@@ -48,6 +52,8 @@ export default function UserManagement() {
         department: false,
         role: false,
         email: false,
+        password: false,
+        confirmPassword: false
     }
 
     const toast = useRef<Toast>(null);
@@ -86,6 +92,8 @@ export default function UserManagement() {
             department: false,
             role: false,
             email: false,
+            password: false,
+            confirmPassword: false
         }
         if (!newUser.code) {
             inInvalid.id = true
@@ -101,6 +109,17 @@ export default function UserManagement() {
         }
         if (!newUser.email) {
             inInvalid.email = true
+        }
+        if (addOrEdit == 'A' && !newUser.password) {
+            inInvalid.password = true
+        }
+        if (addOrEdit == 'A' && !newUser.confirmPassword) {
+            inInvalid.confirmPassword = true
+        }
+        if (newUser.password !== newUser.confirmPassword) {
+            inInvalid.confirmPassword = true
+            toast.current?.show({ severity: 'warn', summary: 'Error', detail: `รหัสผ่านระบุไม่ตรงกัน`, life: 3000 });
+            return;
         }
         setIInvalid(inInvalid);
 
@@ -268,11 +287,11 @@ export default function UserManagement() {
                     }} ></Column>
                     <Column field="action" header="Action" style={{ width: '10%', textAlign: 'center' }} body={(arr: UserData) => {
                         return <div className="flex justify-center gap-2">
-                            <Button icon="pi pi-key" severity="warning" outlined onClick={() => { 
+                            <Button icon="pi pi-key" severity="warning" outlined onClick={() => {
                                 setNewUser(arr);
                                 setAddOrEdit('P');
                                 setVisibleAdd(true);
-                             }} />
+                            }} />
                             <Button icon="pi pi-pen-to-square" outlined onClick={() => {
                                 setNewUser(arr);
                                 setAddOrEdit('E');
@@ -292,6 +311,7 @@ export default function UserManagement() {
                                 <label htmlFor="pass1">รหัสผ่านใหม่</label>
                                 <InputText
                                     id="pass1"
+                                    type="password"
                                     value={password.pass1}
                                     onChange={(e) => setPassword((old) => ({ ...old, pass1: e.target.value || "" }))}
                                     className="w-full"
@@ -301,6 +321,7 @@ export default function UserManagement() {
                                 <label htmlFor="pass2">ยืนยันรหัสผ่าน</label>
                                 <InputText
                                     id="pass2"
+                                    type="password"
                                     value={password.pass2}
                                     onChange={(e) => setPassword((old) => ({ ...old, pass2: e.target.value || "" }))}
                                     className="w-full"
@@ -362,6 +383,32 @@ export default function UserManagement() {
                                     className="w-full"
                                 />
                             </div>
+                            {
+                                addOrEdit == 'A' ? <div className="border border-solid border-gray-300 rounded-md p-3 pb-5">
+                                    <div className="flex flex-col gap-2 w-full">
+                                        <label htmlFor="password">Password</label>
+                                        <InputText
+                                            id="password"
+                                            type="password"
+                                            value={newUser.password}
+                                            invalid={iInvalid.password && !newUser.password}
+                                            onChange={(e) => handleInputChangeAdd(e, "password")}
+                                            className="w-full"
+                                        />
+                                    </div>
+                                    <div className="flex flex-col gap-2 w-full">
+                                        <label htmlFor="cpassword">Confirm Password</label>
+                                        <InputText
+                                            id="cpassword"
+                                            type="password"
+                                            value={newUser.confirmPassword}
+                                            invalid={iInvalid.confirmPassword && !newUser.confirmPassword}
+                                            onChange={(e) => handleInputChangeAdd(e, "confirmPassword")}
+                                            className="w-full"
+                                        />
+                                    </div>
+                                </div> : <></>
+                            }
                             <div className='flex justify-end mt-2 w-full gap-2'>
                                 <Button label="Add User" className="p-button-primary" onClick={chechInvalid} />
                             </div>
