@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "primereact/button";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
@@ -9,44 +9,53 @@ import { TemplatePaginator } from "@/components/template-pagination";
 import { Paginator } from "primereact/paginator";
 import { Dialog } from "primereact/dialog";
 import { InputText } from "primereact/inputtext";
+import { CreateQueryString, Delete, Get, Post, Put } from "@/components/fetch";
+import { Toast } from "primereact/toast";
+import { confirmDialog, ConfirmDialog } from "primereact/confirmdialog";
 
-const mockData = [
-    { supplierCode: "670001", supplierName: "Mr.A", tel: '09293939393', email: ["aaa@jtekt.co.th"] },
-    { supplierCode: "620028", supplierName: "Mr.B", tel: '09293939393', email: ["bbb@jtekt.co.th"] },
-    { supplierCode: "610027", supplierName: "Mr.C", tel: '09293939393', email: ["ccc@jtekt.co.th"] },
-    { supplierCode: "350012", supplierName: "Mr.D", tel: '09293939393', email: ["ddd@jtekt.co.th"] },
-    { supplierCode: "570029", supplierName: "Mr.E", tel: '09293939393', email: ["eee@jtekt.co.th"] },
-    { supplierCode: "600009", supplierName: "Mr.F", tel: '09293939393', email: ["fff@jtekt.co.th"] },
-    { supplierCode: "320012", supplierName: "Mr.G", tel: '09293939393', email: ["ggg@jtekt.co.th"] },
-];
+interface DataSupplierTable {
+    id: number,
+    supplierCode: string;
+    supplierName: string;
+    tel: string;
+    email: string[];
+    contactPerson: string[]
+}
 
 export default function UserManagement() {
-    const defaultNewData = {
+    const toast = useRef<Toast>(null);
+    const defaultNewData: DataSupplierTable = {
+        id: -1,
         supplierCode: '',
         supplierName: '',
         tel: '',
         email: [''],
-        contact_person: ''
+        contactPerson: ['']
     }
     const defaultErrorSupplier = {
         supplierCode: false,
         supplierName: false,
         tel: false,
         email: [false],
-        contact_person: false
+        contactPerson: [false]
     }
     const [visibleAdd, setVisibleAdd] = useState<boolean>(false);
     const [addOrEdit, setAddOrEdit] = useState<'A'|'E'>('A');
-    const [supplier, setSupplier] = useState(mockData);
+    const [supplier, setSupplier] = useState<DataSupplierTable[]>([]);
     const [first, setFirst] = useState(0);
     const [rows, setRows] = useState(10);
     const [totalRows, setTotalRows] = useState(10);
     const [newSupplier, setNewSupplier] = useState(defaultNewData);
     const [iInvalid, setIInvalid] = useState(defaultErrorSupplier);
 
+    const [filters, setFilters] = useState({
+        supplierCode: "",
+        supplierName: ""
+    })
+
     const addNewUser = () => {
         // Logic สำหรับการเพิ่มผู้ใช้ใหม่ (เปิด Modal หรือไปยังหน้าเพิ่มผู้ใช้งาน)
-        console.log("Add New User clicked");
+        console.log("Add New supplier clicked");
         setNewSupplier(defaultNewData);
         setIInvalid(defaultErrorSupplier);
         setAddOrEdit('A');
@@ -57,13 +66,13 @@ export default function UserManagement() {
         setNewSupplier((old) => ({ ...old, [field]: e.target.value }))
     }
 
-    const checkInvalid = () => {
+    const checkInvalid = async () => {
         const inInvalid: any = {
             supplierCode: false,
             supplierName: false,
             tel: false,
             email: newSupplier.email.map(() => false),
-            contact_person: false
+            contactPerson: newSupplier.contactPerson.map(() => false),
         }
         if (!newSupplier.supplierCode) {
             inInvalid.supplierCode = true
@@ -81,13 +90,18 @@ export default function UserManagement() {
             }
         });
 
-        if (!newSupplier.contact_person) {
-            inInvalid.contact_person = true
-        }
+        newSupplier.contactPerson.forEach((contactPerson, index) => {
+            if (!contactPerson) {
+                inInvalid.contactPerson[index] = true; 
+            }
+        });
 
         const hasInvalidFields = Object.keys(inInvalid).some((key) => {
             if (key === "email") {
                 return inInvalid.email.some((emailInvalid: boolean) => emailInvalid);
+            }
+            if (key === "contactPerson") {
+                return inInvalid.contactPerson.some((contactPersonInvalid: boolean) => contactPersonInvalid);
             }
             return inInvalid[key];
         });
@@ -97,14 +111,147 @@ export default function UserManagement() {
             console.log("Validation failed:", inInvalid);
             return; 
         }
+
+        let datareturn: Response | null = null
+        if (addOrEdit == 'A') {
+            datareturn = await Post({
+                url: `/supplier`,
+                body: JSON.stringify({
+                    supplierCode: newSupplier.supplierCode,
+                    supplierName: newSupplier.supplierName,
+                    tel: newSupplier.tel,
+                    email: newSupplier.email,
+                    contactPerson: newSupplier.contactPerson
+                }),
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+        } else {
+            datareturn = await Put({
+                url: `/supplier/${newSupplier.id}`,
+                body: JSON.stringify({
+                    supplierCode: newSupplier.supplierCode,
+                    supplierName: newSupplier.supplierName,
+                    tel: newSupplier.tel,
+                    email: newSupplier.email,
+                    contactPerson: newSupplier.contactPerson
+                }),
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+        }
+
+        if (datareturn?.ok) {
+            GetDatas();
+            setVisibleAdd(false);
+            toast.current?.show({ severity: 'success', summary: 'บันทึกสำเร็จ', detail: addOrEdit == 'A' ? `เพิ่ม supplier ใหม่สำเร็จ` : `แก้ไขข้อมูล supplier สำเร็จ`, life: 3000 });
+        } else {
+            toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await datareturn!.json()).message)}`, life: 3000 });
+        }
         
-        setVisibleAdd(false);
+        
     }
+
+    const DeleteData = async (id: number) => {
+        const accept = async () => {
+            const res = await Delete({
+                url: `/supplier/${id}`,
+                body: JSON.stringify({}),
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+            if (res.ok) {
+                toast.current?.show({ severity: 'success', summary: 'บันทึกสำเร็จ', detail: `ลบข้อมูล supplier สำเร็จ`, life: 3000 });
+                GetDatas()
+                setVisibleAdd(false);
+            } else {
+                toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await res!.json()).message)}`, life: 3000 });
+            }
+        }
+
+        const reject = () => {}
+
+        confirmDialog({
+            message: 'Do you want to delete this record?',
+            header: 'Delete Confirmation',
+            icon: 'pi pi-info-circle',
+            defaultFocus: 'reject',
+            acceptClassName: 'p-button-danger',
+            accept,
+            reject
+        });
+        
+    }
+
+
+    const GetDatas = async () => {
+        const quertString = CreateQueryString({
+            ...filters,
+        });
+        const res = await Get({ url: `/supplier?limit=${rows}&offset=${first}&${quertString}` });
+        if (res.ok) {
+            const res_data = await res.json();
+            setTotalRows(res_data.total || 0)
+            setSupplier((res_data.data || []).map((x: any) => {
+                return {
+                    id: x.id,
+                    supplierCode: x.supplierCode || "", 
+                    supplierName: x.supplierName || "", 
+                    tel: x.tel || "", 
+                    email: x.email || [],
+                    contactPerson: x.contactPerson || []
+                }
+            }))
+        } else {
+            toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await res!.json()).message)}`, life: 3000 });
+        }
+    }
+
+    useEffect(()=> {
+        GetDatas()
+    },[])
 
     return (
         <div className="flex justify-center pt-6 px-6">
+            <Toast ref={toast} />
+            <ConfirmDialog />
             <div className="container">
                 <h1 className="text-2xl font-bold mb-4 mx-4">Supplier Management</h1>
+
+                <div className="flex gap-2 mx-4 mb-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 w-[calc(100%-100px)]">
+                        <div className="flex flex-col gap-2 w-full">
+                            <label htmlFor="supplierCode">Supplier Code</label>
+                            <InputText
+                                id="supplierCode"
+                                value={filters.supplierCode}
+                                onChange={(e) => setFilters((old) => ({ ...old, supplierCode: e.target.value }))}
+                                className="w-full"
+                            />
+
+                        </div>
+                        <div className="flex flex-col gap-2 w-full">
+                            <label htmlFor="supplierName">Supplier Name</label>
+                            <InputText
+                                id="supplierName"
+                                value={filters.supplierName}
+                                onChange={(e) => setFilters((old) => ({ ...old, supplierName: e.target.value }))}
+                                className="w-full"
+                            />
+
+                        </div>
+                    </div>
+                    <div className="w-[100px]">
+                        <div className="flex flex-col gap-2">
+                            <label>&nbsp;</label>
+                            <Button label="Search" icon="pi pi-search" onClick={() => GetDatas()} />
+                        </div>
+                    </div>
+                </div>
+
                 <DataTable value={supplier}
                     showGridlines
                     className='table-header-center mt-4'
@@ -122,7 +269,7 @@ export default function UserManagement() {
                     <Column field="supplierName" header="Supplier Name" style={{ width: '40%' }}></Column>
                     <Column field="tel" header="Tel" style={{ width: '20%', textAlign: 'center' }}></Column>
                     <Column field="email" header="Email" style={{ width: '20%' }} body={(rowData) => {
-                        return <div className="flex gap-2">{(rowData.email || []).map((x: string, index: number) => {
+                        return <div className="flex flex-col gap-2">{(rowData.email || []).map((x: string, index: number) => {
                             return <div key={'email-' + index}>{x}</div>
                         })}</div>
                     }}></Column>
@@ -133,7 +280,7 @@ export default function UserManagement() {
                                 setAddOrEdit('E');
                                 setVisibleAdd(true);
                             }} />
-                            <Button icon="pi pi-trash" severity="danger" outlined onClick={() => {}} />
+                            <Button icon="pi pi-trash" severity="danger" outlined onClick={() => { DeleteData(arr.id) }} />
                         </div>
                     }}></Column>
                 </DataTable>
@@ -176,7 +323,30 @@ export default function UserManagement() {
                         {
                             newSupplier.email.map((arr: string, index: number) => {
                                 return <div className="flex flex-row gap-2" key={'em-' + index}>
-                                    <div className="flex flex-col gap-2 w-[calc(100%-100px)]">
+                                    <div className="flex flex-col gap-2 w-[calc(50%-50px)]">
+                                        <label htmlFor="contactPerson">Contact Person</label>
+                                        <InputText
+                                            id="contactPerson"
+                                            value={newSupplier.contactPerson[index]}
+                                            invalid={iInvalid.contactPerson[index] && !newSupplier.contactPerson[index]}
+                                            onChange={(e) => {
+                                                setNewSupplier((old) => {
+                                                    return {
+                                                        ...old,
+                                                        contactPerson: newSupplier.contactPerson.map((arrj, indexj) => {
+                                                            if (index == indexj) {
+                                                                return e.target.value
+                                                            } else {
+                                                                return arrj
+                                                            }
+                                                        })
+                                                    }
+                                                })
+                                            }}
+                                            className="w-full"
+                                        />
+                                    </div>
+                                    <div className="flex flex-col gap-2 w-[calc(50%-50px)]">
                                         <label htmlFor={'email-' + index}>Email {index + 1}</label>
                                         <InputText
                                             id={'email-' + index}
@@ -202,7 +372,7 @@ export default function UserManagement() {
                                     </div>
 
                                     {index === 0 ? (
-                                        <div className="w-[100px] flex items-end">
+                                        <div className="w-[100px] flex items-end justify-end">
                                             <Button
                                                 label="ADD"
                                                 icon="pi pi-plus"
@@ -210,15 +380,16 @@ export default function UserManagement() {
                                                     setNewSupplier((prev) => ({
                                                         ...prev,
                                                         email: [...prev.email, ""],
+                                                        contactPerson: [...prev.contactPerson, ""],
                                                     }));
                                                 }}
                                                 className="p-button-success"
                                             />
                                         </div>
                                     ) : (
-                                        <div className="w-[100px] flex items-end">
+                                        <div className="w-[100px] flex items-end justify-end">
                                             <Button
-                                                icon="pi pi-times"
+                                                icon="pi pi-trash"
                                                 onClick={() => {
                                                     setNewSupplier((prev) => ({
                                                         ...prev,
@@ -233,18 +404,9 @@ export default function UserManagement() {
                             })
                         }
                     </div>
-                    <div className="flex flex-col gap-2 w-full">
-                        <label htmlFor="contact_person">Contact Person</label>
-                        <InputText
-                            id="contact_person"
-                            value={newSupplier.contact_person}
-                            invalid={iInvalid.contact_person && !newSupplier.contact_person}
-                            onChange={(e) => handleInputChangeAdd(e, "contact_person")}
-                            className="w-full"
-                        />
-                    </div>
+                    
                     <div className='flex justify-end mt-2 w-full gap-2'>
-                        <Button label="Add Supplier" className="p-button-primary" onClick={checkInvalid} />
+                        <Button label={ addOrEdit=='A' ? "Add Supplier" : "Edit Supplier" } className="p-button-primary" onClick={checkInvalid} />
                     </div>
                 </div>
             </Dialog>

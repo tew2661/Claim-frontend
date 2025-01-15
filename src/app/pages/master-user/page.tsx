@@ -9,10 +9,11 @@ import { TemplatePaginator } from "@/components/template-pagination";
 import { Paginator } from "primereact/paginator";
 import { Dialog } from "primereact/dialog";
 import { InputText } from "primereact/inputtext";
-import { Delete, Get, Patch, Post, Put } from "@/components/fetch";
+import { CreateQueryString, Delete, Get, Patch, Post, Put } from "@/components/fetch";
 import { Toast } from "primereact/toast";
 import { Dropdown } from "primereact/dropdown";
 import { InputSwitch } from "primereact/inputswitch";
+import { confirmDialog, ConfirmDialog } from "primereact/confirmdialog";
 
 interface UserData {
     id: number;
@@ -69,6 +70,11 @@ export default function UserManagement() {
     const [password, setPassword] = useState({
         pass1: '',
         pass2: ''
+    })
+
+    const [filters, setFilters] = useState({
+        code: "",
+        name: ""
     })
 
     const addNewUser = () => {
@@ -170,7 +176,10 @@ export default function UserManagement() {
     }
 
     const GetDatas = async () => {
-        const res = await Get({ url: `/users?limit=${rows}&offset=${first}` });
+        const quertString = CreateQueryString({
+            ...filters,
+        });
+        const res = await Get({ url: `/users?limit=${rows}&offset=${first}&${quertString}` });
         if (res.ok) {
             const res_data = await res.json();
             setTotalRows(res_data.total || 0)
@@ -191,39 +200,72 @@ export default function UserManagement() {
     }
 
     const DeleteData = async (id: number) => {
-        const res = await Delete({
-            url: `/users/${id}`,
-            body: JSON.stringify({}),
-            headers: {
-                'Content-Type': 'application/json',
+        
+
+        const accept = async () => {
+            const res = await Delete({
+                url: `/users/${id}`,
+                body: JSON.stringify({}),
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+            if (res.ok) {
+                toast.current?.show({ severity: 'success', summary: 'บันทึกสำเร็จ', detail: `ลบข้อมูล user สำเร็จ`, life: 3000 });
+                GetDatas()
+                setVisibleAdd(false);
+            } else {
+                toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await res!.json()).message)}`, life: 3000 });
             }
-        });
-        if (res.ok) {
-            toast.current?.show({ severity: 'success', summary: 'บันทึกสำเร็จ', detail: `ลบข้อมูล user สำเร็จ`, life: 3000 });
-            GetDatas()
-        } else {
-            toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await res!.json()).message)}`, life: 3000 });
+            
         }
-        setVisibleAdd(false);
+        const reject = () => {}
+
+        confirmDialog({
+            message: 'Do you want to delete this record?',
+            header: 'Delete Confirmation',
+            icon: 'pi pi-info-circle',
+            defaultFocus: 'reject',
+            acceptClassName: 'p-button-danger',
+            accept,
+            reject
+        });
     }
 
     const ActiveUser = async (id: number, active: "Y" | "N") => {
-        const res = await Put({
-            url: `/users/${id}`,
-            body: JSON.stringify({
-                active
-            }),
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        });
-        if (res.ok) {
-            toast.current?.show({ severity: 'success', summary: 'บันทึกสำเร็จ', detail: `${active == 'Y' ? "เปิดการใช้งาน" : "ปิดการใช้งาน"} user สำเร็จ`, life: 3000 });
-            GetDatas()
-        } else {
-            toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await res!.json()).message)}`, life: 3000 });
+
+        const accept = async () => {
+            const res = await Put({
+                url: `/users/${id}`,
+                body: JSON.stringify({
+                    active
+                }),
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+            if (res.ok) {
+                toast.current?.show({ severity: 'success', summary: 'บันทึกสำเร็จ', detail: `${active == 'Y' ? "เปิดการใช้งาน" : "ปิดการใช้งาน"} user สำเร็จ`, life: 3000 });
+                GetDatas()
+                setVisibleAdd(false);
+            } else {
+                toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await res!.json()).message)}`, life: 3000 });
+            } 
         }
-        setVisibleAdd(false);
+
+        const reject = () => {}
+
+        confirmDialog({
+            message: `ต้องการ ${active == 'Y' ? "เปิดการใช้งาน" : "ปิดการใช้งาน"} user นี้ใช่หรือไม่`,
+            header: `ยืนยัน${active == 'Y' ? "เปิดการใช้งาน" : "ปิดการใช้งาน"}`,
+            icon: 'pi pi-user-edit',
+            defaultFocus: 'reject',
+            acceptClassName: 'p-button-danger',
+            accept,
+            reject
+        });
+
+        
     }
 
     const FixPasswordData = async (id: number) => {
@@ -262,8 +304,41 @@ export default function UserManagement() {
     return (
         <div className="flex justify-center pt-6 px-6">
             <Toast ref={toast} />
+            <ConfirmDialog />
             <div className="container">
                 <h1 className="text-2xl font-bold mb-4 mx-4">User Management</h1>
+
+                <div className="flex gap-2 mx-4 mb-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 w-[calc(100%-100px)]">
+                        <div className="flex flex-col gap-2 w-full">
+                            <label htmlFor="userCode">รหัสพนักงาน</label>
+                            <InputText
+                                id="userCode"
+                                value={filters.code}
+                                onChange={(e) => setFilters((old) => ({ ...old, code: e.target.value }))}
+                                className="w-full"
+                            />
+
+                        </div>
+                        <div className="flex flex-col gap-2 w-full">
+                            <label htmlFor="username">ชื่อพนักงาน</label>
+                            <InputText
+                                id="username"
+                                value={filters.name}
+                                onChange={(e) => setFilters((old) => ({ ...old, name: e.target.value }))}
+                                className="w-full"
+                            />
+
+                        </div>
+                    </div>
+                    <div className="w-[100px]">
+                        <div className="flex flex-col gap-2">
+                            <label>&nbsp;</label>
+                            <Button label="Search" icon="pi pi-search" onClick={() => GetDatas()} />
+                        </div>
+                    </div>
+                </div>
+
                 <DataTable value={users}
                     showGridlines
                     className='table-header-center mt-4'

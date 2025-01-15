@@ -4,6 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import Loading from '@/components/loading/index';
 import Header from '@/components/header';
 import LoadingSpinner from '@/components/loading/index';
+import { getSocket } from '@/components/socket/socket';
 
 function LayoutPages({
     children,

@@ -17,11 +17,12 @@
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.54.2",
     "sass": "^1.83.1",
+    "socket.io-client": "^4.8.1",
     "uuid": "^11.0.5"
   },
   "devDependencies": {
-    "@types/jquery": "^3.5.31",
     "@eslint/eslintrc": "^3",
+    "@types/jquery": "^3.5.31",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

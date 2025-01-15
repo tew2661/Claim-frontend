@@ -8,6 +8,7 @@ import React, { useEffect, useState } from "react";
 interface FormData {
     evidence?: Date,
     date?: Date,
+    approve?: 'approve' | 'reject',
     remark: string,
     claim?: boolean,
     complain?: boolean,
@@ -20,6 +21,7 @@ export default function PDFApproval() {
     const [formData, setFormData] = useState<FormData>({
         evidence: undefined,
         date: undefined,
+        approve: undefined,
         remark: "",
         claim: false,
         complain: false,
@@ -62,10 +64,28 @@ export default function PDFApproval() {
                         <div className="flex gap-4">
                             <Button
                                 label="Approve"
+                                onClick={()=> {
+                                    setFormData((old: FormData) => {
+                                        return {
+                                            ...old,
+                                            approve: 'approve'
+                                        }
+                                    })
+                                }}
+                                style={{ opacity: (!!formData.approve && formData.approve == 'reject') ? .6 : 1 }}
                                 className="bg-blue-800 text-white border-blue-700"
                             />
                             <Button
                                 label="Reject"
+                                onClick={()=> {
+                                    setFormData((old: FormData) => {
+                                        return {
+                                            ...old,
+                                            approve: 'reject'
+                                        }
+                                    })
+                                }}
+                                style={{ opacity: (!!formData.approve && formData.approve == 'approve') ? .6 : 1 }}
                                 className="bg-red-800 text-white border-red-700"
                             />
                             {
@@ -78,7 +98,8 @@ export default function PDFApproval() {
                                                 setFormData((old: FormData) => {
                                                     return {
                                                         ...old,
-                                                        claim: e.target.checked || false
+                                                        claim: e.target.checked || false,
+                                                        complain: false
                                                     }
                                                 })
                                             }
@@ -94,7 +115,8 @@ export default function PDFApproval() {
                                                 setFormData((old: FormData) => {
                                                     return {
                                                         ...old,
-                                                        complain: e.target.checked || false
+                                                        complain: e.target.checked || false,
+                                                        claim: false
                                                     }
                                                 })
                                             }
@@ -107,10 +129,17 @@ export default function PDFApproval() {
 
                         </div>
                         {
-                            reportType == 'Quick Report' ? <></> : <Button
-                                label="Download other evident document"
-                                className="bg-blue-800 text-white border-blue-700"
-                            />
+                            reportType == 'Quick Report' ? <></> : 
+                            <div className="flex gap-3">
+                                <Button
+                                    label="Download 8D Report"
+                                    className="bg-red-600 text-white border-red-600"
+                                />
+                                <Button
+                                    label="Download other evident document"
+                                    className="bg-blue-800 text-white border-blue-700"
+                                />
+                            </div>
                         }
 
                     </div>
@@ -135,6 +164,7 @@ export default function PDFApproval() {
                                         value={formData.resummit}
                                         dateFormat="dd/mm/yy"
                                         placeholder="dd/mm/yy"
+                                        disabled={!(formData.approve == 'reject')}
                                         onChange={(e) => setFormData((old) => { return { ...old, resummit: e.value || undefined } })}
                                         className="w-full"
                                         showButtonBar
@@ -142,11 +172,12 @@ export default function PDFApproval() {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block font-bold mb-1">Replay report date</label>
+                                    <label className="block font-bold mb-1">Reply Report date</label>
                                     <Calendar
                                         value={formData.replay}
                                         dateFormat="dd/mm/yy"
                                         placeholder="dd/mm/yy"
+                                        disabled={!(formData.approve == 'approve')}
                                         onChange={(e) => setFormData((old) => { return { ...old, replay: e.value || undefined } })}
                                         className="w-full"
                                         showButtonBar
@@ -158,11 +189,11 @@ export default function PDFApproval() {
                             <div className="grid grid-cols-3 gap-4 mt-4">
                                 <div>
                                     <label className="block font-bold mb-1">All Evidence submit date</label>
-
                                     <Calendar
                                         value={formData.evidence}
                                         dateFormat="dd/mm/yy"
                                         placeholder="dd/mm/yy"
+                                        disabled={!(formData.approve == 'approve')}
                                         onChange={(e) => setFormData((old) => { return { ...old, evidence: e.value || undefined } })}
                                         className="w-full"
                                         showButtonBar
@@ -176,6 +207,7 @@ export default function PDFApproval() {
                                         value={formData.date}
                                         dateFormat="dd/mm/yy"
                                         placeholder="dd/mm/yy"
+                                        disabled={!(formData.approve == 'reject')}
                                         onChange={(e) => setFormData((old) => { return { ...old, date: e.value || undefined } })}
                                         className="w-full"
                                         showButtonBar

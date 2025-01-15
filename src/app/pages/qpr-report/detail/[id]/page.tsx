@@ -42,8 +42,20 @@ export default function QPRUploadForm() {
 
                 {/* First Lot Delivery Section */}
                 <div className="border border-black bg-white p-4 h-full overflow-auto">
+                    <div className="border border-black bg-white pt-2">
+                        <label className="block font-bold mb-2">Remark</label>
+                        <textarea
+                            // value={actionDetail}
+                            // onChange={(e) => setActionDetail(e.target.value)}
+                            value={'ไม่ผ่าน'}
+                            rows={2}
+                            disabled
+                            className="w-full border border-gray-300 rounded-md p-2"
+                        ></textarea>
+                    </div>
+
                     {/* Action Detail Section */}
-                    <div className="border border-black bg-white py-4">
+                    <div className="border border-black bg-white py-4 pt-1">
                         <label className="block font-bold mb-2">Action Detail</label>
                         <textarea
                             value={actionDetail}

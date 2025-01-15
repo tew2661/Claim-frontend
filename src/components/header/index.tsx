@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { MenuCategory, MenuItem } from './interface';
 import { menuList } from './menuList';
+import { getSocket } from '../socket/socket';
 
 const Header = () => {
     const router = useRouter();
@@ -22,6 +23,28 @@ const Header = () => {
         }
 
     }, [])
+
+    useEffect(() => {
+        const socket = getSocket();
+
+        // Listen for an event
+        socket.on("update-user", (data: any) => {
+            const localUser = localStorage.getItem('user') ?? ''
+            const jsonUser = JSON.parse(localUser || `{}`);
+            if ((data && data.id ? data.id : '-') == jsonUser.id) {
+                localStorage.setItem('user', JSON.stringify(data));
+                localStorage.setItem('role', data.role);
+                setName(data.name);
+                setRole(data.role);
+            }  
+        });
+
+        // Cleanup on unmount
+        return () => {
+            socket.off("update-user");
+        };
+
+    }, []);
     
     return (
         <div className="class-custom-bar">

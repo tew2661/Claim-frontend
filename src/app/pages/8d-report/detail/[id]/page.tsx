@@ -44,16 +44,24 @@ export default function QPRUploadForm() {
                 {/* Upload Section */}
                 <div className="border border-black bg-white p-4 h-full overflow-auto">
                     {/* Upload 8D Report */}
-                    <div className="mb-4">
-                        <h2 className="font-bold mb-2">Upload 8D Report Document</h2>
-                        <FileUpload
-                            name="8d-report"
-                            mode="basic"
-                            accept="application/pdf"
-                            maxFileSize={1000000}
-                            chooseLabel="Upload 8D Report (PDF)"
-                            className="p-button"
-                        />
+                    <div className="flex justify-between mb-4">
+                        <div>
+                            <h2 className="font-bold mb-2">Upload 8D Report Document</h2>
+                            <FileUpload
+                                name="8d-report"
+                                mode="basic"
+                                accept="application/pdf"
+                                maxFileSize={1000000}
+                                chooseLabel="Upload 8D Report (PDF)"
+                                className="p-button"
+                            />
+                        </div>
+                        <div className="mt-4">
+                            <Button
+                                label="Download 8D Report"
+                                severity="danger"
+                            />
+                        </div>
                     </div>
 
                     {/* Dynamic Document Upload Sections */}

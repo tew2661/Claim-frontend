@@ -299,6 +299,19 @@ const hideSpinner = async () => {
     });
 }
 
+const CreateQueryString = (filter: any) => {
+    const query = new URLSearchParams();
+
+    // Loop through the filter object
+    for (const [key, value] of Object.entries(filter)) {
+        if (value !== 'ALL' && value !== 'all' && value) { // Exclude parameters with the value 'ALL'
+            query.append(key, String(value)); // Cast value to string
+        }
+    }
+
+    return query.toString();
+};
+
 export {
-    Get , Post , Put , Patch, Delete , Login , CheckEmtyToken ,fetchFileAsFile
+    Get , Post , Put , Patch, Delete , Login , CheckEmtyToken ,fetchFileAsFile , CreateQueryString
 };
