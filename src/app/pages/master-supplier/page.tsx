@@ -96,7 +96,7 @@ export default function UserManagement() {
         }
 
         newSupplier.email.forEach((email, index) => {
-            if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            if (!email) {
                 inInvalid.email[index] = true;
             }
         });
@@ -141,7 +141,8 @@ export default function UserManagement() {
                     supplierName: newSupplier.supplierName,
                     tel: newSupplier.tel,
                     email: newSupplier.email,
-                    contactPerson: newSupplier.contactPerson
+                    contactPerson: newSupplier.contactPerson,
+                    password: newSupplier.password
                 }),
                 headers: {
                     'Content-Type': 'application/json',
