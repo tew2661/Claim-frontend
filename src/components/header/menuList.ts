@@ -11,9 +11,25 @@ const menuList: MenuCategory[] = [
     },
     {
         label: 'Approve',
-        items: [],
+        items: [
+            {
+                label: 'Checker 1',
+                icon: IconDot,
+                url: "/pages/approve/checker1",
+            },
+            {
+                label: 'Checker 2',
+                icon: IconDot,
+                url: "/pages/approve/checker2",
+            },
+            {
+                label: 'Approver',
+                icon: IconDot,
+                url: "/pages/approve/checker3",
+            },
+        ],
         icon: undefined,
-        url: "/pages/approve",
+        // url: "/pages/approve",
     },
     
     {

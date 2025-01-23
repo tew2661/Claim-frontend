@@ -11,46 +11,57 @@ import { Nullable } from "primereact/ts-helpers";
 
 interface FilterDelay {
     supplier: string;
+    qprNo: string;
 }
 
 const mockData = [
     {
+        id: 1,
+        qprNo: "QPR-001",
         supplier: "Supplier A",
         problem: "สีหลุดลอกไม่สม่ำเสมอ",
         importance: "A",
-        delayDocument: "Final report",
+        delayDocument: "Quick Report",
         commitmentDate: "11/11/2024",
         delayDays: 5,
     },
     {
+        id: 2,
+        qprNo: "QPR-002",
         supplier: "Supplier B",
         problem: "ผิวชิ้นงานขรุขระ",
         importance: "B",
-        delayDocument: "First Report",
+        delayDocument: "8D Report",
         commitmentDate: "10/11/2024",
         delayDays: 6,
     },
     {
+        id: 3,
+        qprNo: "QPR-003",
         supplier: "Supplier C",
         problem: "วัสดุไม่ตรงตาม Spec",
         importance: "C",
-        delayDocument: "Final Report",
+        delayDocument: "Quick Report",
         commitmentDate: "09/11/2024",
         delayDays: 7,
     },
     {
+        id: 4,
+        qprNo: "QPR-004",
         supplier: "Supplier D",
         problem: "สีเพี้ยนไปจาก Standard",
         importance: "SP",
-        delayDocument: "First Report",
+        delayDocument: "8D Report",
         commitmentDate: "11/11/2024",
         delayDays: 5,
     },
     {
+        id: 5,
+        qprNo: "QPR-005",
         supplier: "Supplier E",
         problem: "ความแข็งแรงต่ำกว่ามาตรฐาน",
-        importance: "Urgent",
-        delayDocument: "First Report",
+        importance: "A (Urgent)",
+        delayDocument: "8D Report",
         commitmentDate: "11/11/2024",
         delayDays: 5,
     },
@@ -63,6 +74,7 @@ export default function ReportTable() {
 
     const [filters, setFilters] = useState<FilterDelay>({
         supplier: "",
+        qprNo: ""
     });
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>, field: string) => {
@@ -81,6 +93,16 @@ export default function ReportTable() {
                 <div className="flex gap-2 mx-4 mb-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 w-[calc(100%-100px)]">
                         
+                        <div className="flex flex-col gap-2">
+                            <label htmlFor="qprNo">QPR No</label>
+                            <InputText
+                                id="qprNo"
+                                value={filters.qprNo}
+                                onChange={(e) => handleInputChange(e, "qprNo")}
+                                className="w-full"
+                            />
+                            
+                        </div>
                         <div className="flex flex-col gap-2">
                             <label htmlFor="supplier">Supplier</label>
                             <InputText
@@ -116,6 +138,7 @@ export default function ReportTable() {
                             setRows(event.rows);
                         }} />}
                 >
+                    <Column field="qprNo" header="QPR No."></Column>
                     <Column field="supplier" header="Supplier"></Column>
                     <Column field="problem" header="ปัญหา"></Column>
                     <Column field="importance" header="Importance Level"></Column>

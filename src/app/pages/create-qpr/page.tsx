@@ -1,11 +1,15 @@
 'use client';
+import { CreateQueryString, Get } from "@/components/fetch";
 import Footer from "@/components/footer";
+import PictureUploader from "@/components/picture_uploader/uploader";
 import { useRouter } from "next/navigation";
 import { Button } from "primereact/button";
 import { Calendar } from "primereact/calendar";
+import { ConfirmDialog } from "primereact/confirmdialog";
 import { Dropdown, DropdownChangeEvent } from "primereact/dropdown";
 import { InputNumber } from "primereact/inputnumber";
-import { useState } from "react";
+import { Toast } from "primereact/toast";
+import { useEffect, useRef, useState } from "react";
 
 interface WhereFound {
     receiving: boolean;
@@ -20,6 +24,8 @@ interface WhereFound {
     customerClaimDetails: string;
     warrantyClaim: boolean;
     warrantyClaimDetails: string;
+    other: boolean;
+    otherDetails: string;
 }
 
 interface Defect {
@@ -49,8 +55,8 @@ interface DefectiveContents {
 interface FormData {
     qprIssueNo: string;
     occurrenceDate: Date | undefined;
-    dateReported: string;
-    replyQuickAction: string;
+    dateReported: Date | undefined;
+    replyQuickAction: Date | undefined;
     replyReport: Date | undefined;
     supplierName: string;
     partName: string;
@@ -62,20 +68,27 @@ interface FormData {
     defect: Defect;
     state: string;
     importanceLevel: string;
+    urgent: boolean;
     frequency: Frequency;
     defectiveContents: DefectiveContents;
     issue: string;
-    figures: any[]; // Specify a more specific type if you know the structure of figures
+    figures: {
+        img1: { imageUrl: string | null, file: File | null };
+        img2: { imageUrl: string | null, file: File | null };
+        img3: { imageUrl: string | null, file: File | null };
+        img4: { imageUrl: string | null, file: File | null };
+    };
 }
 
 
 export default function QPRForm() {
     const router = useRouter()
+    const toast = useRef<Toast>(null);
     const [formData, setFormData] = useState<FormData>({
         qprIssueNo: "",
         occurrenceDate: undefined,
-        dateReported: "",
-        replyQuickAction: "",
+        dateReported: new Date(),
+        replyQuickAction: undefined,
         replyReport: undefined,
         supplierName: "",
         partName: "",
@@ -96,6 +109,8 @@ export default function QPRForm() {
             customerClaimDetails: "",
             warrantyClaim: false,
             warrantyClaimDetails: "",
+            other: false,
+            otherDetails: "",
         },
         defect: {
             dimension: false,
@@ -107,6 +122,7 @@ export default function QPRForm() {
         },
         state: "",
         importanceLevel: "",
+        urgent: false,
         frequency: {
             firstDefective: false,
             reoccurrence: false,
@@ -121,7 +137,12 @@ export default function QPRForm() {
             lot: "",
         },
         issue: "",
-        figures: [],
+        figures: {
+            img1: { imageUrl: null as string | null, file: null as File | null },
+            img2: { imageUrl: null as string | null, file: null as File | null },
+            img3: { imageUrl: null as string | null, file: null as File | null },
+            img4: { imageUrl: null as string | null, file: null as File | null },
+        },
     });
 
     // Handle Input Changes
@@ -174,6 +195,8 @@ export default function QPRForm() {
                     customerClaimDetails: "",
                     warrantyClaim: false,
                     warrantyClaimDetails: "",
+                    other: false,
+                    otherDetails: "",
                     ...(fieldMaster
                         ? {
                               [fieldMaster as keyof WhereFound]:
@@ -199,8 +222,36 @@ export default function QPRForm() {
         }
     };
 
+    const handleImageChange = (props: { key: keyof FormData['figures'] , data: {imageUrl: string | null, file: File | null} }) => {
+        setFormData((prevData: FormData) => ({
+            ...prevData,
+            figures: {
+                ...prevData.figures,
+                [props.key]: props.data
+            }
+        }));
+    };
+
+
+    const [supplier, setSupplier] = useState<{ label: string , value: string }[]>([]);
+    const GetDatas = async () => {
+        const res = await Get({ url: `/supplier/dropdown` });
+        if (res.ok) {
+            const res_data = await res.json();
+            setSupplier((res_data || []))
+        } else {
+            toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await res!.json()).message)}`, life: 3000 });
+        }
+    }
+
+    useEffect(() => {
+        GetDatas()
+    }, [])
+
     return (
         <div className="p-6 bg-gray-100 min-h-screen">
+            <Toast ref={toast} />
+            <ConfirmDialog />
             <div className="bg-white p-6 shadow-md rounded-md border">
                 <h1 className="text-2xl font-bold text-center mb-3 border border-solid p-3 border-gray-300 rounded-md">
                     Quality Problem Rejection (QPR)
@@ -210,7 +261,7 @@ export default function QPRForm() {
                     <div className="w-[70%] border border-solid p-3 border-gray-300 rounded-md">
                         <div className="grid grid-cols-2 gap-2 mb-4">
                             <div>
-                                <label className="block text-sm font-bold">Parts Name</label>
+                                <label className="block text-sm font-bold">Part Name</label>
                                 <input
                                     type="text"
                                     value={formData.partName}
@@ -229,10 +280,7 @@ export default function QPRForm() {
                                 <Dropdown 
                                     value={formData.supplierName || ""} 
                                     onChange={(e: DropdownChangeEvent) => handleInputChange({ target: { value: e.value }} as React.ChangeEvent<HTMLInputElement>, "supplierName")} 
-                                    options={[
-                                        { label: 'Supplier A', value: 'Supplier A' },
-                                        { label: 'Supplier B', value: 'Supplier B' }
-                                    ]} 
+                                    options={supplier} 
                                     optionLabel="label" 
                                     // placeholder="Select Supplier" 
                                     className="w-full bg-blue-100 border border-gray-300 rounded-md p-2 border-t-black border-l-black" 
@@ -240,7 +288,7 @@ export default function QPRForm() {
                                 
                             </div>
                             <div>
-                                <label className="block text-sm font-bold">Parts No</label>
+                                <label className="block text-sm font-bold">Part No</label>
                                 <input
                                     type="text"
                                     value={formData.partNo}
@@ -425,6 +473,33 @@ export default function QPRForm() {
                                         className="w-full bg-blue-100 border border-gray-300 rounded-md p-2"
                                     />
                                 </div>
+                                <div className="flex items-start gap-4">
+                                    <label className="flex items-center">
+                                        <input
+                                            type="checkbox"
+                                            checked={formData.whereFound.other}
+                                            onChange={(e) =>
+                                                handleInputChange(e, "other", "whereFound")
+                                            }
+                                            className="mr-2"
+                                        />
+                                        Other
+                                    </label>
+                                    <input
+                                        type="text"
+                                        placeholder="Enter additional info"
+                                        value={formData.whereFound.otherDetails}
+                                        onChange={(e) =>
+                                            handleInputChange(
+                                                e,
+                                                "otherDetails",
+                                                "whereFound",
+                                                "other"
+                                            )
+                                        }
+                                        className="w-full bg-blue-100 border border-gray-300 rounded-md p-2"
+                                    />
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -455,22 +530,31 @@ export default function QPRForm() {
                             </div>
                             <div>
                                 <label className="block text-sm font-bold">Date Reported</label>
-                                <input
-                                    type="text"
-                                    value={formData.dateReported}
-                                    onChange={(e) => handleInputChange(e, "dateReported")}
-                                    placeholder="Auto-generated"
+                                <Calendar 
+                                    value={formData.dateReported} 
+                                    dateFormat="dd/mm/yy"
+                                    placeholder="dd/mm/yy"
+                                    showTime
+                                    hourFormat="24"
+                                    onChange={(e) => handleInputChange({ target: { value: e.value || undefined }} as any as React.ChangeEvent<HTMLInputElement>, "dateReported")} 
+                                    className="w-full input-number-bg-blue-100"
+                                    showButtonBar
+                                    style={{ paddingLeft: 0 , paddingRight: 0 }}
                                     disabled
-                                    className="w-full bg-gray-200 border border-gray-300 rounded-md p-2"
                                 />
                             </div>
                             <div>
                                 <label className="block text-sm font-bold">Reply Quick Action</label>
-                                <input
-                                    type="text"
-                                    value={formData.replyQuickAction}
-                                    onChange={(e) => handleInputChange(e, "replyQuickAction")}
-                                    className="w-full bg-blue-100 border border-gray-300 rounded-md p-2"
+                                <Calendar 
+                                    value={formData.replyQuickAction} 
+                                    dateFormat="dd/mm/yy"
+                                    placeholder="dd/mm/yy"
+                                    showTime
+                                    hourFormat="24"
+                                    onChange={(e) => handleInputChange({ target: { value: e.value || undefined }} as any as React.ChangeEvent<HTMLInputElement>, "replyQuickAction")} 
+                                    className="w-full input-number-bg-blue-100"
+                                    showButtonBar
+                                    style={{ paddingLeft: 0 , paddingRight: 0 }}
                                 />
                             </div>
                             <div>
@@ -666,11 +750,11 @@ export default function QPRForm() {
                         </label>
                         <label className="flex items-center">
                             <input
-                                type="radio"
-                                name="importanceLevel"
+                                type="checkbox"
+                                name="urgent"
                                 value="Urgent"
-                                checked={formData.importanceLevel === "Urgent"}
-                                onChange={(e) => handleInputChange(e, "importanceLevel")}
+                                checked={formData.urgent}
+                                onChange={(e) => handleInputChange(e, "urgent")}
                                 className="mr-2"
                             />
                             Urgent
@@ -812,18 +896,38 @@ export default function QPRForm() {
                 <div className="mt-3 border border-solid p-3 border-gray-300 rounded-md">
                     <label className="font-semibold">FIGURE</label>
                     <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-blue-100 border border-gray-300 p-6 text-center">
-                            <span className="text-gray-500">Picture #1</span>
-                        </div>
-                        <div className="bg-blue-100 border border-gray-300 p-6 text-center">
-                            <span className="text-gray-500">Picture #2</span>
-                        </div>
-                        <div className="bg-blue-100 border border-gray-300 p-6 text-center">
-                            <span className="text-gray-500">Picture #3</span>
-                        </div>
-                        <div className="bg-blue-100 border border-gray-300 p-6 text-center">
-                            <span className="text-gray-500">Picture #4</span>
-                        </div>
+                        <PictureUploader 
+                            title={"Picture #1"} 
+                            onImageChange={(imageUrl: string | null, file: File | null) => { handleImageChange({ key: 'img1' , data: { imageUrl , file } }) }} 
+                            defualt={{
+                                imageUrl: formData.figures.img1.imageUrl,
+                                file: formData.figures.img1.file,
+                            }} 
+                        />
+                        <PictureUploader 
+                            title={"Picture #2"} 
+                            onImageChange={(imageUrl: string | null, file: File | null) => { handleImageChange({ key: 'img2' , data: { imageUrl , file } }) }} 
+                            defualt={{
+                                imageUrl: formData.figures.img2.imageUrl,
+                                file: formData.figures.img2.file,
+                            }} 
+                        />
+                        <PictureUploader 
+                            title={"Picture #3"} 
+                            onImageChange={(imageUrl: string | null, file: File | null) => { handleImageChange({ key: 'img3' , data: { imageUrl , file } }) }} 
+                            defualt={{
+                                imageUrl: formData.figures.img3.imageUrl,
+                                file: formData.figures.img3.file,
+                            }} 
+                        />
+                        <PictureUploader 
+                            title={"Picture #4"} 
+                            onImageChange={(imageUrl: string | null, file: File | null) => { handleImageChange({ key: 'img4' , data: { imageUrl , file } }) }} 
+                            defualt={{
+                                imageUrl: formData.figures.img4.imageUrl,
+                                file: formData.figures.img4.file,
+                            }} 
+                        />
                     </div>
                 </div>
             </div>

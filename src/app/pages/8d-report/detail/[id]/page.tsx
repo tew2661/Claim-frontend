@@ -10,14 +10,14 @@ import { v4 as uuidv4 } from "uuid";
 export default function QPRUploadForm() {
     const param = useParams();
     const router = useRouter();
-    const [uploadSections, setUploadSections] = useState<{ key: string; name: string }[]>([
-        { key: uuidv4(), name: "" },
+    const [uploadSections, setUploadSections] = useState<{ key: string; name: string , extension: string, file: File | null  }[]>([
+        { key: uuidv4(), name: "" , extension: "", file: null },
     ]);
 
     const handleAddMore = () => {
         setUploadSections((prev) => [
             ...prev,
-            { key: uuidv4(), name: "" },
+            { key: uuidv4(), name: "" , extension: "", file: null },
         ]);
     };
 
@@ -71,22 +71,68 @@ export default function QPRUploadForm() {
                             className="flex items-center gap-4 mb-4"
                         >
                             <div className="flex-1">
-                                <label className="block font-bold mb-2">Document Name</label>
-                                <InputText
-                                    value={section.name}
-                                    onChange={(e) =>
-                                        handleInputChange(section.key, e.target.value)
-                                    }
-                                    placeholder={`Enter document name for section ${index + 1}`}
-                                    className="w-full"
-                                />
+                                <div className="flex justify-between">
+                                    <label className="block font-bold mb-2">Document Name</label>
+                                    <label className="block font-bold mb-2 text-red-400">"Max 10mb / Document"</label>
+                                </div>
+                                <div className="p-inputgroup flex-1" style={{ height: '33px' }}>
+                                    <InputText
+                                        value={section.name}
+                                        onChange={(e) =>
+                                            handleInputChange(section.key, e.target.value)
+                                        }
+                                        placeholder={`Enter document name for section ${index + 1}`}
+                                        className="w-full"
+                                    />
+                                    <span className="p-inputgroup-addon">
+                                        .{section.extension}
+                                    </span>
+                                </div>
+                                
                             </div>
                             <div className="flex flex-col">
                                 <label className="block font-bold mb-2">&nbsp;</label>
                                 <Button
-                                    label="Upload Document"
+                                    label={"Upload Document"}
                                     icon="pi pi-upload"
                                     className="p-button-primary"
+                                    onClick={() => document.getElementById('keyElement-image-' + index)?.click()}
+                                />
+                                <input
+                                    id={'keyElement-image-' + index}
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                            console.log('file' , file)
+                                            setUploadSections((old) => (old.map((arr) => {
+                                                if (arr.key == section.key) {
+                                                    let extension = '';
+                                                    let filename = '';
+                                                    if (file.name.includes('.')) {
+                                                        extension = file.name.substring(file.name.lastIndexOf('.') + 1);
+                                                        filename = file.name.replace(`.${extension}`, '');
+                                                      } else {
+                                                        extension = "";
+                                                        filename = file.name
+                                                      }
+                                                    return { ...arr, name: filename, extension: extension, file: file }
+                                                } else {
+                                                    return arr
+                                                }
+                                            })));
+                                        } else {
+                                            setUploadSections((old) => (old.map((arr) => {
+                                                if (arr.key == section.key) {
+                                                    return { ...arr, name: "", extension: "", file: null }
+                                                } else {
+                                                    return arr
+                                                }
+                                            })));
+                                        }
+                                    }}
                                 />
                             </div>
                             <div className="flex flex-col">

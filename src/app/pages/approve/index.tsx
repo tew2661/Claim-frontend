@@ -11,7 +11,7 @@ import { Nullable } from "primereact/ts-helpers";
 import { useRouter } from "next/navigation";
 
 interface FilterApprove {
-    date: Nullable<Date>;
+    qprNo: string,
     supplier: string;
     reportType: string;
     status: string;
@@ -19,6 +19,7 @@ interface FilterApprove {
 
 interface DataQPR {
     id: number,
+    qprNo: string,
     date: string,
     supplier: string,
     reportType: string,
@@ -30,6 +31,7 @@ interface DataQPR {
 const mockData: DataQPR[] = [
     {
         id: 1,
+        qprNo: 'QPR-001',
         date: "11/11/2024",
         supplier: "Supplier A",
         reportType: "Quick Report",
@@ -39,6 +41,7 @@ const mockData: DataQPR[] = [
     },
     {
         id: 2,
+        qprNo: 'QPR-002',
         date: "11/11/2024",
         supplier: "Supplier B",
         reportType: "8D Report",
@@ -48,6 +51,7 @@ const mockData: DataQPR[] = [
     },
     {
         id: 3,
+        qprNo: 'QPR-003',
         date: "11/11/2024",
         supplier: "Supplier C",
         reportType: "8D Report",
@@ -57,6 +61,7 @@ const mockData: DataQPR[] = [
     },
     {
         id: 4,
+        qprNo: 'QPR-004',
         date: "11/11/2024",
         supplier: "Supplier D",
         reportType: "8D Report",
@@ -66,23 +71,24 @@ const mockData: DataQPR[] = [
     },
     {
         id: 5,
+        qprNo: 'QPR-005',
         date: "11/11/2024",
         supplier: "Supplier E",
         reportType: "8D Report",
         problem: "ความแข็งแรงต่ำกว่ามาตรฐาน",
-        importance: "Urgent",
+        importance: "C (Urgent)",
         status: "Approved",
     },
 ];
 
-export default function ReportTable() {
+export default function ApprovedTable(props: { page: 1 | 2 | 3 }) {
     const [first, setFirst] = useState<number>(0);
     const [rows, setRows] = useState<number>(10);
     const [totalRows, ] = useState<number>(10);
     const router = useRouter()
 
     const [filters, setFilters] = useState<FilterApprove>({
-        date: null,
+        qprNo: "",
         supplier: "",
         reportType: "",
         status: "",
@@ -94,7 +100,7 @@ export default function ReportTable() {
 
     const actionBodyTemplate = (rowData: DataQPR) => {
         return (
-            <Button label="View" className="p-button-primary" outlined onClick={() => router.push(`approve/detail/${rowData.id}`) } />
+            <Button label="View" className="p-button-primary" outlined onClick={() => router.push(`detail/checker${props.page}/${rowData.id}`) } />
         );
     };
 
@@ -104,16 +110,12 @@ export default function ReportTable() {
                 <div className="flex gap-2 mx-4 mb-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 w-[calc(100%-100px)]">
                         <div className="flex flex-col gap-2 w-full">
-                            <label htmlFor="date">Date</label>
-                            <Calendar
-                                id="date"
-                                showIcon
-                                showButtonBar
-                                value={filters.date}
-                                dateFormat="dd/mm/yy"
-                                onChange={(e) => setFilters({ ...filters, date: e.value })}
+                            <label htmlFor="qprNo">QPR No.</label>
+                            <InputText
+                                id="qprNo"
+                                value={filters.qprNo}
+                                onChange={(e) => handleInputChange(e, "qprNo")}
                                 className="w-full"
-                                style={{ padding: 0 }}
                             />
                         </div>
                         <div className="flex flex-col gap-2">
@@ -169,7 +171,7 @@ export default function ReportTable() {
                             setRows(event.rows);
                         }} />}
                 >
-                    <Column field="date" header="Date"></Column>
+                    <Column field="qprNo" header="QPR No."></Column>
                     <Column field="supplier" header="Supplier"></Column>
                     <Column field="reportType" header="Report Type"></Column>
                     <Column field="problem" header="ปัญหา" bodyStyle={{ width: '30%' }}></Column>

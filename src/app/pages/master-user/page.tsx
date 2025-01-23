@@ -28,11 +28,11 @@ interface UserData {
 }
 
 const roleOptions = [
-    { label: "Checker", value: "Checker" },
+    { label: "Leader / Engineer", value: "Leader / Engineer" },
+    { label: "Supervision / Asistant Manager", value: "Supervision / Asistant Manager" },
     { label: "Manager", value: "Manager" },
-    { label: "DGM/GM", value: "DGM/GM" },
+    { label: "GM / DGM", value: "GM / DGM" },
     { label: "Plant Manager", value: "Plant Manager" },
-    { label: "Admin", value: "Admin" },
 ];
 
 export default function UserManagement() {
@@ -143,7 +143,7 @@ export default function UserManagement() {
                     department: newUser.department,
                     role: newUser.role,
                     email: newUser.email,
-                    password: '12345678',
+                    password: newUser.password,
                 }),
                 headers: {
                     'Content-Type': 'application/json',

@@ -14,19 +14,21 @@ const Header = () => {
     const router = useRouter();
     const [name, setName] = useState('')
     const [role, setRole] = useState('')
+
     useEffect(() => {
+
         const localUser = localStorage.getItem('user') ?? ''
         if (localUser) {
             const jsonUser = JSON.parse(localUser);
             setName(jsonUser.name);
             setRole(jsonUser.role);
+        } else {
+            localStorage.clear();
+            window.location.href = "/login"
         }
 
-    }, [])
 
-    useEffect(() => {
         const socket = getSocket();
-
         // Listen for an event
         socket.on("update-user", (data: any) => {
             const localUser = localStorage.getItem('user') ?? ''

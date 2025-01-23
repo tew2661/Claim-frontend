@@ -10,6 +10,7 @@ import { Calendar } from "primereact/calendar";
 
 interface DataActionList {
     date: string,
+    qprNo: string,
     problem: string,
     severity: string,
     quickReport: string,
@@ -19,6 +20,7 @@ interface DataActionList {
 
 interface FilterTable {
     date?: Date,
+    qprNo: string,
     severity: string,
     status: string
 }
@@ -29,12 +31,14 @@ export default function ProblemReportTable() {
     const [totalRows,] = useState(10);
     const [filters, setFilters] = useState<FilterTable>({
         date: undefined,
+        qprNo: "",
         severity: "",
         status: ""
     })
     const data: DataActionList[] = [
         {
             date: "08/11/2024",
+            qprNo: "QPR-001",
             problem: "สีหลุด",
             severity: "A",
             quickReport: "09/11/2024(ส่งแล้ว)",
@@ -43,6 +47,7 @@ export default function ProblemReportTable() {
         },
         {
             date: "08/11/2024",
+            qprNo: "QPR-002",
             problem: "ผิวชิ้นงานไม่เรียบ",
             severity: "B",
             quickReport: "10/11/2024(Reject)",
@@ -51,6 +56,7 @@ export default function ProblemReportTable() {
         },
         {
             date: "08/11/2024",
+            qprNo: "QPR-003",
             problem: "สีเพี้ยน",
             severity: "C",
             quickReport: "09/11/2024(Delay)",
@@ -95,6 +101,17 @@ export default function ProblemReportTable() {
                                     className="w-full"
                                     showButtonBar
                                     style={{ padding: 0 }}
+                                />
+                            </div>
+                            <div className="flex flex-col">
+                                <label htmlFor="qprNo" className="font-bold mb-2">
+                                    QPR No
+                                </label>
+                                <InputText 
+                                    id="qprNo" 
+                                    className="w-full" 
+                                    value={filters.qprNo}
+                                    onChange={(e) => setFilters({ ...filters, qprNo: e.target.value || "" })}
                                 />
                             </div>
                             <div className="flex flex-col">
@@ -145,8 +162,9 @@ export default function ProblemReportTable() {
                                 setRows(event.rows);
                             }} />}
                     >
-                        <Column field="date" header="Date"  />
-                        <Column field="problem" header="ปัญหา" bodyStyle={{ width: '40%' }} />
+                        <Column field="date" header="Date" bodyStyle={{ width: '10%' }} />
+                        <Column field="qprNo" header="QPR No"  />
+                        <Column field="problem" header="ปัญหา" bodyStyle={{ width: '30%' }} />
                         <Column field="severity" header="ระดับความรุนแรง" bodyStyle={{ textAlign: 'center' }} />
                         <Column
                             field="quickReport"

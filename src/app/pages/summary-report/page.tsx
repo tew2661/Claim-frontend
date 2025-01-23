@@ -10,14 +10,28 @@ import Footer from "@/components/footer";
 import { Calendar } from "primereact/calendar";
 import { Nullable } from "primereact/ts-helpers";
 
+interface DataSummaryReportTable {
+    id: number,
+    qprNo: string,
+    supplier: string,
+    problem: string,
+    importance: string,
+    quickReport: string,
+    report8D: string,
+    status: string,
+}
+
 interface FilterSummaryReport {
+    qprNo: string;
     month: Nullable<Date>;
     supplier: string;
     status: string;
 }
 
-const mockData = [
+const mockData: DataSummaryReportTable[] = [
     {
+        id: 1,
+        qprNo: "QPR-001",
         supplier: "Supplier A",
         problem: "สีหลุดลอกไม่สม่ำเสมอ",
         importance: "A",
@@ -26,6 +40,8 @@ const mockData = [
         status: "Wait for supplier submit final report",
     },
     {
+        id: 2,
+        qprNo: "QPR-002",
         supplier: "Supplier B",
         problem: "ผิวชิ้นงานขรุขระ",
         importance: "B",
@@ -34,6 +50,8 @@ const mockData = [
         status: "Wait for supplier submit first report",
     },
     {
+        id: 3,
+        qprNo: "QPR-003",
         supplier: "Supplier C",
         problem: "วัสดุไม่ตรงตาม Spec",
         importance: "C",
@@ -42,6 +60,8 @@ const mockData = [
         status: "Wait for final report approve",
     },
     {
+        id: 4,
+        qprNo: "QPR-004",
         supplier: "Supplier D",
         problem: "สีเพี้ยนไปจาก Standard",
         importance: "SP",
@@ -50,6 +70,8 @@ const mockData = [
         status: "Approved",
     },
     {
+        id: 5,
+        qprNo: "QPR-005",
         supplier: "Supplier E",
         problem: "ความแข็งแรงต่ำกว่ามาตรฐาน",
         importance: "Urgent",
@@ -64,6 +86,7 @@ export default function SummaryReport() {
     const [rows, setRows] = useState(10);
     const [totalRows, setTotalRows] = useState(10);
     const [filters, setFilters] = useState<FilterSummaryReport>({
+        qprNo: "",
         month: null,
         supplier: "",
         status: "",
@@ -96,6 +119,16 @@ export default function SummaryReport() {
                                 className="w-full"
                                 style={{ padding: 0 }}
                             />
+                        </div>
+                        <div className="flex flex-col gap-2 w-full">
+                            <label htmlFor="qprNo">QPR No</label>
+                            <InputText
+                                id="qprNo"
+                                value={filters.qprNo}
+                                onChange={(e) => handleInputChange(e, "qprNo")}
+                                className="w-full"
+                            />
+
                         </div>
                         <div className="flex flex-col gap-2 w-full">
                             <label htmlFor="supplier">Supplier</label>
@@ -143,6 +176,7 @@ export default function SummaryReport() {
                             setRows(event.rows);
                         }} />}
                 >
+                    <Column field="qprNo" header="QPR No."></Column>
                     <Column field="supplier" header="Supplier"></Column>
                     <Column field="problem" header="ปัญหา" bodyStyle={{ width: '30%' }}></Column>
                     <Column field="importance" header="Importance Level"></Column>

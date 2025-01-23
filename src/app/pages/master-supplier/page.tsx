@@ -19,7 +19,9 @@ interface DataSupplierTable {
     supplierName: string;
     tel: string;
     email: string[];
-    contactPerson: string[]
+    contactPerson: string[],
+    password?: string;
+    confirmPassword?: string;
 }
 
 export default function UserManagement() {
@@ -30,17 +32,21 @@ export default function UserManagement() {
         supplierName: '',
         tel: '',
         email: [''],
-        contactPerson: ['']
+        contactPerson: [''],
+        password: '',
+        confirmPassword: ''
     }
     const defaultErrorSupplier = {
         supplierCode: false,
         supplierName: false,
         tel: false,
         email: [false],
-        contactPerson: [false]
+        contactPerson: [false],
+        password: false,
+        confirmPassword: false
     }
     const [visibleAdd, setVisibleAdd] = useState<boolean>(false);
-    const [addOrEdit, setAddOrEdit] = useState<'A'|'E'>('A');
+    const [addOrEdit, setAddOrEdit] = useState<'A' | 'E' | 'P'>('A');
     const [supplier, setSupplier] = useState<DataSupplierTable[]>([]);
     const [first, setFirst] = useState(0);
     const [rows, setRows] = useState(10);
@@ -51,6 +57,11 @@ export default function UserManagement() {
     const [filters, setFilters] = useState({
         supplierCode: "",
         supplierName: ""
+    })
+
+    const [password, setPassword] = useState({
+        pass1: '',
+        pass2: ''
     })
 
     const addNewUser = () => {
@@ -86,13 +97,13 @@ export default function UserManagement() {
 
         newSupplier.email.forEach((email, index) => {
             if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-                inInvalid.email[index] = true; 
+                inInvalid.email[index] = true;
             }
         });
 
         newSupplier.contactPerson.forEach((contactPerson, index) => {
             if (!contactPerson) {
-                inInvalid.contactPerson[index] = true; 
+                inInvalid.contactPerson[index] = true;
             }
         });
 
@@ -106,10 +117,19 @@ export default function UserManagement() {
             return inInvalid[key];
         });
 
-        setIInvalid(inInvalid); 
+        if (addOrEdit == 'A' && !newSupplier.confirmPassword) {
+            inInvalid.confirmPassword = true
+        }
+        if (newSupplier.password !== newSupplier.confirmPassword) {
+            inInvalid.confirmPassword = true
+            toast.current?.show({ severity: 'warn', summary: 'Error', detail: `รหัสผ่านระบุไม่ตรงกัน`, life: 3000 });
+            return;
+        }
+
+        setIInvalid(inInvalid);
         if (hasInvalidFields) {
             console.log("Validation failed:", inInvalid);
-            return; 
+            return;
         }
 
         let datareturn: Response | null = null
@@ -150,8 +170,8 @@ export default function UserManagement() {
         } else {
             toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await datareturn!.json()).message)}`, life: 3000 });
         }
-        
-        
+
+
     }
 
     const DeleteData = async (id: number) => {
@@ -172,7 +192,7 @@ export default function UserManagement() {
             }
         }
 
-        const reject = () => {}
+        const reject = () => { }
 
         confirmDialog({
             message: 'Do you want to delete this record?',
@@ -183,9 +203,37 @@ export default function UserManagement() {
             accept,
             reject
         });
-        
+
     }
 
+    const FixPasswordData = async (id: number) => {
+        if (!password.pass1) {
+            toast.current?.show({ severity: 'warn', summary: 'Error', detail: `กรุณาระบุข้อมูล`, life: 3000 });
+            return;
+        } else if (password.pass1.length < 8) {
+            toast.current?.show({ severity: 'warn', summary: 'Error', detail: `รหัสผ่านอย่างน้อย 8 ตัว`, life: 3000 });
+            return;
+        } else if (password.pass1 !== password.pass2) {
+            toast.current?.show({ severity: 'warn', summary: 'Error', detail: `รหัสผ่านระบุไม่ตรงกัน`, life: 3000 });
+            return;
+        }
+        const res = await Put({
+            url: `/supplier/${id}`,
+            body: JSON.stringify({
+                password: password.pass1
+            }),
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        if (res.ok) {
+            toast.current?.show({ severity: 'success', summary: 'บันทึกสำเร็จ', detail: `เปลี่ยนรหัสผ่านสำเร็จ`, life: 3000 });
+            GetDatas()
+        } else {
+            toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await res!.json()).message)}`, life: 3000 });
+        }
+        setVisibleAdd(false);
+    }
 
     const GetDatas = async () => {
         const quertString = CreateQueryString({
@@ -198,9 +246,9 @@ export default function UserManagement() {
             setSupplier((res_data.data || []).map((x: any) => {
                 return {
                     id: x.id,
-                    supplierCode: x.supplierCode || "", 
-                    supplierName: x.supplierName || "", 
-                    tel: x.tel || "", 
+                    supplierCode: x.supplierCode || "",
+                    supplierName: x.supplierName || "",
+                    tel: x.tel || "",
                     email: x.email || [],
                     contactPerson: x.contactPerson || []
                 }
@@ -210,9 +258,9 @@ export default function UserManagement() {
         }
     }
 
-    useEffect(()=> {
+    useEffect(() => {
         GetDatas()
-    },[])
+    }, [])
 
     return (
         <div className="flex justify-center pt-6 px-6">
@@ -274,8 +322,13 @@ export default function UserManagement() {
                         })}</div>
                     }}></Column>
                     <Column field="action" header="Action" style={{ width: '10%', textAlign: 'center' }} body={(arr) => {
-                        return <div className="flex justify-center gap-2"> 
-                            <Button icon="pi pi-pen-to-square" outlined onClick={()=> {
+                        return <div className="flex justify-center gap-2">
+                            <Button icon="pi pi-key" severity="warning" outlined onClick={() => {
+                                setNewSupplier(arr);
+                                setAddOrEdit('P');
+                                setVisibleAdd(true);
+                            }} />
+                            <Button icon="pi pi-pen-to-square" outlined onClick={() => {
                                 setNewSupplier(arr);
                                 setAddOrEdit('E');
                                 setVisibleAdd(true);
@@ -285,130 +338,185 @@ export default function UserManagement() {
                     }}></Column>
                 </DataTable>
             </div>
-            <Dialog header={addOrEdit == 'A' ? "Add Supplier" : "Edit Supplier"} visible={visibleAdd} onHide={() => { if (!visibleAdd) return; setVisibleAdd(false); }}
+            <Dialog header={addOrEdit == 'A' ? "Add Supplier" : (addOrEdit == 'E' ? "Edit Supplier" : "Fix Password")} visible={visibleAdd} onHide={() => { if (!visibleAdd) return; setVisibleAdd(false); }}
                 style={{ width: '50vw' }} breakpoints={{ '960px': '75vw', '641px': '100vw' }}>
-                <div className="flex flex-col gap-2">
-                    <div className="flex flex-col gap-2 w-full">
-                        <label htmlFor="supplierCode">Supplier Code</label>
-                        <InputText
-                            id="supplierCode"
-                            value={newSupplier.supplierCode}
-                            invalid={iInvalid.supplierCode && !newSupplier.supplierCode}
-                            onChange={(e) => handleInputChangeAdd(e, "supplierCode")}
-                            className="w-full"
-                        />
-                    </div>
-                    <div className="flex flex-col gap-2 w-full">
-                        <label htmlFor="supplierName">Supplier Name</label>
-                        <InputText
-                            id="supplierName"
-                            value={newSupplier.supplierName}
-                            invalid={iInvalid.supplierName && !newSupplier.supplierName}
-                            onChange={(e) => handleInputChangeAdd(e, "supplierName")}
-                            className="w-full"
-                        />
-                    </div>
-                    <div className="flex flex-col gap-2 w-full">
-                        <label htmlFor="tel">Tel</label>
-                        <InputText
-                            id="tel"
-                            value={newSupplier.tel}
-                            invalid={iInvalid.tel && !newSupplier.tel}
-                            onChange={(e) => handleInputChangeAdd(e, "tel")}
-                            className="w-full"
-                        />
-                    </div>
+                {
+                    addOrEdit == 'P' ? <>
+                        <div className="flex flex-col gap-2 w-full">
+                            <label htmlFor="pass1">รหัสผ่านใหม่</label>
+                            <InputText
+                                id="pass1"
+                                type="password"
+                                value={password.pass1}
+                                onChange={(e) => setPassword((old) => ({ ...old, pass1: e.target.value || "" }))}
+                                className="w-full"
+                            />
+                        </div>
+                        <div className="flex flex-col gap-2 w-full">
+                            <label htmlFor="pass2">ยืนยันรหัสผ่าน</label>
+                            <InputText
+                                id="pass2"
+                                type="password"
+                                value={password.pass2}
+                                onChange={(e) => setPassword((old) => ({ ...old, pass2: e.target.value || "" }))}
+                                className="w-full"
+                            />
+                        </div>
+                        <div className='flex justify-end mt-2 w-full gap-2'>
+                            <Button label="Fix Password" className="p-button-primary" onClick={() => FixPasswordData(newSupplier.id)} />
+                        </div>
+                    </> : <>
+                        <div className="flex flex-col gap-2">
+                            <div className="flex flex-col gap-2 w-full">
+                                <label htmlFor="supplierCode">Supplier Code</label>
+                                <InputText
+                                    id="supplierCode"
+                                    value={newSupplier.supplierCode}
+                                    invalid={iInvalid.supplierCode && !newSupplier.supplierCode}
+                                    onChange={(e) => handleInputChangeAdd(e, "supplierCode")}
+                                    className="w-full"
+                                />
+                            </div>
+                            <div className="flex flex-col gap-2 w-full">
+                                <label htmlFor="supplierName">Supplier Name</label>
+                                <InputText
+                                    id="supplierName"
+                                    value={newSupplier.supplierName}
+                                    invalid={iInvalid.supplierName && !newSupplier.supplierName}
+                                    onChange={(e) => handleInputChangeAdd(e, "supplierName")}
+                                    className="w-full"
+                                />
+                            </div>
+                            <div className="flex flex-col gap-2 w-full">
+                                <label htmlFor="tel">Tel</label>
+                                <InputText
+                                    id="tel"
+                                    value={newSupplier.tel}
+                                    invalid={iInvalid.tel && !newSupplier.tel}
+                                    onChange={(e) => handleInputChangeAdd(e, "tel")}
+                                    className="w-full"
+                                />
+                            </div>
 
-                    <div className="w-full border border-solid rounded border-gray-300 pb-4 p-2 px-4">
-                        {
-                            newSupplier.email.map((arr: string, index: number) => {
-                                return <div className="flex flex-row gap-2" key={'em-' + index}>
-                                    <div className="flex flex-col gap-2 w-[calc(50%-50px)]">
-                                        <label htmlFor="contactPerson">Contact Person</label>
-                                        <InputText
-                                            id="contactPerson"
-                                            value={newSupplier.contactPerson[index]}
-                                            invalid={iInvalid.contactPerson[index] && !newSupplier.contactPerson[index]}
-                                            onChange={(e) => {
-                                                setNewSupplier((old) => {
-                                                    return {
-                                                        ...old,
-                                                        contactPerson: newSupplier.contactPerson.map((arrj, indexj) => {
-                                                            if (index == indexj) {
-                                                                return e.target.value
-                                                            } else {
-                                                                return arrj
+                            <div className="w-full border border-solid rounded border-gray-300 pb-4 p-2 px-4">
+                                {
+                                    newSupplier.email.map((arr: string, index: number) => {
+                                        return <div className="flex flex-row gap-2" key={'em-' + index}>
+                                            <div className="flex flex-col gap-2 w-[calc(50%-50px)]">
+                                                <label htmlFor="contactPerson">Contact Person</label>
+                                                <InputText
+                                                    id="contactPerson"
+                                                    value={newSupplier.contactPerson[index]}
+                                                    invalid={iInvalid.contactPerson[index] && !newSupplier.contactPerson[index]}
+                                                    onChange={(e) => {
+                                                        setNewSupplier((old) => {
+                                                            return {
+                                                                ...old,
+                                                                contactPerson: newSupplier.contactPerson.map((arrj, indexj) => {
+                                                                    if (index == indexj) {
+                                                                        return e.target.value
+                                                                    } else {
+                                                                        return arrj
+                                                                    }
+                                                                })
                                                             }
                                                         })
-                                                    }
-                                                })
-                                            }}
+                                                    }}
+                                                    className="w-full"
+                                                />
+                                            </div>
+                                            <div className="flex flex-col gap-2 w-[calc(50%-50px)]">
+                                                <label htmlFor={'email-' + index}>Email {index + 1}</label>
+                                                <InputText
+                                                    id={'email-' + index}
+                                                    type="email"
+                                                    value={arr}
+                                                    invalid={iInvalid.email[index] && !arr}
+                                                    onChange={(e) => {
+                                                        setNewSupplier((old) => {
+                                                            return {
+                                                                ...old,
+                                                                email: newSupplier.email.map((arrj, indexj) => {
+                                                                    if (index == indexj) {
+                                                                        return e.target.value
+                                                                    } else {
+                                                                        return arrj
+                                                                    }
+                                                                })
+                                                            }
+                                                        })
+                                                    }}
+                                                    className="w-full"
+                                                />
+                                            </div>
+
+                                            {index === 0 ? (
+                                                <div className="w-[100px] flex items-end justify-end">
+                                                    <Button
+                                                        label="ADD"
+                                                        icon="pi pi-plus"
+                                                        onClick={() => {
+                                                            setNewSupplier((prev) => ({
+                                                                ...prev,
+                                                                email: [...prev.email, ""],
+                                                                contactPerson: [...prev.contactPerson, ""],
+                                                            }));
+                                                        }}
+                                                        className="p-button-success"
+                                                    />
+                                                </div>
+                                            ) : (
+                                                <div className="w-[100px] flex items-end justify-end">
+                                                    <Button
+                                                        icon="pi pi-trash"
+                                                        onClick={() => {
+                                                            setNewSupplier((prev) => ({
+                                                                ...prev,
+                                                                email: prev.email.filter((_, i) => i !== index),
+                                                            }));
+                                                        }}
+                                                        className="p-button-danger"
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+                                    })
+                                }
+                            </div>
+
+                            {
+                                addOrEdit == 'A' ? <div className="border border-solid border-gray-300 rounded-md p-3 pb-5">
+                                    <div className="flex flex-col gap-2 w-full">
+                                        <label htmlFor="password">Password</label>
+                                        <InputText
+                                            id="password"
+                                            type="password"
+                                            value={newSupplier.password}
+                                            invalid={iInvalid.password && !newSupplier.password}
+                                            onChange={(e) => handleInputChangeAdd(e, "password")}
                                             className="w-full"
                                         />
                                     </div>
-                                    <div className="flex flex-col gap-2 w-[calc(50%-50px)]">
-                                        <label htmlFor={'email-' + index}>Email {index + 1}</label>
+                                    <div className="flex flex-col gap-2 w-full">
+                                        <label htmlFor="cpassword">Confirm Password</label>
                                         <InputText
-                                            id={'email-' + index}
-                                            type="email"
-                                            value={arr}
-                                            invalid={iInvalid.email[index] && !arr}
-                                            onChange={(e) => {
-                                                setNewSupplier((old) => {
-                                                    return {
-                                                        ...old,
-                                                        email: newSupplier.email.map((arrj, indexj) => {
-                                                            if (index == indexj) {
-                                                                return e.target.value
-                                                            } else {
-                                                                return arrj
-                                                            }
-                                                        })
-                                                    }
-                                                })
-                                            }}
+                                            id="cpassword"
+                                            type="password"
+                                            value={newSupplier.confirmPassword}
+                                            invalid={iInvalid.confirmPassword && !newSupplier.confirmPassword}
+                                            onChange={(e) => handleInputChangeAdd(e, "confirmPassword")}
                                             className="w-full"
                                         />
                                     </div>
+                                </div> : <></>
+                            }
 
-                                    {index === 0 ? (
-                                        <div className="w-[100px] flex items-end justify-end">
-                                            <Button
-                                                label="ADD"
-                                                icon="pi pi-plus"
-                                                onClick={() => {
-                                                    setNewSupplier((prev) => ({
-                                                        ...prev,
-                                                        email: [...prev.email, ""],
-                                                        contactPerson: [...prev.contactPerson, ""],
-                                                    }));
-                                                }}
-                                                className="p-button-success"
-                                            />
-                                        </div>
-                                    ) : (
-                                        <div className="w-[100px] flex items-end justify-end">
-                                            <Button
-                                                icon="pi pi-trash"
-                                                onClick={() => {
-                                                    setNewSupplier((prev) => ({
-                                                        ...prev,
-                                                        email: prev.email.filter((_, i) => i !== index),
-                                                    }));
-                                                }}
-                                                className="p-button-danger"
-                                            />
-                                        </div>
-                                    )}
-                                </div>
-                            })
-                        }
-                    </div>
-                    
-                    <div className='flex justify-end mt-2 w-full gap-2'>
-                        <Button label={ addOrEdit=='A' ? "Add Supplier" : "Edit Supplier" } className="p-button-primary" onClick={checkInvalid} />
-                    </div>
-                </div>
+                            <div className='flex justify-end mt-2 w-full gap-2'>
+                                <Button label={addOrEdit == 'A' ? "Add Supplier" : "Edit Supplier"} className="p-button-primary" onClick={checkInvalid} />
+                            </div>
+                        </div>
+                    </>
+                }
             </Dialog>
             <Footer>
                 <div className='flex justify-end mt-2 w-full gap-2'>

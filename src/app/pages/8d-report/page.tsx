@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 interface DataActionList {
     id: number,
     date: string,
+    qprNo: string,
     problem: string,
     severity: string,
     report8D: string,
@@ -21,6 +22,7 @@ interface DataActionList {
 
 interface FilterTable {
     date?: Date,
+    qprNo: string,
     severity: string,
     status: string
 }
@@ -32,12 +34,14 @@ export default function ProblemReportTable() {
     const [totalRows,] = useState(10);
     const [filters, setFilters] = useState<FilterTable>({
         date: undefined,
+        qprNo: "",
         severity: "",
         status: ""
     })
     const data: DataActionList[] = [
         {
             id: 1,
+            qprNo: "QPR-001",
             date: "08/11/2024",
             problem: "สีหลุด",
             severity: "A",
@@ -47,6 +51,7 @@ export default function ProblemReportTable() {
         },
         {
             id: 2,
+            qprNo: "QPR-002",
             date: "08/11/2024",
             problem: "ผิวชิ้นงานไม่เรียบ",
             severity: "B",
@@ -55,6 +60,7 @@ export default function ProblemReportTable() {
         },
         {
             id: 3,
+            qprNo: "QPR-003",
             date: "08/11/2024",
             problem: "สีเพี้ยน",
             severity: "C",
@@ -99,6 +105,17 @@ export default function ProblemReportTable() {
                                     className="w-full"
                                     showButtonBar
                                     style={{ padding: 0 }}
+                                />
+                            </div>
+                            <div className="flex flex-col">
+                                <label htmlFor="qprNo" className="font-bold mb-2">
+                                    QPR No
+                                </label>
+                                <InputText 
+                                    id="qprNo" 
+                                    className="w-full" 
+                                    value={filters.qprNo}
+                                    onChange={(e) => setFilters({ ...filters, qprNo: e.target.value || "" })}
                                 />
                             </div>
                             <div className="flex flex-col">
@@ -149,8 +166,9 @@ export default function ProblemReportTable() {
                                 setRows(event.rows);
                             }} />}
                     >
-                        <Column field="date" header="Date"  />
-                        <Column field="problem" bodyStyle={{ width: '40%' }} header="ปัญหา"  />
+                        <Column field="date" header="Date" bodyStyle={{ width: '10%' }} />
+                        <Column field="qprNo" header="QPR No"  />
+                        <Column field="problem" bodyStyle={{ width: '30%' }} header="ปัญหา"  />
                         <Column field="severity" header="ระดับความรุนแรง" bodyStyle={{ textAlign: 'center' }} />
                         <Column
                             field="report8D"
