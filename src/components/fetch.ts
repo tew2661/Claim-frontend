@@ -304,7 +304,7 @@ const CreateQueryString = (filter: any) => {
 
     // Loop through the filter object
     for (const [key, value] of Object.entries(filter)) {
-        if (value !== 'ALL' && value !== 'all' && value) { // Exclude parameters with the value 'ALL'
+        if (value !== 'ALL' && `${value}`.toLocaleLowerCase() !== 'all' && value) { // Exclude parameters with the value 'ALL'
             query.append(key, String(value)); // Cast value to string
         }
     }

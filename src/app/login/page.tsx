@@ -41,10 +41,10 @@ export default function PresetsDemo() {
 
     const onSubmit = async (data :LOGIN) => {
         setloadding(true);
-        Login({ url : `/auth/login` , body : { username : data.username , password : data.password }})
+        Login({ url : `/auth/login${process.env.NEXT_MODE == 'jeckt' ? '' : '-supplier'}` , body : { username : data.username , password : data.password }})
         .catch((err)=>{
             setloadding(false);
-            toast.current?.show({ severity: 'error', summary: 'Error', detail: (typeof err?.message == 'string' ? err?.message : 'login error') , life: 3000 });
+            toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((err).message)}` , life: 3000 });
         })
         .then((res)=> {
             setloadding(false);
@@ -55,7 +55,7 @@ export default function PresetsDemo() {
                 localStorage.setItem('role', res.user.role);
                 router.push('/pages')
             } else {
-                toast.current?.show({ severity: 'error', summary: 'Error', detail: (typeof res?.message == 'string' ? res?.message : 'login error') , life: 3000 });
+                toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((res).message)}` , life: 3000 });
             }
         });
     };

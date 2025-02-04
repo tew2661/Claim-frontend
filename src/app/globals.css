@@ -164,6 +164,22 @@ body {
   }
 }
 
+.input-number-bg-red-100 {
+  input {
+    --tw-bg-opacity: 1;
+    background-color: rgb(219 234 254 / var(--tw-bg-opacity, 1));
+
+    --tw-border-opacity: 1;
+    border-color: rgb(209 213 219 / var(--tw-border-opacity, 1));
+
+    border-color: red;
+
+    &:focus-visible {
+      border-color: red;
+    }
+  }
+}
+
 table {
   thead {
     font-size: 14px;

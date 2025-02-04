@@ -1,5 +1,5 @@
 'use client';
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { InputText } from "primereact/inputtext";
 import { Button } from "primereact/button";
 import { DataTable } from "primereact/datatable";
@@ -9,6 +9,11 @@ import { Paginator } from "primereact/paginator";
 import Footer from "@/components/footer";
 import { Calendar } from "primereact/calendar";
 import { Nullable } from "primereact/ts-helpers";
+import { CreateQueryString, Get } from "@/components/fetch";
+import { Toast } from "primereact/toast";
+import { Defect, FormDataQpr } from "../create-qpr/page";
+import { getSocket } from "@/components/socket/socket";
+import moment from "moment";
 
 interface DataSummaryReportTable {
     id: number,
@@ -28,63 +33,12 @@ interface FilterSummaryReport {
     status: string;
 }
 
-const mockData: DataSummaryReportTable[] = [
-    {
-        id: 1,
-        qprNo: "QPR-001",
-        supplier: "Supplier A",
-        problem: "สีหลุดลอกไม่สม่ำเสมอ",
-        importance: "A",
-        quickReport: "Approved 03/11/2024",
-        report8D: "Approved 09/11/2024",
-        status: "Wait for supplier submit final report",
-    },
-    {
-        id: 2,
-        qprNo: "QPR-002",
-        supplier: "Supplier B",
-        problem: "ผิวชิ้นงานขรุขระ",
-        importance: "B",
-        quickReport: "Approved 03/11/2024",
-        report8D: "Wait for supplier",
-        status: "Wait for supplier submit first report",
-    },
-    {
-        id: 3,
-        qprNo: "QPR-003",
-        supplier: "Supplier C",
-        problem: "วัสดุไม่ตรงตาม Spec",
-        importance: "C",
-        quickReport: "Approved 03/11/2024",
-        report8D: "Approved 09/11/2024",
-        status: "Wait for final report approve",
-    },
-    {
-        id: 4,
-        qprNo: "QPR-004",
-        supplier: "Supplier D",
-        problem: "สีเพี้ยนไปจาก Standard",
-        importance: "SP",
-        quickReport: "Approved 03/11/2024",
-        report8D: "Approved 09/11/2024",
-        status: "Approved",
-    },
-    {
-        id: 5,
-        qprNo: "QPR-005",
-        supplier: "Supplier E",
-        problem: "ความแข็งแรงต่ำกว่ามาตรฐาน",
-        importance: "Urgent",
-        quickReport: "Approved 03/11/2024",
-        report8D: "Approved 09/11/2024",
-        status: "Completed",
-    },
-];
-
 export default function SummaryReport() {
+    const toast = useRef<Toast>(null);
     const [first, setFirst] = useState(0);
     const [rows, setRows] = useState(10);
     const [totalRows, setTotalRows] = useState(10);
+    const [qprList, setQprList] = useState<DataSummaryReportTable[]>([])
     const [filters, setFilters] = useState<FilterSummaryReport>({
         qprNo: "",
         month: null,
@@ -101,9 +55,61 @@ export default function SummaryReport() {
         console.log("Exporting to Excel...");
     };
 
+    const GetDatas = async () => {
+        const quertString = CreateQueryString({
+            ...filters,
+        });
+        const res = await Get({ url: `/qpr?limit=${rows}&offset=${first}&${quertString}` });
+        if (res.ok) {
+            const res_data = await res.json();
+            setTotalRows(res_data.total || 0)
+            setQprList((res_data.data || []).map((x: FormDataQpr) => {
+                return {
+                    id: x.id,
+                    qprNo: x.qprIssueNo || '',
+                    supplier: x.supplier?.supplierName || '',
+                    problem: ((Object.keys(x.defect) as Array<keyof Defect>).map((y: keyof Defect) => {
+                        if (y == 'other') {
+                            return x.defect.otherDetails
+                        } else if (y !== 'otherDetails') {
+                            return x.defect[y] ? y : ''
+                        } else {
+                            return ''
+                        }
+                    } )).filter((z) => z).join(' , '),
+                    importance: (x.importanceLevel || '') + (x.urgent ? ` (Urgent)` : ''),
+                    status: x.status,
+                    quickReport: `${x.quickReportDate ? `${moment(x.quickReportDate).format('DD/MM/YYYY')}` : ""} ${x.quickReportStatus ? `(${x.quickReportStatus})`: ''}`,
+                    report8D: `${x.eightDReportDate ? moment(x.eightDReportDate).format('DD/MM/YYYY') : ''}${x.eightDReportStatus ? `(${x.eightDReportStatus})` : ''}`,
+                }
+            }))
+        } else {
+            toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await res!.json()).message)}`, life: 3000 });
+        }
+    }
+
+    const SocketConnect = () => {
+        const socket = getSocket();
+        // Listen for an event
+        socket.on("create-qpr", (data: any) => {
+            GetDatas();
+        });
+
+        // Cleanup on unmount
+        return () => {
+            socket.off("create-qpr");
+        };
+    }
+
+    useEffect(() => {
+        GetDatas()
+        SocketConnect();
+    }, [])
+
     return (
         <div className="flex justify-center pt-6 px-6">
             {/* Search Fields */}
+            <Toast ref={toast} />
             <div className="container">
                 <div className="flex gap-2 mx-4 mb-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 w-[calc(100%-100px)]">
@@ -162,7 +168,7 @@ export default function SummaryReport() {
 
                 {/* Data Table */}
                 <DataTable
-                    value={mockData}
+                    value={qprList}
                     showGridlines
                     className='table-header-center mt-4'
                     footer={<Paginator

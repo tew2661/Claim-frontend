@@ -2,14 +2,15 @@
 import IconDot from '@/assets/icon/dot.png'
 import { MenuCategory } from "./interface";
 
+const IsJtekt = !(JSON.parse(`${localStorage.getItem('user') || {}}`)?.supplier);
 const menuList: MenuCategory[] = [
-    {
+    ...IsJtekt ? [{
         label: 'Create Claim',
         items: [],
         icon: undefined,
         url: "/pages/create-qpr",
-    },
-    {
+    }] : [],
+    ...IsJtekt ? [{
         label: 'Approve',
         items: [
             {
@@ -30,15 +31,15 @@ const menuList: MenuCategory[] = [
         ],
         icon: undefined,
         // url: "/pages/approve",
-    },
+    }] : [],
     
-    {
+    ...IsJtekt ? [{
         label: 'Summary Report',
         items: [],
         icon: undefined,
         url: "/pages/summary-report",
-    },
-    {
+    }] :[],
+    ...IsJtekt ? [{
         label: 'Master Management',
         items: [
             {
@@ -53,31 +54,31 @@ const menuList: MenuCategory[] = [
             },
         ],
         icon: undefined,
-    },
-    {
+    }] : [],
+    ...IsJtekt ? [{
         label: 'Delay',
         items: [],
         icon: undefined,
         url: "/pages/delay",
-    },
-    {
+    }] :[],
+    ...!IsJtekt ? [{
         label: 'Action List',
         items: [],
         icon: undefined,
         url: "/pages/action-list",
-    },
-    {
+    }] : [],
+    ...!IsJtekt ? [{
         label: 'Create QPR Report',
         items: [],
         icon: undefined,
         url: "/pages/qpr-report",
-    },
-    {
+    }]:[],
+    ...!IsJtekt ? [{
         label: 'Create 8D Report',
         items: [],
         icon: undefined,
         url: "/pages/8d-report",
-    },
+    }] :[],
 ];
 
 export { menuList }
