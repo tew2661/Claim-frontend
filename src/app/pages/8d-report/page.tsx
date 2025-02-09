@@ -44,7 +44,7 @@ export default function ProblemReportTable() {
         date: undefined,
         qprNo: "",
         severity: "All",
-        status: ""
+        status: "All",
     })
 
     const quickReportBodyTemplate = (rowData: any) => {
@@ -66,6 +66,7 @@ export default function ProblemReportTable() {
         const quertString = CreateQueryString({
             ...filters,
             date: filters.date ? moment(filters.date).format('YYYY-MM-DD') : undefined,
+            page: '8d-report'
         });
         const res = await Get({ url: `/qpr?limit=${rows}&offset=${first}&${quertString}` });
         if (res.ok) {
@@ -76,19 +77,11 @@ export default function ProblemReportTable() {
                     id: x.id,
                     date: x.dateReported ? moment(x.dateReported).format('DD/MM/YYYY') : '',
                     qprNo: x.qprIssueNo || '',
-                    problem: ((Object.keys(x.defect) as Array<keyof Defect>).map((y: keyof Defect) => {
-                        if (y == 'other') {
-                            return x.defect.otherDetails
-                        } else if (y !== 'otherDetails') {
-                            return x.defect[y] ? y : ''
-                        } else {
-                            return ''
-                        }
-                    })).filter((z) => z).join(' , '),
+                    problem: x.defectiveContents.problemCase || '',
                     severity: (x.importanceLevel || '') + (x.urgent ? ` (Urgent)` : ''),
-                    quickReport: `${x.quickReportDate ? `${moment(x.quickReportDate).format('DD/MM/YYYY')}` : ""} ${x.quickReportStatus ? `(${x.quickReportStatus})`: ''}`,
-                    quickReportClass: x.quickReportStatus == "Approved" ? "text-green-600" : (x.quickReportStatus == "Pending" ? "text-yellow-600" : "text-yellow-600"),
-                    report8D: `${x.eightDReportDate ? moment(x.eightDReportDate).format('DD/MM/YYYY') : ''}${x.eightDReportStatus ? `(${x.eightDReportStatus})` : ''}`,
+                    quickReport: `${x.eightDReportSupplierDate ? `${moment(x.eightDReportSupplierDate).format('DD/MM/YYYY')}` : ""} ${x.eightDReportSupplierStatus ? `(${x.eightDReportSupplierStatus})`: ''}`,
+                    quickReportClass: x.eightDReportSupplierStatus == "Approved" ? "text-green-600" : (x.eightDReportSupplierStatus == "Pending" || x.eightDReportSupplierStatus == "Save" ? "text-yellow-600" : "text-yellow-600"),
+                    report8D: `${x.eightDReportDate ? moment(x.eightDReportDate).format('DD/MM/YYYY') : ''}${x.eightDReportStatus ? `(${x.eightDReportStatus})` : '-'}`,
                 }
             }))
         } else {
@@ -171,11 +164,17 @@ export default function ProblemReportTable() {
                                 <label htmlFor="status" className="font-bold mb-2">
                                     Status
                                 </label>
-                                <InputText 
-                                    id="status" 
+                                <Dropdown 
+                                    value={filters.status} 
+                                    onChange={(e: DropdownChangeEvent) => setFilters({ ...filters, status: e.target.value || "" })} 
+                                    options={[
+                                        { label: 'All' , value: 'All'}, 
+                                        { label: 'Approved' , value: 'approved-8d-report'}, 
+                                        { label: 'Wait for Supplier' , value: 'wait-for-supplier-8d-report' } ,
+                                        { label: 'Rejected' , value: 'rejected-8d-report' },
+                                    ]} 
+                                    optionLabel="label" 
                                     className="w-full" 
-                                    value={filters.status}
-                                    onChange={(e) => setFilters({ ...filters, status: e.target.value || "" })}
                                 />
                             </div>
 
@@ -210,7 +209,7 @@ export default function ProblemReportTable() {
                         <Column field="severity" header="ระดับความรุนแรง" bodyStyle={{ textAlign: 'center' }} />
                         <Column
                             field="report8D"
-                            header="8D report"
+                            header="8D Report"
                             body={quickReportBodyTemplate}
                             
                         />

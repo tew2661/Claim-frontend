@@ -44,38 +44,8 @@ export default function ProblemReportTable() {
         date: undefined,
         qprNo: "",
         severity: "All",
-        status: ""
+        status: "All"
     })
-    const data: DataActionList[] = [
-        {
-            id: 1,
-            qprNo: "QRP-001",
-            date: "08/11/2024",
-            problem: "สีหลุด",
-            severity: "A",
-            quickReport: "Issue and sent",
-            quickReportClass: "text-green-600",
-            success: true
-        },
-        {
-            id: 2,
-            qprNo: "QRP-002",
-            date: "08/11/2024",
-            problem: "ผิวชิ้นงานไม่เรียบ",
-            severity: "B",
-            quickReport: "Pending",
-            quickReportClass: "text-yellow-500",
-        },
-        {
-            id: 3,
-            qprNo: "QRP-003",
-            date: "08/11/2024",
-            problem: "สีเพี้ยน",
-            severity: "C",
-            quickReport: "Delay",
-            quickReportClass: "text-red-600",
-        },
-    ];
 
     const quickReportBodyTemplate = (rowData: any) => {
         return (
@@ -96,6 +66,7 @@ export default function ProblemReportTable() {
         const quertString = CreateQueryString({
             ...filters,
             date: filters.date ? moment(filters.date).format('YYYY-MM-DD') : undefined,
+            page: 'qpr-report'
         });
         const res = await Get({ url: `/qpr?limit=${rows}&offset=${first}&${quertString}` });
         if (res.ok) {
@@ -106,19 +77,12 @@ export default function ProblemReportTable() {
                     id: x.id,
                     date: x.dateReported ? moment(x.dateReported).format('DD/MM/YYYY') : '',
                     qprNo: x.qprIssueNo || '',
-                    problem: ((Object.keys(x.defect) as Array<keyof Defect>).map((y: keyof Defect) => {
-                        if (y == 'other') {
-                            return x.defect.otherDetails
-                        } else if (y !== 'otherDetails') {
-                            return x.defect[y] ? y : ''
-                        } else {
-                            return ''
-                        }
-                    })).filter((z) => z).join(' , '),
+                    problem: x.defectiveContents.problemCase || '',
                     severity: (x.importanceLevel || '') + (x.urgent ? ` (Urgent)` : ''),
-                    quickReport: `${x.quickReportDate ? `${moment(x.quickReportDate).format('DD/MM/YYYY')}` : ""} ${x.quickReportStatus ? `(${x.quickReportStatus})`: ''}`,
-                    quickReportClass: x.quickReportStatus == "Approved" ? "text-green-600" : (x.quickReportStatus == "Pending" ? "text-yellow-600" : "text-yellow-600"),
-                    report8D: `${x.eightDReportDate ? moment(x.eightDReportDate).format('DD/MM/YYYY') : ''}${x.eightDReportStatus ? `(${x.eightDReportStatus})` : ''}`,
+                    quickReport: `${x.quickReportSupplierDate ? `${moment(x.quickReportSupplierDate).format('DD/MM/YYYY')}` : ""} ${x.quickReportSupplierStatus ? `(${x.quickReportSupplierStatus})`: ''}`,
+                    quickReportClass: x.quickReportSupplierStatus == "Approved" ? "text-green-600" : (x.quickReportSupplierStatus == "Pending" || x.quickReportSupplierStatus == "Save" ? "text-yellow-600" : "text-yellow-600"),
+                    report8D: `${x.eightDReportDate ? moment(x.eightDReportDate).format('DD/MM/YYYY') : ''}${x.eightDReportStatus ? `(${x.eightDReportStatus})` : '-'}`,
+                    success: x.quickReportSupplierStatus == "Approved" 
                 }
             }))
         } else {
@@ -201,11 +165,17 @@ export default function ProblemReportTable() {
                                 <label htmlFor="status" className="font-bold mb-2">
                                     Status
                                 </label>
-                                <InputText 
-                                    id="status" 
+                                <Dropdown 
+                                    value={filters.status} 
+                                    onChange={(e: DropdownChangeEvent) => setFilters({ ...filters, status: e.target.value || "" })} 
+                                    options={[
+                                        { label: 'All' , value: 'All'}, 
+                                        { label: 'Approved' , value: 'approved-quick-report'}, 
+                                        { label: 'Wait for Supplier' , value: 'wait-for-supplier-quick-report' } ,
+                                        { label: 'Rejected' , value: 'rejected-quick-report' },
+                                    ]} 
+                                    optionLabel="label" 
                                     className="w-full" 
-                                    value={filters.status}
-                                    onChange={(e) => setFilters({ ...filters, status: e.target.value || "" })}
                                 />
                             </div>
 
@@ -240,7 +210,7 @@ export default function ProblemReportTable() {
                         <Column field="severity" header="ระดับความรุนแรง" bodyStyle={{ textAlign: 'center' }} />
                         <Column
                             field="quickReport"
-                            header="Quick report"
+                            header="Quick Report"
                             body={quickReportBodyTemplate}
                             
                         />

@@ -1,13 +1,17 @@
 'use client';
+import { Get, Put } from "@/components/fetch";
 import Footer from "@/components/footer";
-import { useParams } from "next/navigation";
+import moment from "moment";
+import { useParams, useRouter } from "next/navigation";
 import { Button } from "primereact/button";
 import { Calendar } from "primereact/calendar";
 import { Column } from "primereact/column";
+import { ConfirmDialog, confirmDialog } from "primereact/confirmdialog";
 import { DataTable } from "primereact/datatable";
 import { Dropdown, DropdownChangeEvent } from "primereact/dropdown";
 import { InputText } from "primereact/inputtext";
-import React, { useEffect, useState } from "react";
+import { Toast } from "primereact/toast";
+import React, { useEffect, useRef, useState } from "react";
 
 interface DocumentOther {
     key: string,
@@ -26,7 +30,7 @@ interface FormData {
     replay?: Date,
     duedate8d?: Date,
     documentOther: DocumentOther[],
-    text8dReportApprover?: string,
+    eightDReportApprover?: string,
 
     reqDocumentOther: string,
     dueDateReqDocumentOther?: Date,
@@ -34,6 +38,8 @@ interface FormData {
 
 export default function PDFApproval() {
     const param = useParams();
+    const router = useRouter()
+    const toast = useRef<Toast>(null);
     const [formData, setFormData] = useState<FormData>({
         approve: undefined,
         remark: "",
@@ -49,19 +55,142 @@ export default function PDFApproval() {
             approve: undefined,
             remark: ""
         }],
-        text8dReportApprover: undefined,
+        eightDReportApprover: undefined,
         reqDocumentOther: "",
         dueDateReqDocumentOther: undefined,
     });
 
     const [reportType, setReportType] = useState<"Quick Report" | "8D Report">("Quick Report");
+    const [supplierName, setSupplierName] = useState<string>("");
+    const [email, setEmail] = useState<string>("");
+    const [problemCase, setProblemCase] = useState<string>("");
+    const [importanceLevel, setImportanceLevel] = useState<string>("");
+
+    const GetDatas = async () => {
+        const res = await Get({ url: `/qpr/${param.id}` });
+        if (res?.ok) {
+            const dataForID = await res.json();
+            const objectQPRSupplier = dataForID?.objectQPRSupplier && dataForID?.objectQPRSupplier.length ? dataForID?.objectQPRSupplier[dataForID?.objectQPRSupplier.length - 1] : undefined
+            setReportType(dataForID.delayDocument ?? 'Quick Report')
+            setSupplierName(objectQPRSupplier && objectQPRSupplier?.objectQPR && objectQPRSupplier?.objectQPR.contactPerson ? objectQPRSupplier?.objectQPR.contactPerson : '')
+            setEmail(objectQPRSupplier && objectQPRSupplier?.objectQPR && objectQPRSupplier?.objectQPR.email ? (objectQPRSupplier?.objectQPR.email || '') : '')
+            setProblemCase(dataForID.defectiveContents && dataForID.defectiveContents.problemCase ? dataForID.defectiveContents.problemCase : '');
+            setImportanceLevel(dataForID.importanceLevel ?? '');
+
+            const checkerBefore = param.pagekey == 'checker2' ? objectQPRSupplier.checker1 : (param.pagekey == 'checker3' ? objectQPRSupplier.checker2 :  undefined)
+            console.log('checkerBefore' , checkerBefore)
+            setFormData({
+                approve: checkerBefore?.approve || undefined,
+                remark: objectQPRSupplier && objectQPRSupplier?.objectQPR ? (objectQPRSupplier?.objectQPR.remark || '') : '',
+                claim: checkerBefore?.claim|| false,
+                complain: checkerBefore?.complain|| false,
+                resummit: checkerBefore?.resummit ? moment(checkerBefore.resummit).toDate() : undefined,
+                replay: checkerBefore?.replay ? moment(checkerBefore.replay).toDate() : undefined,
+                duedate8d: undefined,
+                documentOther: [{
+                    key: "xxxx",
+                    num: 1,
+                    path: "",
+                    approve: undefined,
+                    remark: ""
+                }],
+                eightDReportApprover: checkerBefore?.eightDReportApprover || undefined,
+                reqDocumentOther: "",
+                dueDateReqDocumentOther: undefined,
+            })
+
+        } else {
+            toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await res!.json()).message)}`, life: 3000 });
+        }
+    }
 
     useEffect(() => {
-        setReportType(`${param.id}` == `1` ? "Quick Report" : "8D Report");
+        GetDatas();
     }, [])
+
+    const ConfirmData = async () => {
+
+        console.log({
+            approve: formData.approve,
+            remark: formData.remark,
+            claim: formData.claim,
+            complain: formData.complain,
+            resummit: formData.resummit ? moment(formData.resummit).format('YYYY-MM-DD HH:mm:ss') : undefined,
+            replay: formData.replay ? moment(formData.replay).format('YYYY-MM-DD HH:mm:ss') : undefined,
+            eightDReportApprover: formData.eightDReportApprover
+        })
+        
+        confirmDialog({
+            message: 'Are you sure you want to proceed?',
+            header: 'Confirmation',
+            icon: 'pi pi-exclamation-triangle',
+            defaultFocus: 'accept',
+            accept: async () => {
+                if (param.pagekey == 'checker1') {
+                    const data = {
+                        approve: formData.approve,
+                        remark: formData.remark,
+                        claim: formData.claim,
+                        complain: formData.complain,
+                        resummit: formData.resummit ? moment(formData.resummit).format('YYYY-MM-DD HH:mm:ss') : undefined,
+                        replay: formData.replay ? moment(formData.replay).format('YYYY-MM-DD HH:mm:ss') : undefined,
+                    }
+            
+                    const res = await Put({ url: `/qpr/qpr-report/checker1/${param.id}` , body: JSON.stringify(data) });
+                    if (res?.ok) {
+                        router.push('/pages/approve/checker1')
+                    } else {
+                        toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await res!.json()).message)}`, life: 3000 });
+                    }
+                } else if (param.pagekey == 'checker2') {
+                    const data = {
+                        approve: formData.approve,
+                        remark: formData.remark,
+                        claim: formData.claim,
+                        complain: formData.complain,
+                        resummit: formData.resummit ? moment(formData.resummit).format('YYYY-MM-DD HH:mm:ss') : undefined,
+                        replay: formData.replay ? moment(formData.replay).format('YYYY-MM-DD HH:mm:ss') : undefined,
+                        eightDReportApprover: formData.eightDReportApprover
+                    }
+            
+                    const res = await Put({ url: `/qpr/qpr-report/checker2/${param.id}` , body: JSON.stringify(data) });
+                    if (res?.ok) {
+                        router.push('/pages/approve/checker2')
+                    } else {
+                        toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await res!.json()).message)}`, life: 3000 });
+                    }
+                } else if (param.pagekey == 'checker3') {
+                    const data = {
+                        approve: formData.approve,
+                        remark: formData.remark,
+                        claim: formData.claim,
+                        complain: formData.complain,
+                        resummit: formData.resummit ? moment(formData.resummit).format('YYYY-MM-DD HH:mm:ss') : undefined,
+                        replay: formData.replay ? moment(formData.replay).format('YYYY-MM-DD HH:mm:ss') : undefined,
+                        eightDReportApprover: formData.eightDReportApprover
+                    }
+            
+                    const res = await Put({ url: `/qpr/qpr-report/checker3/${param.id}` , body: JSON.stringify(data) });
+                    if (res?.ok) {
+                        router.push('/pages/approve/checker3')
+                    } else {
+                        toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await res!.json()).message)}`, life: 3000 });
+                    }
+                } else {
+        
+                }
+            },
+            reject: () => {},
+        });
+
+        return ;
+    }
+
     return (
         <div className="flex justify-center bg-gray-100">
-            <div className="container p-4 flex flex-col h-[calc(100vh-115px)]">
+            <Toast ref={toast} />
+            <ConfirmDialog />
+            <div className="container p-4 flex flex-col h-[calc(100vh-115px)] overflow-auto">
                 {/* PDF Display Section */}
                 <div className="flex-1 border border-black bg-white flex items-center justify-center min-h-[500px]">
                     <span className="text-xl font-bold">PDF Display {reportType}</span>
@@ -83,14 +212,14 @@ export default function PDFApproval() {
                     <div className="grid grid-cols-2 gap-4">
                         {/* Supplier Info */}
                         <div>
-                            <p className="font-bold">Supplier A</p>
-                            <p>Email: supplier@a.co.th</p>
+                            <p className="font-bold">{supplierName}</p>
+                            <p>{email}</p>
                         </div>
 
                         {/* Problem Details */}
                         <div className="text-right">
-                            <p className="font-bold">ปัญหา สีหลุดลอกไม่สม่ำเสมอ</p>
-                            <p>ความรุนแรงของปัญหา สีหลุดลอกไม่สม่ำเสมอ</p>
+                            <p className="font-bold">ปัญหา {problemCase}</p>
+                            <p>ความรุนแรงของปัญหา {importanceLevel}</p>
                         </div>
                     </div>
 
@@ -121,7 +250,7 @@ export default function PDFApproval() {
                                             claim: false,
                                             complain: false,
                                             replay: undefined,
-                                            text8dReportApprover: ""
+                                            eightDReportApprover: ""
                                         }
                                     })
                                 }}
@@ -335,7 +464,9 @@ export default function PDFApproval() {
                                     <Calendar
                                         value={formData.resummit}
                                         dateFormat="dd/mm/yy"
-                                        placeholder="dd/mm/yy"
+                                        placeholder="dd/mm/yy hh:mm:ss"
+                                        showTime 
+                                        hourFormat="24"
                                         disabled={!(formData.approve == 'reject')}
                                         onChange={(e) => setFormData((old) => { return { ...old, resummit: e.value || undefined } })}
                                         className="w-full"
@@ -348,7 +479,9 @@ export default function PDFApproval() {
                                     <Calendar
                                         value={formData.replay}
                                         dateFormat="dd/mm/yy"
-                                        placeholder="dd/mm/yy"
+                                        placeholder="dd/mm/yy hh:mm:ss"
+                                        showTime 
+                                        hourFormat="24"
                                         disabled={!(formData.approve == 'approve')}
                                         onChange={(e) => setFormData((old) => { return { ...old, replay: e.value || undefined } })}
                                         className="w-full"
@@ -361,9 +494,9 @@ export default function PDFApproval() {
                                         <div>
                                             <label className="block font-bold mb-1">8D Report Approver</label>
                                             <Dropdown
-                                                value={formData.text8dReportApprover}
+                                                value={formData.eightDReportApprover}
                                                 disabled={!(formData.approve == 'approve')}
-                                                onChange={(e: DropdownChangeEvent) => setFormData((old) => { return { ...old, text8dReportApprover: e.value || undefined } })}
+                                                onChange={(e: DropdownChangeEvent) => setFormData((old) => { return { ...old, eightDReportApprover: e.value || undefined } })}
                                                 options={[
                                                     { value: "Manager", label: "Manager" },
                                                     { value: "GM / DGM", label: "GM / DGM" },
@@ -371,6 +504,7 @@ export default function PDFApproval() {
                                                 ]}
                                                 optionLabel="label"
                                                 className="w-full"
+                                                style={{ paddingLeft: 0, paddingRight: 0 , marginTop: '10px' }}
                                             />
                                         </div>
                                     </> : <></>
@@ -396,7 +530,7 @@ export default function PDFApproval() {
                                     reportType == 'Quick Report' && (
                                         !!(formData.approve == undefined) ||
                                         !!(formData.approve == 'approve' && param.pagekey == 'checker1' && (formData.claim == false && formData.complain == false || formData.replay == undefined)) ||
-                                        !!(formData.approve == 'approve' && (param.pagekey == 'checker2' || param.pagekey == 'checker3') && (formData.claim == false && formData.complain == false || formData.replay == undefined || !formData.text8dReportApprover))
+                                        !!(formData.approve == 'approve' && (param.pagekey == 'checker2' || param.pagekey == 'checker3') && (formData.claim == false && formData.complain == false || formData.replay == undefined || !formData.eightDReportApprover))
                                     )
                                 ) || 
                                 (
@@ -407,6 +541,7 @@ export default function PDFApproval() {
                                 )
                             )
                         }
+                        onClick={() => ConfirmData()}
                     />
                     {
                         reportType == '8D Report' ? <Button

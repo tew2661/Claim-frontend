@@ -14,6 +14,7 @@ import { Toast } from "primereact/toast";
 import { Defect, FormDataQpr } from "../create-qpr/page";
 import { getSocket } from "@/components/socket/socket";
 import moment from "moment";
+import { Dropdown, DropdownChangeEvent } from "primereact/dropdown";
 
 interface DataSummaryReportTable {
     id: number,
@@ -42,8 +43,8 @@ export default function SummaryReport() {
     const [filters, setFilters] = useState<FilterSummaryReport>({
         qprNo: "",
         month: null,
-        supplier: "",
-        status: "",
+        supplier: "All",
+        status: "All",
     });
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>, field: string) => {
@@ -68,19 +69,11 @@ export default function SummaryReport() {
                     id: x.id,
                     qprNo: x.qprIssueNo || '',
                     supplier: x.supplier?.supplierName || '',
-                    problem: ((Object.keys(x.defect) as Array<keyof Defect>).map((y: keyof Defect) => {
-                        if (y == 'other') {
-                            return x.defect.otherDetails
-                        } else if (y !== 'otherDetails') {
-                            return x.defect[y] ? y : ''
-                        } else {
-                            return ''
-                        }
-                    } )).filter((z) => z).join(' , '),
+                    problem: x.defectiveContents.problemCase || '',
                     importance: (x.importanceLevel || '') + (x.urgent ? ` (Urgent)` : ''),
                     status: x.status,
-                    quickReport: `${x.quickReportDate ? `${moment(x.quickReportDate).format('DD/MM/YYYY')}` : ""} ${x.quickReportStatus ? `(${x.quickReportStatus})`: ''}`,
-                    report8D: `${x.eightDReportDate ? moment(x.eightDReportDate).format('DD/MM/YYYY') : ''}${x.eightDReportStatus ? `(${x.eightDReportStatus})` : ''}`,
+                    quickReport: `${x.quickReportDate ? `${moment(x.quickReportDate).format('DD/MM/YYYY')}` : ""} ${x.quickReportStatus ? `(${x.quickReportStatus})` : ''}`,
+                    report8D: `${x.eightDReportDate ? moment(x.eightDReportDate).format('DD/MM/YYYY') : ''}${x.eightDReportStatus ? `(${x.eightDReportStatus})` : '-'}`,
                 }
             }))
         } else {
@@ -101,9 +94,21 @@ export default function SummaryReport() {
         };
     }
 
+    const [supplier, setSupplier] = useState<{ label: string, value: string }[]>([]);
+    const GetSupplier = async () => {
+        const res = await Get({ url: `/supplier/dropdown` });
+        if (res.ok) {
+            const res_data = await res.json();
+            setSupplier((res_data || []))
+        } else {
+            toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await res!.json()).message)}`, life: 3000 });
+        }
+    }
+
     useEffect(() => {
         GetDatas()
         SocketConnect();
+        GetSupplier();
     }, [])
 
     return (
@@ -138,29 +143,44 @@ export default function SummaryReport() {
                         </div>
                         <div className="flex flex-col gap-2 w-full">
                             <label htmlFor="supplier">Supplier</label>
-                            <InputText
+                            {/* <InputText
                                 id="supplier"
                                 value={filters.supplier}
                                 onChange={(e) => handleInputChange(e, "supplier")}
                                 className="w-full"
+                            /> */}
+                            <Dropdown
+                                value={filters.supplier || ""}
+                                onChange={(e: DropdownChangeEvent) => handleInputChange({ target: { value: e.value } } as React.ChangeEvent<HTMLInputElement>, "supplier")}
+                                options={[{ label: 'All', value: 'All' }, ...supplier]}
+                                optionLabel="label"
+                                // placeholder="Select Supplier" 
+                                className="w-full"
                             />
-
                         </div>
                         <div className="flex flex-col gap-2 w-full">
                             <label htmlFor="status">Status</label>
-                            <InputText
-                                id="status"
+                            <Dropdown
                                 value={filters.status}
-                                onChange={(e) => handleInputChange(e, "status")}
+                                onChange={(e: DropdownChangeEvent) => setFilters({ ...filters, status: e.target.value || "" })}
+                                options={[
+                                    { label: 'All', value: 'All' },
+                                    { label: 'Approved [QuickReport]', value: 'approved-quick-report' },
+                                    { label: 'Wait for Supplier [QuickReport]', value: 'wait-for-supplier-quick-report' },
+                                    { label: 'Rejected [QuickReport]', value: 'rejected-quick-report' },
+                                    { label: 'Approved [8D Report]', value: 'approved-8d-report' },
+                                    { label: 'Wait for Supplier [8D Report]', value: 'wait-for-supplier-8d-report' },
+                                    { label: 'Rejected [8D Report]', value: 'rejected-8d-report' },
+                                ]}
+                                optionLabel="label"
                                 className="w-full"
                             />
-
                         </div>
                     </div>
                     <div className="w-[100px]">
                         <div className="flex flex-col gap-2">
                             <label>&nbsp;</label>
-                            <Button label="Search" icon="pi pi-search" />
+                            <Button label="Search" icon="pi pi-search" onClick={() =>  GetDatas()} />
                         </div>
                     </div>
                 </div>
@@ -188,7 +208,7 @@ export default function SummaryReport() {
                     <Column field="importance" header="Importance Level"></Column>
                     <Column field="quickReport" header="Quick Report"></Column>
                     <Column field="report8D" header="8D Report"></Column>
-                    <Column field="status" header="Status" bodyStyle={{ width: '20%' }}></Column>
+                    <Column field="status" header="Status" bodyStyle={{ width: '15%' }}></Column>
                 </DataTable>
 
                 {/* Export Button */}

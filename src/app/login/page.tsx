@@ -4,13 +4,14 @@ import React, { useEffect, useRef, useState } from 'react';
 import { InputText } from 'primereact/inputtext';
 import { Button } from 'primereact/button';
 import { useRouter } from 'next/navigation';
-import { Login, Post, ResponseData } from '@/components/fetch';
+import { Login } from '@/components/fetch';
 import { Toast } from 'primereact/toast';
 import { classNames } from 'primereact/utils';
 import { ProgressSpinner } from 'primereact/progressspinner';
 import { Controller, useForm } from 'react-hook-form';
 import { IconField } from 'primereact/iconfield';
 import { InputIcon } from 'primereact/inputicon';
+import { DeleteAllCookie, GetCookie, SetCookie } from '@/components/set-cookie';
 
 interface LOGIN {
     username : string ,
@@ -41,12 +42,12 @@ export default function PresetsDemo() {
 
     const onSubmit = async (data :LOGIN) => {
         setloadding(true);
-        Login({ url : `/auth/login${process.env.NEXT_MODE == 'jeckt' ? '' : '-supplier'}` , body : { username : data.username , password : data.password }})
+        Login({ url : `/auth/login${process.env.NEXT_MODE == 'jtekt' ? '' : '-supplier'}` , body : { username : data.username , password : data.password }})
         .catch((err)=>{
             setloadding(false);
             toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((err).message)}` , life: 3000 });
         })
-        .then((res)=> {
+        .then( async (res)=> {
             setloadding(false);
             if(res.statusCode == 200) {
                 localStorage.setItem('access_token' , res.access_token);

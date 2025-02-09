@@ -10,8 +10,10 @@ import { ConfirmDialog } from "primereact/confirmdialog";
 import { Dropdown, DropdownChangeEvent } from "primereact/dropdown";
 import { InputNumber } from "primereact/inputnumber";
 import { Toast } from "primereact/toast";
-import { useEffect, useRef, useState } from "react";
+import { ChangeEvent, useEffect, useRef, useState } from "react";
 import { DataSupplierTable } from "../master-supplier/page";
+import { Checkbox } from "primereact/checkbox";
+import { RadioButton, RadioButtonChangeEvent } from "primereact/radiobutton";
 
 interface WhereFound {
     receiving: boolean;
@@ -83,11 +85,28 @@ export interface FormDataQpr {
         img4: { imageUrl: string | null, file: File | null };
     };
     delayDocument?: "8D Report" | "Quick Report",
-    quickReportStatus?: "Approved" | "Pending" | "Reject",
+    quickReportStatus?: "Pending" |"Approved" | "Wait for Supplier" | "Rejected",
+    quickReportSupplierStatus?: "Pending" | "Approved" | "Wait for Supplier" | "Rejected" | "Save",
     quickReportDate?: Date | null,
-    eightDReportStatus?:  "Approved" | "Pending" | "Reject",
+    quickReportSupplierDate?: Date | null,
+    eightDReportStatus?: "Pending" | "Approved" | "Wait for supplier" | "Completed",
+    eightDReportSupplierStatus?: "Pending" | "Approved" | "Wait for Supplier" | "Rejected" | "Save",
     eightDReportDate?: Date | null,
-    status?: 'In Progress' | 'Completed',
+    eightDReportSupplierDate?: Date | null,
+    status?: "Pending" | "Approved" | "Wait for supplier" | "Completed" | "Rejected" | "In Process",
+    objectQPRSupplier?: any[],
+    quickReportStatusChecker1?: "Pending" | "Approved" | "Rejected",
+    quickReportDateChecker1?: string,
+    quickReportStatusChecker2?: "Pending" | "Approved" | "Rejected",
+    quickReportDateChecker2?: string,
+    quickReportStatusChecker3?: "Pending" | "Approved" | "Rejected",
+    quickReportDateChecker3?: string,
+    eightDStatusChecker1?: "Pending" | "Approved" | "Rejected",
+    eightDDateChecker1?: string,
+    eightDStatusChecker2?: "Pending" | "Approved" | "Rejected",
+    eightDDateChecker2?: string,
+    eightDStatusChecker3?: "Pending" | "Approved" | "Rejected",
+    eightDDateChecker3?: string,
 }
 
 
@@ -326,10 +345,18 @@ export default function QPRForm() {
             newErrors.reoccurrenceDetails = true;
         }
 
-        if ((Object.keys(formData.defectiveContents) as Array<keyof DefectiveContents>).filter((key) => `${formData.defectiveContents[key] || ''}`.trim()).length == 0) {
-            newErrors.defectiveContents = true;
-            console.log(formData.defectiveContents)
+        if (!formData.defectiveContents.problemCase) {
+            newErrors.problemCase = true;
         }
+
+        if ((!formData.figures.img1.imageUrl && !formData.figures.img2.imageUrl && !formData.figures.img3.imageUrl && !formData.figures.img4.imageUrl)) {
+            newErrors.figures = true;
+        }
+
+        // if ((Object.keys(formData.defectiveContents) as Array<keyof DefectiveContents>).filter((key) => `${formData.defectiveContents[key] || ''}`.trim()).length == 0) {
+        //     newErrors.defectiveContents = true;
+        //     console.log(formData.defectiveContents)
+        // }
 
         console.log('newErrors', newErrors);
         setErrors(newErrors);
@@ -457,7 +484,7 @@ export default function QPRForm() {
                                 {/* Receiving */}
                                 <div className="flex items-start gap-4">
                                     <label className="flex items-center">
-                                        <input
+                                        {/* <input
                                             type="checkbox"
                                             checked={formData.whereFound.receiving}
                                             onChange={(e) =>
@@ -465,7 +492,16 @@ export default function QPRForm() {
                                             }
                                             className={"mr-2 "}
                                             style={errors.whereFound && (Object.keys(formData.whereFound) as Array<keyof WhereFound>).filter((key) => formData.whereFound[key] === true).length == 0 ? { borderColor: 'red', outlineColor: 'red' } : {}}
-                                        />
+                                        /> */}
+                                        <Checkbox
+                                            onChange={(e) => {
+                                                handleInputChange(e as any as ChangeEvent<HTMLInputElement>, "receiving", "whereFound")
+                                            }}
+                                            className={"mr-2 "}
+                                            style={{ padding: 0 }}
+                                            checked={formData.whereFound.receiving}
+                                            invalid={errors.whereFound && (Object.keys(formData.whereFound) as Array<keyof WhereFound>).filter((key) => formData.whereFound[key] === true).length == 0}
+                                        ></Checkbox>
                                         Receiving
                                     </label>
                                     <input
@@ -482,7 +518,7 @@ export default function QPRForm() {
                                 {/* Inprocess */}
                                 <div className="flex items-start gap-4">
                                     <label className="flex items-center">
-                                        <input
+                                        {/* <input
                                             type="checkbox"
                                             checked={formData.whereFound.inprocess}
                                             onChange={(e) =>
@@ -490,7 +526,16 @@ export default function QPRForm() {
                                             }
                                             className="mr-2"
                                             style={errors.whereFound && (Object.keys(formData.whereFound) as Array<keyof WhereFound>).filter((key) => formData.whereFound[key] === true).length == 0 ? { borderColor: 'red', outlineColor: 'red' } : {}}
-                                        />
+                                        /> */}
+                                        <Checkbox
+                                            onChange={(e) => {
+                                                handleInputChange(e as any as ChangeEvent<HTMLInputElement>, "inprocess", "whereFound")
+                                            }}
+                                            className={"mr-2 "}
+                                            style={{ padding: 0 }}
+                                            checked={formData.whereFound.inprocess}
+                                            invalid={errors.whereFound && (Object.keys(formData.whereFound) as Array<keyof WhereFound>).filter((key) => formData.whereFound[key] === true).length == 0}
+                                        ></Checkbox>
                                         Inprocess
                                     </label>
                                     <input
@@ -507,7 +552,7 @@ export default function QPRForm() {
                                 {/* F/G */}
                                 <div className="flex items-start gap-4">
                                     <label className="flex items-center">
-                                        <input
+                                        {/* <input
                                             type="checkbox"
                                             checked={formData.whereFound.fg}
                                             onChange={(e) =>
@@ -515,7 +560,16 @@ export default function QPRForm() {
                                             }
                                             className="mr-2"
                                             style={errors.whereFound && (Object.keys(formData.whereFound) as Array<keyof WhereFound>).filter((key) => formData.whereFound[key] === true).length == 0 ? { borderColor: 'red', outlineColor: 'red' } : {}}
-                                        />
+                                        /> */}
+                                        <Checkbox
+                                            onChange={(e) => {
+                                                handleInputChange(e as any as ChangeEvent<HTMLInputElement>, "fg", "whereFound")
+                                            }}
+                                            className={"mr-2 "}
+                                            style={{ padding: 0 }}
+                                            checked={formData.whereFound.fg}
+                                            invalid={errors.whereFound && (Object.keys(formData.whereFound) as Array<keyof WhereFound>).filter((key) => formData.whereFound[key] === true).length == 0}
+                                        ></Checkbox>
                                         F/G
                                     </label>
                                     <input
@@ -533,7 +587,7 @@ export default function QPRForm() {
                                 {/* W/H */}
                                 <div className="flex items-start gap-4">
                                     <label className="flex items-center">
-                                        <input
+                                        {/* <input
                                             type="checkbox"
                                             checked={formData.whereFound.wh}
                                             onChange={(e) =>
@@ -541,7 +595,16 @@ export default function QPRForm() {
                                             }
                                             className="mr-2"
                                             style={errors.whereFound && (Object.keys(formData.whereFound) as Array<keyof WhereFound>).filter((key) => formData.whereFound[key] === true).length == 0 ? { borderColor: 'red', outlineColor: 'red' } : {}}
-                                        />
+                                        /> */}
+                                        <Checkbox
+                                            onChange={(e) => {
+                                                handleInputChange(e as any as ChangeEvent<HTMLInputElement>, "wh", "whereFound")
+                                            }}
+                                            className={"mr-2 "}
+                                            style={{ padding: 0 }}
+                                            checked={formData.whereFound.wh}
+                                            invalid={errors.whereFound && (Object.keys(formData.whereFound) as Array<keyof WhereFound>).filter((key) => formData.whereFound[key] === true).length == 0}
+                                        ></Checkbox>
                                         W/H
                                     </label>
                                     <input
@@ -559,7 +622,7 @@ export default function QPRForm() {
                                 {/* Customer Claim */}
                                 <div className="flex items-start gap-4">
                                     <label className="flex items-center">
-                                        <input
+                                        {/* <input
                                             type="checkbox"
                                             checked={formData.whereFound.customerClaim}
                                             onChange={(e) =>
@@ -567,7 +630,16 @@ export default function QPRForm() {
                                             }
                                             className="mr-2"
                                             style={errors.whereFound && (Object.keys(formData.whereFound) as Array<keyof WhereFound>).filter((key) => formData.whereFound[key] === true).length == 0 ? { borderColor: 'red', outlineColor: 'red' } : {}}
-                                        />
+                                        /> */}
+                                        <Checkbox
+                                            onChange={(e) => {
+                                                handleInputChange(e as any as ChangeEvent<HTMLInputElement>, "customerClaim", "whereFound")
+                                            }}
+                                            className={"mr-2 "}
+                                            style={{ padding: 0 }}
+                                            checked={formData.whereFound.customerClaim}
+                                            invalid={errors.whereFound && (Object.keys(formData.whereFound) as Array<keyof WhereFound>).filter((key) => formData.whereFound[key] === true).length == 0}
+                                        ></Checkbox>
                                         Customer Claim (Line Claim)
                                     </label>
                                     <input
@@ -585,7 +657,7 @@ export default function QPRForm() {
                                 {/* Warranty Claim */}
                                 <div className="flex items-start gap-4">
                                     <label className="flex items-center">
-                                        <input
+                                        {/* <input
                                             type="checkbox"
                                             checked={formData.whereFound.warrantyClaim}
                                             onChange={(e) =>
@@ -593,7 +665,16 @@ export default function QPRForm() {
                                             }
                                             className="mr-2"
                                             style={errors.whereFound && (Object.keys(formData.whereFound) as Array<keyof WhereFound>).filter((key) => formData.whereFound[key] === true).length == 0 ? { borderColor: 'red', outlineColor: 'red' } : {}}
-                                        />
+                                        /> */}
+                                        <Checkbox
+                                            onChange={(e) => {
+                                                handleInputChange(e as any as ChangeEvent<HTMLInputElement>, "warrantyClaim", "whereFound")
+                                            }}
+                                            className={"mr-2 "}
+                                            style={{ padding: 0 }}
+                                            checked={formData.whereFound.warrantyClaim}
+                                            invalid={errors.whereFound && (Object.keys(formData.whereFound) as Array<keyof WhereFound>).filter((key) => formData.whereFound[key] === true).length == 0}
+                                        ></Checkbox>
                                         Warranty Claim
                                     </label>
                                     <input
@@ -614,7 +695,7 @@ export default function QPRForm() {
                                 </div>
                                 <div className="flex items-start gap-4">
                                     <label className="flex items-center">
-                                        <input
+                                        {/* <input
                                             type="checkbox"
                                             checked={formData.whereFound.other}
                                             onChange={(e) =>
@@ -622,7 +703,16 @@ export default function QPRForm() {
                                             }
                                             className="mr-2"
                                             style={errors.whereFound && (Object.keys(formData.whereFound) as Array<keyof WhereFound>).filter((key) => formData.whereFound[key] === true).length == 0 ? { borderColor: 'red', outlineColor: 'red' } : {}}
-                                        />
+                                        /> */}
+                                        <Checkbox
+                                            onChange={(e) => {
+                                                handleInputChange(e as any as ChangeEvent<HTMLInputElement>, "other", "whereFound")
+                                            }}
+                                            className={"mr-2 "}
+                                            style={{ padding: 0 }}
+                                            checked={formData.whereFound.other}
+                                            invalid={errors.whereFound && (Object.keys(formData.whereFound) as Array<keyof WhereFound>).filter((key) => formData.whereFound[key] === true).length == 0}
+                                        ></Checkbox>
                                         Other
                                     </label>
                                     <input
@@ -721,7 +811,7 @@ export default function QPRForm() {
                     <div className="flex flex-wrap gap-4 mt-2">
                         <div className="flex items-center gap-4">
                             <label className="flex items-center">
-                                <input
+                                {/* <input
                                     type="checkbox"
                                     checked={formData.defect.dimension}
                                     onChange={(e) =>
@@ -729,14 +819,23 @@ export default function QPRForm() {
                                     }
                                     style={errors.defect && (Object.keys(formData.defect) as Array<keyof Defect>).filter((key) => formData.defect[key] === true).length == 0 ? { borderColor: 'red', outlineColor: 'red' } : {}}
                                     className="mr-2"
-                                />
+                                /> */}
+                                <Checkbox
+                                    onChange={(e) => {
+                                        handleInputChange(e as any as ChangeEvent<HTMLInputElement>, "dimension", "defect")
+                                    }}
+                                    className={"mr-2 "}
+                                    style={{ padding: 0 }}
+                                    checked={formData.defect.dimension}
+                                    invalid={errors.defect && (Object.keys(formData.defect) as Array<keyof Defect>).filter((key) => formData.defect[key] === true).length == 0}
+                                ></Checkbox>
                                 Dimension
                             </label>
                         </div>
 
                         <div className="flex items-center gap-4">
                             <label className="flex items-center">
-                                <input
+                                {/* <input
                                     type="checkbox"
                                     checked={formData.defect.material}
                                     onChange={(e) =>
@@ -744,14 +843,23 @@ export default function QPRForm() {
                                     }
                                     style={errors.defect && (Object.keys(formData.defect) as Array<keyof Defect>).filter((key) => formData.defect[key] === true).length == 0 ? { borderColor: 'red', outlineColor: 'red' } : {}}
                                     className="mr-2"
-                                />
+                                /> */}
+                                <Checkbox
+                                    onChange={(e) => {
+                                        handleInputChange(e as any as ChangeEvent<HTMLInputElement>, "material", "defect")
+                                    }}
+                                    className={"mr-2 "}
+                                    style={{ padding: 0 }}
+                                    checked={formData.defect.material}
+                                    invalid={errors.defect && (Object.keys(formData.defect) as Array<keyof Defect>).filter((key) => formData.defect[key] === true).length == 0}
+                                ></Checkbox>
                                 Material
                             </label>
                         </div>
 
                         <div className="flex items-center gap-4">
                             <label className="flex items-center">
-                                <input
+                                {/* <input
                                     type="checkbox"
                                     checked={formData.defect.appearance}
                                     onChange={(e) =>
@@ -759,14 +867,23 @@ export default function QPRForm() {
                                     }
                                     style={errors.defect && (Object.keys(formData.defect) as Array<keyof Defect>).filter((key) => formData.defect[key] === true).length == 0 ? { borderColor: 'red', outlineColor: 'red' } : {}}
                                     className="mr-2"
-                                />
+                                /> */}
+                                <Checkbox
+                                    onChange={(e) => {
+                                        handleInputChange(e as any as ChangeEvent<HTMLInputElement>, "appearance", "defect")
+                                    }}
+                                    className={"mr-2 "}
+                                    style={{ padding: 0 }}
+                                    checked={formData.defect.appearance}
+                                    invalid={errors.defect && (Object.keys(formData.defect) as Array<keyof Defect>).filter((key) => formData.defect[key] === true).length == 0}
+                                ></Checkbox>
                                 Appearance
                             </label>
                         </div>
 
                         <div className="flex items-center gap-4">
                             <label className="flex items-center">
-                                <input
+                                {/* <input
                                     type="checkbox"
                                     checked={formData.defect.characteristics}
                                     onChange={(e) =>
@@ -774,14 +891,23 @@ export default function QPRForm() {
                                     }
                                     style={errors.defect && (Object.keys(formData.defect) as Array<keyof Defect>).filter((key) => formData.defect[key] === true).length == 0 ? { borderColor: 'red', outlineColor: 'red' } : {}}
                                     className="mr-2"
-                                />
+                                /> */}
+                                <Checkbox
+                                    onChange={(e) => {
+                                        handleInputChange(e as any as ChangeEvent<HTMLInputElement>, "characteristics", "defect")
+                                    }}
+                                    className={"mr-2 "}
+                                    style={{ padding: 0 }}
+                                    checked={formData.defect.characteristics}
+                                    invalid={errors.defect && (Object.keys(formData.defect) as Array<keyof Defect>).filter((key) => formData.defect[key] === true).length == 0}
+                                ></Checkbox>
                                 Characteristics
                             </label>
                         </div>
 
                         <div className="flex items-center gap-4">
                             <label className="flex items-center">
-                                <input
+                                {/* <input
                                     type="checkbox"
                                     checked={!!formData.defect.other}
                                     onChange={(e) =>
@@ -793,7 +919,16 @@ export default function QPRForm() {
                                     }
                                     style={errors.defect && (Object.keys(formData.defect) as Array<keyof Defect>).filter((key) => formData.defect[key] === true).length == 0 ? { borderColor: 'red', outlineColor: 'red' } : {}}
                                     className="mr-2"
-                                />
+                                /> */}
+                                <Checkbox
+                                    onChange={(e) => {
+                                        handleInputChange(e as any as ChangeEvent<HTMLInputElement>, "other", "defect")
+                                    }}
+                                    className={"mr-2 "}
+                                    style={{ padding: 0 }}
+                                    checked={formData.defect.other}
+                                    invalid={errors.defect && (Object.keys(formData.defect) as Array<keyof Defect>).filter((key) => formData.defect[key] === true).length == 0}
+                                ></Checkbox>
                                 Other
                             </label>
                             <input
@@ -813,38 +948,35 @@ export default function QPRForm() {
                     <label className="font-semibold">STATE</label>
                     <div className="flex items-center gap-4 mt-2">
                         <label className="flex items-center">
-                            <input
-                                type="radio"
+                            <RadioButton
                                 name="state"
                                 value="New Model"
+                                onChange={(e: RadioButtonChangeEvent) => handleInputChange(e as any as ChangeEvent<HTMLInputElement>, "state")}
                                 checked={formData.state === "New Model"}
-                                onChange={(e) => handleInputChange(e, "state")}
-                                style={!errors.state ? { borderLeftColor: 'red', outlineColor: 'red' } : {}}
-                                className="mr-2"
+                                invalid={errors.state}
+                                style={{ padding: 0, marginRight: '10px' }}
                             />
                             New Model
                         </label>
                         <label className="flex items-center">
-                            <input
-                                type="radio"
+                            <RadioButton
                                 name="state"
                                 value="Mass Production"
+                                onChange={(e: RadioButtonChangeEvent) => handleInputChange(e as any as ChangeEvent<HTMLInputElement>, "state")}
                                 checked={formData.state === "Mass Production"}
-                                onChange={(e) => handleInputChange(e, "state")}
-                                style={!errors.state ? { borderColor: 'red', outlineColor: 'red' } : {}}
-                                className="mr-2"
+                                invalid={errors.state}
+                                style={{ padding: 0, marginRight: '10px' }}
                             />
                             Mass Production
                         </label>
                         <label className="flex items-center">
-                            <input
-                                type="radio"
+                            <RadioButton
                                 name="state"
                                 value="Service"
+                                onChange={(e: RadioButtonChangeEvent) => handleInputChange(e as any as ChangeEvent<HTMLInputElement>, "state")}
                                 checked={formData.state === "Service"}
-                                onChange={(e) => handleInputChange(e, "state")}
-                                style={!errors.state ? { borderColor: 'red', outlineColor: 'red' } : {}}
-                                className="mr-2"
+                                invalid={errors.state}
+                                style={{ padding: 0, marginRight: '10px' }}
                             />
                             Service
                         </label>
@@ -856,7 +988,7 @@ export default function QPRForm() {
                     <label className="font-semibold">IMPORTANCE LEVEL</label>
                     <div className="flex items-center gap-4 mt-2">
                         <label className="flex items-center">
-                            <input
+                            {/* <input
                                 type="radio"
                                 name="importanceLevel"
                                 value="SP"
@@ -864,11 +996,19 @@ export default function QPRForm() {
                                 onChange={(e) => handleInputChange(e, "importanceLevel")}
                                 style={!errors.importanceLevel ? { borderColor: 'red', outlineColor: 'red' } : {}}
                                 className="mr-2"
+                            /> */}
+                            <RadioButton
+                                name="importanceLevel"
+                                value="SP"
+                                onChange={(e: RadioButtonChangeEvent) => handleInputChange(e as any as ChangeEvent<HTMLInputElement>, "importanceLevel")}
+                                checked={formData.importanceLevel === "SP"}
+                                invalid={errors.importanceLevel}
+                                style={{ padding: 0, marginRight: '10px' }}
                             />
                             SP
                         </label>
                         <label className="flex items-center">
-                            <input
+                            {/* <input
                                 type="radio"
                                 name="importanceLevel"
                                 value="A"
@@ -876,11 +1016,19 @@ export default function QPRForm() {
                                 onChange={(e) => handleInputChange(e, "importanceLevel")}
                                 style={!errors.importanceLevel ? { borderColor: 'red', outlineColor: 'red' } : {}}
                                 className="mr-2"
+                            /> */}
+                            <RadioButton
+                                name="importanceLevel"
+                                value="A"
+                                onChange={(e: RadioButtonChangeEvent) => handleInputChange(e as any as ChangeEvent<HTMLInputElement>, "importanceLevel")}
+                                checked={formData.importanceLevel === "A"}
+                                invalid={errors.importanceLevel}
+                                style={{ padding: 0, marginRight: '10px' }}
                             />
                             A
                         </label>
                         <label className="flex items-center">
-                            <input
+                            {/* <input
                                 type="radio"
                                 name="importanceLevel"
                                 value="B"
@@ -888,11 +1036,19 @@ export default function QPRForm() {
                                 onChange={(e) => handleInputChange(e, "importanceLevel")}
                                 style={!errors.importanceLevel ? { borderColor: 'red', outlineColor: 'red' } : {}}
                                 className="mr-2"
+                            /> */}
+                            <RadioButton
+                                name="importanceLevel"
+                                value="B"
+                                onChange={(e: RadioButtonChangeEvent) => handleInputChange(e as any as ChangeEvent<HTMLInputElement>, "importanceLevel")}
+                                checked={formData.importanceLevel === "B"}
+                                invalid={errors.importanceLevel}
+                                style={{ padding: 0, marginRight: '10px' }}
                             />
                             B
                         </label>
                         <label className="flex items-center">
-                            <input
+                            {/* <input
                                 type="radio"
                                 name="importanceLevel"
                                 value="C"
@@ -900,18 +1056,34 @@ export default function QPRForm() {
                                 onChange={(e) => handleInputChange(e, "importanceLevel")}
                                 style={!errors.importanceLevel ? { borderColor: 'red', outlineColor: 'red' } : {}}
                                 className="mr-2"
+                            /> */}
+                            <RadioButton
+                                name="importanceLevel"
+                                value="C"
+                                onChange={(e: RadioButtonChangeEvent) => handleInputChange(e as any as ChangeEvent<HTMLInputElement>, "importanceLevel")}
+                                checked={formData.importanceLevel === "C"}
+                                invalid={errors.importanceLevel}
+                                style={{ padding: 0, marginRight: '10px' }}
                             />
                             C
                         </label>
                         <label className="flex items-center">
-                            <input
+                            {/* <input
                                 type="checkbox"
                                 name="urgent"
                                 value="Urgent"
                                 checked={formData.urgent}
                                 onChange={(e) => handleInputChange(e, "urgent")}
                                 className="mr-2"
-                            />
+                            /> */}
+                            <Checkbox
+                                onChange={(e) => {
+                                    handleInputChange(e as any as ChangeEvent<HTMLInputElement>, "urgent")
+                                }}
+                                className={"mr-2 "}
+                                style={{ padding: 0 }}
+                                checked={formData.urgent}
+                            ></Checkbox>
                             Urgent
                         </label>
                     </div>
@@ -922,23 +1094,19 @@ export default function QPRForm() {
                     <label className="font-semibold">FREQUENCY</label>
                     <div className="flex items-center gap-4 mt-2">
                         <label className="flex items-center">
-                            <input
-                                type="checkbox"
+                            <Checkbox
+                                onChange={(e) => {
+                                    handleInputChange(e as any as ChangeEvent<HTMLInputElement>, "firstDefective", "frequency")
+                                }}
+                                className={"mr-2 "}
+                                style={{ padding: 0 }}
+                                invalid={errors.frequency && (Object.keys(formData.frequency) as Array<keyof Frequency>).filter((key) => formData.frequency[key] === true).length == 0}
                                 checked={formData.frequency.firstDefective}
-                                onChange={(e) =>
-                                    handleInputChange(
-                                        e,
-                                        "firstDefective",
-                                        "frequency"
-                                    )
-                                }
-                                className="mr-2"
-                                style={errors.frequency && (Object.keys(formData.frequency) as Array<keyof Frequency>).filter((key) => formData.frequency[key] === true).length == 0 ? { borderColor: 'red', outlineColor: 'red' } : {}}
-                            />
+                            ></Checkbox>
                             1'st DEFECTIVE
                         </label>
                         <label className="flex items-center">
-                            <input
+                            {/* <input
                                 type="checkbox"
                                 checked={formData.frequency.reoccurrence}
                                 onChange={(e) =>
@@ -950,9 +1118,17 @@ export default function QPRForm() {
                                 }
                                 className="mr-2"
                                 style={errors.frequency && (Object.keys(formData.frequency) as Array<keyof Frequency>).filter((key) => formData.frequency[key] === true).length == 0 ? { borderColor: 'red', outlineColor: 'red' } : {}}
-                            />
+                            /> */}
+                            <Checkbox
+                                checked={formData.frequency.reoccurrence}
+                                onChange={(e) => {
+                                    handleInputChange(e as any as ChangeEvent<HTMLInputElement>, "reoccurrence", "frequency")
+                                }}
+                                className={"mr-2 "}
+                                style={{ padding: 0 }}
+                                invalid={errors.frequency && (Object.keys(formData.frequency) as Array<keyof Frequency>).filter((key) => formData.frequency[key] === true).length == 0}
+                            ></Checkbox>
                             Reoccurrence
-
                             <InputNumber
                                 value={formData.frequency.reoccurrenceDetails}
                                 onChange={(e) => handleInputChange({
@@ -970,7 +1146,7 @@ export default function QPRForm() {
                             />
                         </label>
                         <label className="flex items-center">
-                            <input
+                            {/* <input
                                 type="checkbox"
                                 checked={formData.frequency.chronicDisease}
                                 onChange={(e) =>
@@ -982,7 +1158,16 @@ export default function QPRForm() {
                                 }
                                 className="mr-2"
                                 style={errors.frequency && (Object.keys(formData.frequency) as Array<keyof Frequency>).filter((key) => formData.frequency[key] === true).length == 0 ? { borderColor: 'red', outlineColor: 'red' } : {}}
-                            />
+                            /> */}
+                            <Checkbox
+                                checked={formData.frequency.chronicDisease}
+                                onChange={(e) => {
+                                    handleInputChange(e as any as ChangeEvent<HTMLInputElement>, "chronicDisease", "frequency")
+                                }}
+                                className={"mr-2 "}
+                                style={{ padding: 0 }}
+                                invalid={errors.frequency && (Object.keys(formData.frequency) as Array<keyof Frequency>).filter((key) => formData.frequency[key] === true).length == 0}
+                            ></Checkbox>
                             Chronic Disease
                         </label>
                     </div>
@@ -1002,7 +1187,7 @@ export default function QPRForm() {
                                 onChange={(e) =>
                                     handleInputChange(e, "problemCase", "defectiveContents")
                                 }
-                                style={errors.defectiveContents && (Object.keys(formData.defectiveContents) as Array<keyof DefectiveContents>).filter((key) => `${formData.defectiveContents[key] || ''}`.trim()).length == 0 ? { borderColor: 'red', outlineColor: 'red' } : {}}
+                                style={errors.problemCase ? { borderColor: 'red', outlineColor: 'red' } : {}}
                                 className="w-full bg-blue-100 border border-gray-300 rounded-md p-2"
                             />
                         </div>
@@ -1015,7 +1200,7 @@ export default function QPRForm() {
                                 onChange={(e) =>
                                     handleInputChange(e, "specification", "defectiveContents")
                                 }
-                                style={errors.defectiveContents && (Object.keys(formData.defectiveContents) as Array<keyof DefectiveContents>).filter((key) => `${formData.defectiveContents[key] || ''}`.trim()).length == 0 ? { borderColor: 'red', outlineColor: 'red' } : {}}
+                                // style={errors.defectiveContents && (Object.keys(formData.defectiveContents) as Array<keyof DefectiveContents>).filter((key) => `${formData.defectiveContents[key] || ''}`.trim()).length == 0 ? { borderColor: 'red', outlineColor: 'red' } : {}}
                                 className="w-full bg-blue-100 border border-gray-300 rounded-md p-2"
                             />
                         </div>
@@ -1028,7 +1213,7 @@ export default function QPRForm() {
                                 onChange={(e) =>
                                     handleInputChange(e, "action", "defectiveContents")
                                 }
-                                style={errors.defectiveContents && (Object.keys(formData.defectiveContents) as Array<keyof DefectiveContents>).filter((key) => `${formData.defectiveContents[key] || ''}`.trim()).length == 0 ? { borderColor: 'red', outlineColor: 'red' } : {}}
+                                // style={errors.defectiveContents && (Object.keys(formData.defectiveContents) as Array<keyof DefectiveContents>).filter((key) => `${formData.defectiveContents[key] || ''}`.trim()).length == 0 ? { borderColor: 'red', outlineColor: 'red' } : {}}
                                 className="w-full bg-blue-100 border border-gray-300 rounded-md p-2"
                             />
                         </div>
@@ -1041,7 +1226,7 @@ export default function QPRForm() {
                                 onChange={(e) =>
                                     handleInputChange(e, "ngEffective", "defectiveContents")
                                 }
-                                style={errors.defectiveContents && (Object.keys(formData.defectiveContents) as Array<keyof DefectiveContents>).filter((key) => `${formData.defectiveContents[key] || ''}`.trim()).length == 0 ? { borderColor: 'red', outlineColor: 'red' } : {}}
+                                // style={errors.defectiveContents && (Object.keys(formData.defectiveContents) as Array<keyof DefectiveContents>).filter((key) => `${formData.defectiveContents[key] || ''}`.trim()).length == 0 ? { borderColor: 'red', outlineColor: 'red' } : {}}
                                 className="w-full bg-blue-100 border border-gray-300 rounded-md p-2"
                             />
                         </div>
@@ -1054,7 +1239,7 @@ export default function QPRForm() {
                                 onChange={(e) =>
                                     handleInputChange(e, "lot", "defectiveContents")
                                 }
-                                style={errors.defectiveContents && (Object.keys(formData.defectiveContents) as Array<keyof DefectiveContents>).filter((key) => `${formData.defectiveContents[key] || ''}`.trim()).length == 0 ? { borderColor: 'red', outlineColor: 'red' } : {}}
+                                // style={errors.defectiveContents && (Object.keys(formData.defectiveContents) as Array<keyof DefectiveContents>).filter((key) => `${formData.defectiveContents[key] || ''}`.trim()).length == 0 ? { borderColor: 'red', outlineColor: 'red' } : {}}
                                 className="w-full bg-blue-100 border border-gray-300 rounded-md p-2"
                             />
                         </div>
@@ -1063,7 +1248,7 @@ export default function QPRForm() {
 
                 {/* FIGURES */}
                 <div className="mt-3 border border-solid p-3 border-gray-300 rounded-md" style={
-                    (!formData.figures.img1.imageUrl && !formData.figures.img2.imageUrl && !formData.figures.img3.imageUrl && !formData.figures.img4.imageUrl) ? { borderColor: 'red' } : {}
+                    (!formData.figures.img1.imageUrl && !formData.figures.img2.imageUrl && !formData.figures.img3.imageUrl && !formData.figures.img4.imageUrl) && errors.figures ? { borderColor: 'red' } : {}
                 }>
                     <label className="font-semibold">FIGURE</label>
                     <div className="grid grid-cols-2 gap-4">

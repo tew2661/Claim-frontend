@@ -11,6 +11,7 @@ import { FormDataQpr, Defect } from "../create-qpr/page";
 import { Toast } from "primereact/toast";
 import moment from 'moment';
 import { getSocket } from "@/components/socket/socket";
+import { Dropdown, DropdownChangeEvent } from "primereact/dropdown";
 interface FilterDelay {
     supplier: string;
     qprNo: string;
@@ -35,7 +36,7 @@ export default function ReportTable() {
     const [totalRows,setTotalRows] = useState(10);
 
     const [filters, setFilters] = useState<FilterDelay>({
-        supplier: "",
+        supplier: "All",
         qprNo: ""
     });
 
@@ -56,15 +57,7 @@ export default function ReportTable() {
                     id: x.id,
                     qprNo: x.qprIssueNo || '',
                     supplier: x.supplier?.supplierName || '',
-                    problem: ((Object.keys(x.defect) as Array<keyof Defect>).map((y: keyof Defect) => {
-                        if (y == 'other') {
-                            return x.defect.otherDetails
-                        } else if (y !== 'otherDetails') {
-                            return x.defect[y] ? y : ''
-                        } else {
-                            return ''
-                        }
-                    })).filter((z) => z).join(' , '),
+                    problem: x.defectiveContents.problemCase || '',
                     importance: (x.importanceLevel || '') + (x.urgent ? ` (Urgent)` : ''),
                     delayDocument: x.delayDocument,
                     commitmentDate: x.replyQuickAction ? moment(x.replyQuickAction).format('DD/MM/YYYY') : "-",
@@ -89,9 +82,21 @@ export default function ReportTable() {
         };
     }
 
+    const [supplier, setSupplier] = useState<{ label: string, value: string }[]>([]);
+    const GetSupplier = async () => {
+        const res = await Get({ url: `/supplier/dropdown` });
+        if (res.ok) {
+            const res_data = await res.json();
+            setSupplier((res_data || []))
+        } else {
+            toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await res!.json()).message)}`, life: 3000 });
+        }
+    }
+
     useEffect(() => {
         GetDatas();
         SocketConnect();
+        GetSupplier();
     }, [])
 
     return (
@@ -113,13 +118,14 @@ export default function ReportTable() {
                         </div>
                         <div className="flex flex-col gap-2">
                             <label htmlFor="supplier">Supplier</label>
-                            <InputText
-                                id="supplier"
-                                value={filters.supplier}
-                                onChange={(e) => handleInputChange(e, "supplier")}
+                            <Dropdown
+                                value={filters.supplier || ""}
+                                onChange={(e: DropdownChangeEvent) => handleInputChange({ target: { value: e.value } } as React.ChangeEvent<HTMLInputElement>, "supplier")}
+                                options={[{ label: 'All', value: 'All' }, ...supplier]}
+                                optionLabel="label"
+                                // placeholder="Select Supplier" 
                                 className="w-full"
                             />
-
                         </div>
 
                     </div>

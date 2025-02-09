@@ -15,7 +15,7 @@ function LayoutPages({
     const [pages, setPages] = useState(<Loading />);
 
     useEffect(() => {
-        const IsJtekt = !(JSON.parse(`${localStorage.getItem('user') || {}}`)?.supplier);
+        const IsJtekt = (process.env.NEXT_MODE == 'jtekt');
         
         if (!IsJtekt) {
             router.push('/pages'); 

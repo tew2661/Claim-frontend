@@ -2,7 +2,7 @@
 import IconDot from '@/assets/icon/dot.png'
 import { MenuCategory } from "./interface";
 
-const IsJtekt = !(JSON.parse(`${localStorage.getItem('user') || {}}`)?.supplier);
+const IsJtekt = (process.env.NEXT_MODE == 'jtekt');
 const menuList: MenuCategory[] = [
     ...IsJtekt ? [{
         label: 'Create Claim',

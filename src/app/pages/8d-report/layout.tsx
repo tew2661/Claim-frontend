@@ -16,7 +16,7 @@ function LayoutPages({
 
     useEffect(() => {
         const isAuthenticated = localStorage.getItem('access_token')!;
-        const IsJtekt = !(JSON.parse(`${localStorage.getItem('user') || {}}`)?.supplier);
+        const IsJtekt = (process.env.NEXT_MODE == 'jtekt');
         
         if (IsJtekt) {
             router.push('/pages'); 

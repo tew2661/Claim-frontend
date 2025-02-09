@@ -2,7 +2,7 @@ import ApprovedTable from "..";
 
 const Checker2 = async () => {
     return <>
-        <ApprovedTable page={2} />
+        <ApprovedTable checker={2} />
     </>
 }
 
