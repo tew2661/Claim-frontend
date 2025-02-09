@@ -137,7 +137,6 @@ export default function QPRUploadForm() {
             return;
         }
 
-        console.log('objectQPR' , objectQPR)
         confirmDialog({
             message: 'Are you sure you want to proceed?',
             header: 'Confirmation',

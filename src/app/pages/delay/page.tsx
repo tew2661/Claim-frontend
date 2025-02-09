@@ -60,7 +60,7 @@ export default function ReportTable() {
                     problem: x.defectiveContents.problemCase || '',
                     importance: (x.importanceLevel || '') + (x.urgent ? ` (Urgent)` : ''),
                     delayDocument: x.delayDocument,
-                    commitmentDate: x.replyQuickAction ? moment(x.replyQuickAction).format('DD/MM/YYYY') : "-",
+                    commitmentDate: x.replyQuickAction ? moment(x.replyQuickAction).format('DD/MM/YYYY HH:mm:ss') : "-",
                     delayDays: x.replyQuickAction ? (moment(x.replyQuickAction).diff(moment(), 'days')): "",
                 }
             }))

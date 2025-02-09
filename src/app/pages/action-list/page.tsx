@@ -46,8 +46,8 @@ export default function ProblemReportTable() {
 
     const quickReportBodyTemplate = (rowData: any) => {
         return (
-            <span
-                className={`font-bold ${rowData.quickReportClass === "text-green-600"
+            <div
+                className={`font-bold w-[170px] ${rowData.quickReportClass === "text-green-600"
                     ? "text-green-600"
                     : rowData.quickReportClass === "text-red-600"
                         ? "text-red-600"
@@ -55,14 +55,14 @@ export default function ProblemReportTable() {
                     }`}
             >
                 {rowData.quickReport}
-            </span>
+            </div>
         );
     };
 
     const report8DBodyTemplate = (rowData: any) => {
         return (
-            <span
-                className={`font-bold ${rowData.report8DClass === "text-green-600"
+            <div
+                className={`font-bold w-[170px] ${rowData.report8DClass === "text-green-600"
                     ? "text-green-600"
                     : rowData.report8DClass === "text-red-600"
                         ? "text-red-600"
@@ -70,7 +70,7 @@ export default function ProblemReportTable() {
                     }`}
             >
                 {rowData.report8D}
-            </span>
+            </div>
         );
     };
 
@@ -86,14 +86,14 @@ export default function ProblemReportTable() {
             setQprList((res_data.data || []).map((x: FormDataQpr) => {
                 return {
                     id: x.id,
-                    date: x.dateReported ? moment(x.dateReported).format('DD/MM/YYYY') : '',
+                    date: x.dateReported ? moment(x.dateReported).format('DD/MM/YYYY HH:mm:ss') : '',
                     qprNo: x.qprIssueNo || '',
                     problem: x.defectiveContents.problemCase || '',
                     severity: (x.importanceLevel || '') + (x.urgent ? ` (Urgent)` : ''),
-                    quickReport: `${x.quickReportSupplierDate ? `${moment(x.quickReportSupplierDate).format('DD/MM/YYYY')}` : ""} ${x.quickReportSupplierStatus ? `(${x.quickReportSupplierStatus})`: ''}`,
-                    quickReportClass: x.quickReportSupplierStatus == "Approved" ? "text-green-600" : (x.quickReportSupplierStatus == "Wait for Supplier" ? "text-yellow-600" : "text-yellow-600"),
-                    report8D: `${x.eightDReportSupplierDate ? moment(x.eightDReportSupplierDate).format('DD/MM/YYYY') : ''}${x.eightDReportSupplierStatus ? `(${x.eightDReportSupplierStatus})` : '-'}`,
-                    report8DClass: x.eightDReportSupplierStatus == "Approved" ? "text-green-600" : (x.eightDReportSupplierStatus == "Wait for Supplier" ? "text-yellow-600" : "text-yellow-600"),
+                    quickReport: `${x.quickReportSupplierDate ? `${moment(x.quickReportSupplierDate).format('DD/MM/YYYY HH:mm:ss')}` : ""} ${x.quickReportSupplierStatus ? ` (${x.quickReportSupplierStatus})`: ''}`,
+                    quickReportClass: x.quickReportSupplierStatus == "Approved" ? "text-green-600" : (x.quickReportSupplierStatus == "Rejected" ? "text-red-600" : "text-yellow-600"),
+                    report8D: `${x.eightDReportSupplierDate ? moment(x.eightDReportSupplierDate).format('DD/MM/YYYY HH:mm:ss') : ''}${x.eightDReportSupplierStatus ? ` (${x.eightDReportSupplierStatus})` : '-'}`,
+                    report8DClass: x.eightDReportSupplierStatus == "Approved" ? "text-green-600" : (x.eightDReportSupplierStatus == "Rejected" ? "text-red-600" : "text-yellow-600"),
                 }
             }))
         } else {

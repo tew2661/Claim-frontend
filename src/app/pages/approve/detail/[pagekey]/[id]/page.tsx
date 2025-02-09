@@ -16,6 +16,7 @@ import React, { useEffect, useRef, useState } from "react";
 interface DocumentOther {
     key: string,
     num: number,
+    name: string,
     path?: string,
     approve?: 'approve' | 'reject',
     remark: ""
@@ -51,6 +52,7 @@ export default function PDFApproval() {
         documentOther: [{
             key: "xxxx",
             num: 1,
+            name: "",
             path: "",
             approve: undefined,
             remark: ""
@@ -70,33 +72,51 @@ export default function PDFApproval() {
         const res = await Get({ url: `/qpr/${param.id}` });
         if (res?.ok) {
             const dataForID = await res.json();
-            const objectQPRSupplier = dataForID?.objectQPRSupplier && dataForID?.objectQPRSupplier.length ? dataForID?.objectQPRSupplier[dataForID?.objectQPRSupplier.length - 1] : undefined
+            let object8DReportDto = undefined;
+            let remark = '';
+            let objectQPRSupplier =  dataForID?.objectQPRSupplier && dataForID?.objectQPRSupplier.length ? dataForID?.objectQPRSupplier[dataForID?.objectQPRSupplier.length - 1] : undefined
+            if (dataForID.delayDocument == 'Quick Report') {
+                remark = objectQPRSupplier && objectQPRSupplier?.objectQPR ? (objectQPRSupplier?.objectQPR.remark || '') : '';
+            } else if (dataForID.delayDocument == '8D Report') {
+                object8DReportDto = dataForID?.object8DReportDto && dataForID?.object8DReportDto.length ? dataForID?.object8DReportDto[dataForID?.object8DReportDto.length - 1] : undefined
+                remark = object8DReportDto && object8DReportDto?.object8D ? (object8DReportDto?.object8D.remark || '') : '';
+            }
+
             setReportType(dataForID.delayDocument ?? 'Quick Report')
             setSupplierName(objectQPRSupplier && objectQPRSupplier?.objectQPR && objectQPRSupplier?.objectQPR.contactPerson ? objectQPRSupplier?.objectQPR.contactPerson : '')
             setEmail(objectQPRSupplier && objectQPRSupplier?.objectQPR && objectQPRSupplier?.objectQPR.email ? (objectQPRSupplier?.objectQPR.email || '') : '')
             setProblemCase(dataForID.defectiveContents && dataForID.defectiveContents.problemCase ? dataForID.defectiveContents.problemCase : '');
             setImportanceLevel(dataForID.importanceLevel ?? '');
 
-            const checkerBefore = param.pagekey == 'checker2' ? objectQPRSupplier.checker1 : (param.pagekey == 'checker3' ? objectQPRSupplier.checker2 :  undefined)
+            let checkerBefore = undefined
+            if (dataForID.delayDocument == 'Quick Report') {
+                checkerBefore = param.pagekey == 'checker2' ? objectQPRSupplier.checker1 : (param.pagekey == 'checker3' ? objectQPRSupplier.checker2 :  undefined)
+            } else if (dataForID.delayDocument == '8D Report') {
+                checkerBefore = param.pagekey == 'checker2' ? object8DReportDto.checker1 : (param.pagekey == 'checker3' ? object8DReportDto.checker2 :  undefined)
+            }
             console.log('checkerBefore' , checkerBefore)
             setFormData({
                 approve: checkerBefore?.approve || undefined,
-                remark: objectQPRSupplier && objectQPRSupplier?.objectQPR ? (objectQPRSupplier?.objectQPR.remark || '') : '',
+                remark,
                 claim: checkerBefore?.claim|| false,
                 complain: checkerBefore?.complain|| false,
                 resummit: checkerBefore?.resummit ? moment(checkerBefore.resummit).toDate() : undefined,
                 replay: checkerBefore?.replay ? moment(checkerBefore.replay).toDate() : undefined,
-                duedate8d: undefined,
-                documentOther: [{
-                    key: "xxxx",
-                    num: 1,
-                    path: "",
-                    approve: undefined,
-                    remark: ""
-                }],
+                duedate8d: checkerBefore?.duedate8d ? moment(checkerBefore.duedate8d).toDate() : undefined,
+                documentOther: param.pagekey == 'checker1' && object8DReportDto && object8DReportDto.object8D && object8DReportDto.object8D.uploadSections && object8DReportDto.object8D.uploadSections.length ? 
+                    object8DReportDto.object8D.uploadSections.map((arr : any , index: number) => {
+                        return {
+                            key: arr.key || '-',
+                            num: index + 1,
+                            name: arr.name || '-',
+                            path: arr.file || undefined,
+                            approve: undefined,
+                            remark: ""
+                        }
+                    }) : (checkerBefore?.documentOther || []),
                 eightDReportApprover: checkerBefore?.eightDReportApprover || undefined,
-                reqDocumentOther: "",
-                dueDateReqDocumentOther: undefined,
+                reqDocumentOther: checkerBefore?.reqDocumentOther || "",
+                dueDateReqDocumentOther: checkerBefore?.dueDateReqDocumentOther ? moment(checkerBefore.dueDateReqDocumentOther).toDate() : undefined,
             })
 
         } else {
@@ -108,25 +128,24 @@ export default function PDFApproval() {
         GetDatas();
     }, [])
 
-    const ConfirmData = async () => {
-
-        console.log({
+    const ConfirmData = async (saveType: 'completed' | 'confirm' = 'confirm') => {
+        const data = {
             approve: formData.approve,
             remark: formData.remark,
-            claim: formData.claim,
-            complain: formData.complain,
-            resummit: formData.resummit ? moment(formData.resummit).format('YYYY-MM-DD HH:mm:ss') : undefined,
-            replay: formData.replay ? moment(formData.replay).format('YYYY-MM-DD HH:mm:ss') : undefined,
-            eightDReportApprover: formData.eightDReportApprover
-        })
-        
+            duedate8d: formData?.duedate8d ? moment(formData.duedate8d).format('YYYY-MM-DD HH:mm:ss') : undefined,
+            documentOther: formData.documentOther || [],
+            reqDocumentOther: formData.reqDocumentOther || "",
+            dueDateReqDocumentOther: formData.dueDateReqDocumentOther ? moment(formData.dueDateReqDocumentOther).format('YYYY-MM-DD HH:mm:ss') : undefined,
+        }
+
+        console.log(data)
         confirmDialog({
             message: 'Are you sure you want to proceed?',
             header: 'Confirmation',
             icon: 'pi pi-exclamation-triangle',
             defaultFocus: 'accept',
             accept: async () => {
-                if (param.pagekey == 'checker1') {
+                if (reportType == 'Quick Report' && param.pagekey == 'checker1') {
                     const data = {
                         approve: formData.approve,
                         remark: formData.remark,
@@ -142,7 +161,7 @@ export default function PDFApproval() {
                     } else {
                         toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await res!.json()).message)}`, life: 3000 });
                     }
-                } else if (param.pagekey == 'checker2') {
+                } else if (reportType == 'Quick Report' && param.pagekey == 'checker2') {
                     const data = {
                         approve: formData.approve,
                         remark: formData.remark,
@@ -159,7 +178,7 @@ export default function PDFApproval() {
                     } else {
                         toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await res!.json()).message)}`, life: 3000 });
                     }
-                } else if (param.pagekey == 'checker3') {
+                } else if (reportType == 'Quick Report' && param.pagekey == 'checker3') {
                     const data = {
                         approve: formData.approve,
                         remark: formData.remark,
@@ -176,8 +195,70 @@ export default function PDFApproval() {
                     } else {
                         toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await res!.json()).message)}`, life: 3000 });
                     }
-                } else {
-        
+                } else if (reportType == '8D Report' && param.pagekey == 'checker1') {
+                    const data = {
+                        approve: formData.approve,
+                        remark: formData.remark,
+                        duedate8d: formData?.duedate8d ? moment(formData.duedate8d).format('YYYY-MM-DD HH:mm:ss') : undefined,
+                        documentOther: formData.documentOther || [],
+                        reqDocumentOther: formData.reqDocumentOther || "",
+                        dueDateReqDocumentOther: formData.dueDateReqDocumentOther ? moment(formData.dueDateReqDocumentOther).format('YYYY-MM-DD HH:mm:ss') : undefined,
+                    }
+                    
+                    const res = await Put({ url: `/qpr/8d-report/checker1/${param.id}` , body: JSON.stringify(data) });
+                    if (res?.ok) {
+                        router.push('/pages/approve/checker1')
+                    } else {
+                        toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await res!.json()).message)}`, life: 3000 });
+                    }
+                } else if (reportType == '8D Report' && param.pagekey == 'checker2') {
+                    const data = {
+                        approve: formData.approve,
+                        remark: formData.remark,
+                        duedate8d: formData?.duedate8d ? moment(formData.duedate8d).format('YYYY-MM-DD HH:mm:ss') : undefined,
+                        documentOther: formData.documentOther || [],
+                        reqDocumentOther: formData.reqDocumentOther || "",
+                        dueDateReqDocumentOther: formData.dueDateReqDocumentOther ? moment(formData.dueDateReqDocumentOther).format('YYYY-MM-DD HH:mm:ss') : undefined,
+                    }
+                    
+                    const res = await Put({ url: `/qpr/8d-report/checker2/${param.id}` , body: JSON.stringify(data) });
+                    if (res?.ok) {
+                        router.push('/pages/approve/checker2')
+                    } else {
+                        toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await res!.json()).message)}`, life: 3000 });
+                    }
+                } else if (reportType == '8D Report' && param.pagekey == 'checker3' && saveType == 'confirm') {
+                    const data = {
+                        approve: formData.approve,
+                        remark: formData.remark,
+                        duedate8d: formData?.duedate8d ? moment(formData.duedate8d).format('YYYY-MM-DD HH:mm:ss') : undefined,
+                        documentOther: formData.documentOther || [],
+                        reqDocumentOther: formData.reqDocumentOther || "",
+                        dueDateReqDocumentOther: formData.dueDateReqDocumentOther ? moment(formData.dueDateReqDocumentOther).format('YYYY-MM-DD HH:mm:ss') : undefined,
+                    }
+                    
+                    const res = await Put({ url: `/qpr/8d-report/checker3/${param.id}` , body: JSON.stringify(data) });
+                    if (res?.ok) {
+                        router.push('/pages/approve/checker3')
+                    } else {
+                        toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await res!.json()).message)}`, life: 3000 });
+                    }
+                } else if (reportType == '8D Report' && param.pagekey == 'checker3' && saveType == 'completed') {
+                    const data = {
+                        approve: formData.approve,
+                        remark: formData.remark,
+                        duedate8d: formData?.duedate8d ? moment(formData.duedate8d).format('YYYY-MM-DD HH:mm:ss') : undefined,
+                        documentOther: formData.documentOther || [],
+                        reqDocumentOther: formData.reqDocumentOther || "",
+                        dueDateReqDocumentOther: formData.dueDateReqDocumentOther ? moment(formData.dueDateReqDocumentOther).format('YYYY-MM-DD HH:mm:ss') : undefined,
+                    }
+                    
+                    const res = await Put({ url: `/qpr/8d-report/checker3-completed/${param.id}` , body: JSON.stringify(data) });
+                    if (res?.ok) {
+                        router.push('/pages/approve/checker3')
+                    } else {
+                        toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await res!.json()).message)}`, life: 3000 });
+                    }
                 }
             },
             reject: () => {},
@@ -233,7 +314,8 @@ export default function PDFApproval() {
                                         return {
                                             ...old,
                                             approve: 'approve',
-                                            resummit: undefined
+                                            resummit: undefined,
+                                            duedate8d: undefined
                                         }
                                     })
                                 }}
@@ -352,7 +434,7 @@ export default function PDFApproval() {
                                         style={{ padding: 0, paddingTop: "5px" }}
                                     >
                                         <Column field="name" header="Document name" bodyClassName="w-[200px]" body={(arr: DocumentOther) => {
-                                            return <>Doc{arr.num}</>
+                                            return <>{arr.name}</>
                                         }}></Column>
                                         <Column field="download" header="Download" bodyClassName="w-[200px]" body={(arr: DocumentOther) => {
                                             return <Button label="Download" />
@@ -445,7 +527,7 @@ export default function PDFApproval() {
                                     dateFormat="dd/mm/yy"
                                     placeholder="dd/mm/yy hh:mm"
                                     showTime
-                                    onChange={(e) => setFormData((old) => { return { ...old, duedadueDateReqDocumentOtherte8d: e.value || undefined } })}
+                                    onChange={(e) => setFormData((old) => { return { ...old, dueDateReqDocumentOther: e.value || undefined } })}
                                     className="w-full"
                                     showButtonBar
                                     style={{ paddingLeft: 0, paddingRight: 0 }}
@@ -523,9 +605,29 @@ export default function PDFApproval() {
                         disabled={
                             (
                                 (reportType == '8D Report' &&
-                                    (!!(formData.approve == undefined) || 
-                                    !!(formData.documentOther.filter((x) => x.approve == undefined).length))
-                                ) || 
+                                    (
+                                        (
+                                            !!(formData.approve == undefined) || 
+                                            !!(formData.documentOther.filter((x) => x.approve == undefined).length)
+                                        ) 
+                                        ||
+                                        (
+                                            (formData.approve == 'reject') && 
+                                            (!(formData.remark) || !(formData.duedate8d))
+                                        ) 
+                                        ||
+                                        ((
+                                            (formData.documentOther.filter((x) => x.approve == 'reject' && !x.remark).length > 0) || 
+                                            (formData.documentOther.filter((x) => x.approve == 'reject').length > 0 && !(formData.dueDateReqDocumentOther)) 
+                                        )) 
+                                        ||
+                                        (
+                                            (formData.reqDocumentOther) && 
+                                            !(formData.dueDateReqDocumentOther)
+                                        )
+                                    )
+                                ) 
+                                || 
                                 (
                                     reportType == 'Quick Report' && (
                                         !!(formData.approve == undefined) ||
@@ -548,7 +650,7 @@ export default function PDFApproval() {
                             label="Confirm and complete"
                             className="bg-blue-800 text-white min-w-[150px]"
                             disabled={
-                                !(reportType == '8D Report' && param.id == '2' && param.pagekey == 'checker3') || 
+                                !(reportType == '8D Report' && param.pagekey == 'checker3') || 
                                 (
                                     !!(formData.approve == 'reject') || 
                                     !!(formData.approve == undefined) || 
@@ -556,6 +658,7 @@ export default function PDFApproval() {
                                     !!(formData.documentOther.filter((x) => x.approve == undefined).length)
                                 )
                             }
+                            onClick={() => ConfirmData()}
                         /> : <></>
                     }
 

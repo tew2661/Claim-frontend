@@ -56,6 +56,36 @@ export default function SummaryReport() {
         console.log("Exporting to Excel...");
     };
 
+    const quickReportBodyTemplate = (rowData: any) => {
+        return (
+            <span
+                className={`font-bold w-[170px] ${rowData.quickReportClass === "text-green-600"
+                    ? "text-green-600"
+                    : rowData.quickReportClass === "text-red-600"
+                        ? "text-red-600"
+                        : "text-yellow-500"
+                    }`}
+            >
+                {rowData.quickReport}
+            </span>
+        );
+    };
+
+    const Report8DClassBodyTemplate = (rowData: any) => {
+        return (
+            <span
+                className={`font-bold ${rowData.report8DClass === "text-green-600 w-[250px]"
+                    ? "text-green-600"
+                    : rowData.report8DClass === "text-red-600"
+                        ? "text-red-600"
+                        : "text-yellow-500"
+                    }`}
+            >
+                {rowData.report8D}
+            </span>
+        );
+    };
+
     const GetDatas = async () => {
         const quertString = CreateQueryString({
             ...filters,
@@ -72,8 +102,10 @@ export default function SummaryReport() {
                     problem: x.defectiveContents.problemCase || '',
                     importance: (x.importanceLevel || '') + (x.urgent ? ` (Urgent)` : ''),
                     status: x.status,
-                    quickReport: `${x.quickReportDate ? `${moment(x.quickReportDate).format('DD/MM/YYYY')}` : ""} ${x.quickReportStatus ? `(${x.quickReportStatus})` : ''}`,
-                    report8D: `${x.eightDReportDate ? moment(x.eightDReportDate).format('DD/MM/YYYY') : ''}${x.eightDReportStatus ? `(${x.eightDReportStatus})` : '-'}`,
+                    quickReport: `${x.quickReportDate ? `${moment(x.quickReportDate).format('DD/MM/YYYY HH:mm:ss')}` : ""} ${x.quickReportStatus ? ` (${x.quickReportStatus})` : ''}`,
+                    report8D: `${x.eightDReportDate ? moment(x.eightDReportDate).format('DD/MM/YYYY HH:mm:ss') : ''}${x.eightDReportStatus ? ` (${x.eightDReportStatus})` : '-'}`,
+                    quickReportClass: x.quickReportStatus == "Approved" ? "text-green-600" : (x.quickReportStatus == "Pending" ? "text-yellow-600" : (x.quickReportStatus == "Rejected" ? "text-red-600" : "text-yellow-600")),
+                    report8DClass: x.eightDReportStatus == "Approved" ? "text-green-600" : (x.eightDReportStatus == "Pending" || x.eightDReportStatus == "Wait for supplier" ? "text-yellow-600" : "text-yellow-600"),
                 }
             }))
         } else {
@@ -206,8 +238,8 @@ export default function SummaryReport() {
                     <Column field="supplier" header="Supplier"></Column>
                     <Column field="problem" header="ปัญหา" bodyStyle={{ width: '30%' }}></Column>
                     <Column field="importance" header="Importance Level"></Column>
-                    <Column field="quickReport" header="Quick Report"></Column>
-                    <Column field="report8D" header="8D Report"></Column>
+                    <Column field="quickReport" header="Quick Report" body={quickReportBodyTemplate}></Column>
+                    <Column field="report8D" header="8D Report" body={Report8DClassBodyTemplate}></Column>
                     <Column field="status" header="Status" bodyStyle={{ width: '15%' }}></Column>
                 </DataTable>
 

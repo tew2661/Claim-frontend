@@ -83,11 +83,11 @@ export default function ApprovedTable(props: { checker: 1 | 2 | 3 }) {
                 } else if (props.checker == 3 && x.delayDocument == 'Quick Report' && x.quickReportStatusChecker2 == 'Approved') {
                     action = x.quickReportStatus == 'Pending' && !x.quickReportStatusChecker3 ;
                 } else if (props.checker == 1 && x.delayDocument == '8D Report') {
-                    action = x.quickReportStatus == 'Pending' && !x.eightDStatusChecker1;
+                    action = x.eightDReportStatus == 'Pending' && !x.eightDStatusChecker1;
                 } else if (props.checker == 2 && x.delayDocument == '8D Report' && x.eightDStatusChecker1 == 'Approved') {
-                    action = x.quickReportStatus == 'Pending' && !x.eightDStatusChecker2;
+                    action = x.eightDReportStatus == 'Pending' && !x.eightDStatusChecker2;
                 } else if (props.checker == 3 && x.delayDocument == '8D Report' && x.eightDStatusChecker2 == 'Approved') {
-                    action = x.quickReportStatus == 'Pending' && !x.eightDStatusChecker3 ;
+                    action = x.eightDReportStatus == 'Pending' && !x.eightDStatusChecker3 ;
                 } else {
                     action = false; // ค่าเริ่มต้น กรณีที่ไม่ตรงกับเงื่อนไขใด
                 }
@@ -113,7 +113,7 @@ export default function ApprovedTable(props: { checker: 1 | 2 | 3 }) {
 
                 return {
                     id: x.id,
-                    date: x.dateReported ? moment(x.dateReported).format('DD/MM/YYYY') : '',
+                    date: x.dateReported ? moment(x.dateReported).format('DD/MM/YYYY HH:mm:ss') : '',
                     qprNo: x.qprIssueNo || '',
                     supplier: x.supplier?.supplierName || '',
                     problem: x.defectiveContents.problemCase || '',
