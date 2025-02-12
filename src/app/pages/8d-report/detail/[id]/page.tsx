@@ -7,12 +7,15 @@ import { useParams, useRouter } from "next/navigation";
 import Footer from "@/components/footer";
 import { v4 as uuidv4 } from "uuid";
 import { Get, Put, fetchFileAsFile } from "@/components/fetch";
-import moment from "moment";
 import { ConfirmDialog, confirmDialog } from "primereact/confirmdialog";
 import { Toast } from "primereact/toast";
 import { fileToBase64 } from "@/components/picture_uploader/convertToBase64";
+import { OverlayPanel } from "primereact/overlaypanel";
+import { Tooltip } from 'primereact/tooltip';
+import { Image } from 'primereact/image';
 
 export default function QPRUploadForm() {
+    const opRefs = useRef<(OverlayPanel | null)[]>([]);
     const param = useParams();
     const toast = useRef<Toast>(null);
     const router = useRouter();
@@ -231,25 +234,49 @@ export default function QPRUploadForm() {
                                 className="p-button"
                             /> */}
 
-                            <Button
-                                label={upload8DReport && upload8DReport.name ? upload8DReport.name : "Upload 8D Report (PDF)"}
-                                icon="pi pi-upload"
-                                className="p-button-primary"
-                                onClick={() => document.getElementById('upload-8d-report-id')?.click()}
-                            />
-                            <input
-                                id={'upload-8d-report-id'}
-                                type="file"
-                                accept="application/pdf"
-                                className="hidden"
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) {
-                                        console.log('file', file)
-                                        setUpload8DReport(file);
-                                    }
-                                }}
-                            />
+                            
+
+                            <div className="flex items-center">
+                                <Button
+                                    label={upload8DReport && upload8DReport.name ? upload8DReport.name : "Upload 8D Report (PDF)"}
+                                    icon="pi pi-upload"
+                                    className="p-button-primary"
+                                    onClick={() => document.getElementById('upload-8d-report-id')?.click()}
+                                />
+                                <input
+                                    id={'upload-8d-report-id'}
+                                    type="file"
+                                    accept="application/pdf"
+                                    className="hidden"
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                            console.log('file', file)
+                                            setUpload8DReport(file);
+                                        }
+                                    }}
+                                />
+                                <i
+                                    className="pi pi-link"
+                                    data-pr-tooltip="New tab view file"
+                                    data-pr-position="top" 
+                                    // style={{ fontSize: '1rem', color: 'blue', cursor: 'pointer', marginLeft: '10px' }}
+                                    style={{ 
+                                        fontSize: '1rem',
+                                        ...upload8DReport ? { color: 'blue' } : { color: 'gray' },
+                                        cursor: 'pointer' , 
+                                        marginLeft: '10px'
+                                    }} 
+                                    onClick={(e) => {
+                                        if (upload8DReport) {
+                                            const fileUrl = URL.createObjectURL(upload8DReport);
+                                            window.open(fileUrl, '_blank');
+                                        }
+                                    }}
+                                ></i>
+                                <Tooltip target=".pi-link" />
+                            </div>
+
                         </div>
 
                         <div className="mt-4">
@@ -275,12 +302,34 @@ export default function QPRUploadForm() {
                             className={"flex items-center gap-4 mb-4 p-2 " + (section.remark ? "border border-solid rounded border-red-400" : "border border-solid rounded border-gray-300")}
                         >
                             <div className={"flex-1 m-0 "}>
-                                <div className="flex justify-between">
-                                    <div className="flex gap-2">
-                                        <label className="block font-bold mb-2">Document Name</label>
+                                <div className="flex justify-between items-center py-2 px-1">
+                                    <div className="flex gap-2 items-center">
+                                        <label className="block font-bold">Document Name</label>
+                                        {/* <Button icon="pi pi-link" style={{ padding: 0 }} rounded text aria-label="Link" onClick={(e) => opRefs.current[index]?.toggle(e)} /> */}
+                                        <i 
+                                            className="pi pi-link" 
+                                            style={{ 
+                                                fontSize: '1rem',
+                                                ...section && section.file ? { color: 'blue' } : { color: 'gray' },
+                                                cursor: 'pointer' 
+                                            }} 
+                                            onClick={(e) => opRefs.current[index]?.toggle(e)}
+                                        ></i>
+                                        
+                                        {
+                                            section.file ? <OverlayPanel ref={(el) => { opRefs.current[index] = el || null; }} key={index} >
+                                                <Image 
+                                                    src={URL.createObjectURL(section.file)} 
+                                                    indicatorIcon={<i className="pi pi-search"></i>} 
+                                                    alt="Image" 
+                                                    preview 
+                                                    width="300" 
+                                                />
+                                            </OverlayPanel> : <></>
+                                        }
                                     </div>
 
-                                    <label className="block font-bold mb-2 text-red-400">"Max 10mb / Document"</label>
+                                    <label className="block font-bold text-red-400">"Max 10mb / Document"</label>
                                 </div>
                                 <div className="p-inputgroup flex-1" style={{ height: '33px' }}>
                                     <InputText

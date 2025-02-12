@@ -87,7 +87,7 @@ export default function ApprovedTable(props: { checker: 1 | 2 | 3 }) {
                 } else if (props.checker == 2 && x.delayDocument == '8D Report' && x.eightDStatusChecker1 == 'Approved') {
                     action = x.eightDReportStatus == 'Pending' && !x.eightDStatusChecker2;
                 } else if (props.checker == 3 && x.delayDocument == '8D Report' && x.eightDStatusChecker2 == 'Approved') {
-                    action = x.eightDReportStatus == 'Pending' && !x.eightDStatusChecker3 ;
+                    action = (x.eightDReportStatus == 'Pending' && !x.eightDStatusChecker3)|| x.eightDStatusChecker3 ==  "Approved";
                 } else {
                     action = false; // ค่าเริ่มต้น กรณีที่ไม่ตรงกับเงื่อนไขใด
                 }

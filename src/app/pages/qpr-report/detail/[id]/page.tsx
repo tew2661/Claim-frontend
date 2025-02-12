@@ -7,13 +7,16 @@ import { v4 as uuidv4 } from "uuid";
 import { Calendar } from "primereact/calendar";
 import { InputNumber } from "primereact/inputnumber";
 import { Dropdown } from "primereact/dropdown";
-import { Get, Put } from "@/components/fetch";
+import { Get, Put, fetchFileAsFile } from "@/components/fetch";
 import { Toast } from "primereact/toast";
 import moment from "moment";
 import { ConfirmDialog, confirmDialog } from "primereact/confirmdialog";
 import { fileToBase64 } from "@/components/picture_uploader/convertToBase64";
+import { OverlayPanel } from "primereact/overlaypanel";
+import { Image } from 'primereact/image';
 
 export default function QPRUploadForm() {
+    const opRefs = useRef<(OverlayPanel | null)[]>([]);
     const toast = useRef<Toast>(null);
     const router = useRouter();
     const param = useParams();
@@ -25,17 +28,17 @@ export default function QPRUploadForm() {
     const [quantity, setQuantity] = useState<number | null>(null);
     const [contactPerson, setContactPerson] = useState("");
     const [email, setEmail] = useState("");
-    const [sketches, setSketches] = useState<{ key: string; file: { name: string | null, file: File | null , new?: boolean , delete?: boolean } }[]>([
+    const [sketches, setSketches] = useState<{ key: string; file: { name: string | null, file: File | null, new?: boolean, edit?: boolean, delete?: boolean } }[]>([
         { key: uuidv4(), file: { name: null, file: null } }
     ]);
 
-    const [contactPersonList, setContactPersonList] = useState<{ lable: string, value: string , email : string }[]>([])
+    const [contactPersonList, setContactPersonList] = useState<{ lable: string, value: string, email: string }[]>([])
 
     const handleAddMore = () => {
         if (sketches.filter((x) => !x.file.delete).length < 3) {
             setSketches((prev) => [
                 ...prev,
-                { key: uuidv4(), file: { name: null, file: null , new: true, delete: false } },
+                { key: uuidv4(), file: { name: null, file: null, new: true, edit: false, delete: false } },
             ]);
         }
 
@@ -43,7 +46,7 @@ export default function QPRUploadForm() {
 
     const handleDeleteSketch = (id: string) => {
         setSketches((prev) => prev.map((sketch) => {
-            console.log(sketches, id , sketch.key == id)
+            console.log(sketches, id, sketch.key == id)
             if (sketch.key == id) {
                 return {
                     ...sketch,
@@ -55,8 +58,8 @@ export default function QPRUploadForm() {
             } else {
                 return sketch;
             }
-            
-        } ));
+
+        }));
 
         setTimeout(() => {
             console.log("Updated Sketches:", sketches);
@@ -70,7 +73,7 @@ export default function QPRUploadForm() {
         if (res?.ok) {
             const res_data = await res.json();
             setSupplierName(res_data?.supplierName || '')
-            setContactPersonList((res_data.contactPerson || []).map((x: string , index: number) => ({ label : x , value: x , email: res_data.email[index] || '' })))
+            setContactPersonList((res_data.contactPerson || []).map((x: string, index: number) => ({ label: x, value: x, email: res_data.email[index] || '' })))
         } else {
             toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await res!.json()).message)}`, life: 3000 });
         }
@@ -80,13 +83,13 @@ export default function QPRUploadForm() {
             const dataForID = await res2.json();
             const objectQPRSupplier = (dataForID)?.objectQPRSupplier && (dataForID).objectQPRSupplier.length ? (dataForID).objectQPRSupplier[(dataForID).objectQPRSupplier.length - 1] : undefined
             const res_data = objectQPRSupplier && objectQPRSupplier?.objectQPR || null;
-            const checkerRemark = objectQPRSupplier && objectQPRSupplier?.checker3 ?objectQPRSupplier?.checker3 : (objectQPRSupplier?.checker2 ? objectQPRSupplier?.checker2 : (objectQPRSupplier?.checker1 ? objectQPRSupplier?.checker1 : undefined))
+            const checkerRemark = objectQPRSupplier && objectQPRSupplier?.checker3 ? objectQPRSupplier?.checker3 : (objectQPRSupplier?.checker2 ? objectQPRSupplier?.checker2 : (objectQPRSupplier?.checker1 ? objectQPRSupplier?.checker1 : undefined))
             setRemark(checkerRemark?.remark || '');
             setActionDetail(res_data?.actionDetail || '');
-            setDate(res_data?.date ? moment(res_data.date).toDate(): null)
-            setTime(res_data?.time ? moment(res_data.time, 'HH:mm:ss').toDate(): null)
+            setDate(res_data?.date ? moment(res_data.date).toDate() : null)
+            setTime(res_data?.time ? moment(res_data.time, 'HH:mm:ss').toDate() : null)
             setQuantity(res_data?.quantity || null)
-            setSketches(res_data?.sketches || [{ key: uuidv4(), file: { name: null, file: null, new: true }}]);
+            setSketches(res_data?.sketches || [{ key: uuidv4(), file: { name: null, file: null, new: true } }]);
             setContactPerson(res_data?.contactPerson || '')
             setEmail(res_data?.email || '')
             // setSupplierName(res_data?.supplierName ? res_data.supplierName : (supplierName || ''))
@@ -102,7 +105,7 @@ export default function QPRUploadForm() {
             date: date ? moment(date).format('YYYY-MM-DD') : '',
             time: time ? moment(time).format('HH:mm:ss') : '',
             quantity,
-            sketches: await Promise.all(sketches.map( async(x) => {
+            sketches: await Promise.all(sketches.map(async (x) => {
                 if (x.file.delete) {
                     return {
                         ...x,
@@ -118,13 +121,13 @@ export default function QPRUploadForm() {
                         file: {
                             ...x.file,
                             file: x.file.file ? await fileToBase64(x.file.file) : null,
-                            name: x.file.name,    
+                            name: x.file.name,
                         }
                     }
                 } else {
                     return x
                 }
-                
+
             })),
             contactPerson,
             supplierName,
@@ -137,13 +140,15 @@ export default function QPRUploadForm() {
             return;
         }
 
+        console.log('objectQPR', objectQPR)
+
         confirmDialog({
             message: 'Are you sure you want to proceed?',
             header: 'Confirmation',
             icon: 'pi pi-exclamation-triangle',
             defaultFocus: 'accept',
             accept: async () => {
-                const res = await Put({ url: `/qpr/qpr-report/draft/${param.id}`, body: JSON.stringify([{objectQPR}]) , headers: { 'Content-Type': 'application/json' }  });
+                const res = await Put({ url: `/qpr/qpr-report/draft/${param.id}`, body: JSON.stringify([{ objectQPR }]), headers: { 'Content-Type': 'application/json' } });
                 if (res.ok) {
                     toast.current?.show({ severity: 'success', summary: 'บันทึกสำเร็จ', detail: `บันทึกข้อมูลสำเร็จ`, life: 3000 });
                     router.push(`/pages/qpr-report`);
@@ -151,7 +156,7 @@ export default function QPRUploadForm() {
                     toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await res!.json()).message)}`, life: 3000 });
                 }
             },
-            reject: () => {},
+            reject: () => { },
         });
         return;
     }
@@ -163,7 +168,7 @@ export default function QPRUploadForm() {
             date: date ? moment(date).format('YYYY-MM-DD') : '',
             time: time ? moment(time).format('HH:mm:ss') : '',
             quantity,
-            sketches: await Promise.all(sketches.map( async(x) => {
+            sketches: await Promise.all(sketches.map(async (x) => {
                 if (x.file.delete) {
                     return {
                         ...x,
@@ -173,7 +178,7 @@ export default function QPRUploadForm() {
                             name: x.file.name
                         }
                     }
-                } else if (x.file.new) {
+                } else if (x.file.new || x.file.edit) {
                     return {
                         ...x,
                         file: {
@@ -185,7 +190,7 @@ export default function QPRUploadForm() {
                 } else {
                     return x
                 }
-                
+
             })),
             contactPerson,
             supplierName,
@@ -198,14 +203,14 @@ export default function QPRUploadForm() {
             return;
         }
 
-        console.log('objectQPR' , objectQPR)
+        console.log('objectQPR', objectQPR)
         confirmDialog({
             message: 'Are you sure you want to proceed?',
             header: 'Confirmation',
             icon: 'pi pi-exclamation-triangle',
             defaultFocus: 'accept',
             accept: async () => {
-                const res = await Put({ url: `/qpr/qpr-report/completed/${param.id}`, body: JSON.stringify([{objectQPR}]) , headers: { 'Content-Type': 'application/json' }  });
+                const res = await Put({ url: `/qpr/qpr-report/completed/${param.id}`, body: JSON.stringify([{ objectQPR }]), headers: { 'Content-Type': 'application/json' } });
                 if (res.ok) {
                     toast.current?.show({ severity: 'success', summary: 'บันทึกสำเร็จ', detail: `บันทึกข้อมูลสำเร็จ`, life: 3000 });
                     router.push(`/pages/qpr-report`);
@@ -213,10 +218,39 @@ export default function QPRUploadForm() {
                     toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await res!.json()).message)}`, life: 3000 });
                 }
             },
-            reject: () => {},
+            reject: () => { },
         });
         return;
     }
+
+
+    const [filePreviews, setFilePreviews] = useState<{ [key: string]: File | null }>({});
+    useEffect(() => {
+        const fetchFiles = async () => {
+            const previews: { [key: string]: File | null } = {};
+            for (let sketch of sketches) {
+                if (typeof sketch.file.file === 'string') {
+                    const response = await fetchFileAsFile(`/${sketch.file.file}`);
+                    if (response.ok) {
+                        const data = await response.blob();
+                        const contentType = response.headers.get("Content-Type");
+                        previews[sketch.key] = new File(
+                            [data],
+                            `${sketch.file.name || `image-${sketch.key}.${contentType?.split('/')[1] || 'jpg'}`}`,
+                            { type: contentType || data.type }
+                        );
+                    } else {
+                        previews[sketch.key] = null;
+                    }
+                } else if (typeof sketch.file.file === 'object') {
+                    previews[sketch.key] = sketch.file.file;
+                }
+            }
+            setFilePreviews(previews);
+        };
+
+        fetchFiles();
+    }, [sketches]);
 
     useEffect(() => {
         GetDatas()
@@ -300,16 +334,12 @@ export default function QPRUploadForm() {
                             />
                         </div>
                     </div>
-
-
-
                     {/* Sketch Upload Section */}
-
-                    <div className="grid grid-cols-2 border border-solid border-gray-300 p-2">
+                    <div className="flex justify-between gap-3 border border-solid border-gray-300 p-2">
                         <div className="flex flex-col gap-2">
                             <label htmlFor="contactPerson">File Other</label>
-                            {sketches.filter((x) => !x.file.delete).map((sketch, index) => (
-                                <div key={sketch.key}
+                            {sketches.filter((x) => !x.file.delete).map((sketch, index) => {
+                                return <div key={sketch.key}
                                     className="flex items-center gap-4"
                                 >
                                     <Button
@@ -326,18 +356,9 @@ export default function QPRUploadForm() {
                                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                                             const file = e.target.files?.[0];
                                             if (file) {
-                                                const imageUrl = URL.createObjectURL(file);
                                                 setSketches((old) => (old.map((arr) => {
                                                     if (arr.key == sketch.key) {
-                                                        return { ...arr, file: { ...arr.file, name: file.name, file: file } }
-                                                    } else {
-                                                        return arr
-                                                    }
-                                                })));
-                                            } else {
-                                                setSketches((old) => (old.map((arr) => {
-                                                    if (arr.key == sketch.key) {
-                                                        return { ...arr, file: { ...arr.file, name: null, file: null } }
+                                                        return { ...arr, file: { ...arr.file, name: file.name, file: file, edit: true } }
                                                     } else {
                                                         return arr
                                                     }
@@ -345,6 +366,44 @@ export default function QPRUploadForm() {
                                             }
                                         }}
                                     />
+
+                                    {/* View File Link */}
+                                    <i
+                                        className="pi pi-link"
+                                        style={{
+                                            fontSize: '1rem',
+                                            color: filePreviews[sketch.key] ? 'blue' : 'gray',
+                                            cursor: 'pointer'
+                                        }}
+                                        onClick={(e) => opRefs.current[index]?.toggle(e)}
+                                    ></i>
+
+                                    {/* Overlay Panel for Image Preview */}
+                                    {filePreviews[sketch.key] && (
+                                        <OverlayPanel ref={(el) => { opRefs.current[index] = el || null; }} key={`overlay-${index}`}>
+                                            {filePreviews[sketch.key]!.type === 'image/tiff' || filePreviews[sketch.key]!.type === 'image/tif' ? (
+                                                <div className="flex flex-col items-center gap-1">
+                                                    <p className="p-0">Your browser does not support TIFF images. </p>
+                                                    <a
+                                                        href={URL.createObjectURL(filePreviews[sketch.key]!)}
+                                                        download={sketch.file.name || 'image.tiff'}
+                                                        style={{ color: 'blue', textDecoration: 'underline', cursor: 'pointer' }}
+                                                    >
+                                                        Click here to download
+                                                    </a>
+                                                </div>
+                                            ) : (
+                                                <Image 
+                                                    src={URL.createObjectURL(filePreviews[sketch.key]!)} 
+                                                    indicatorIcon={<i className="pi pi-search"></i>} 
+                                                    alt="Image" 
+                                                    preview 
+                                                    width="300" 
+                                                />
+                                            )}
+                                        </OverlayPanel>
+                                    )}
+
                                     <Button
                                         label="Delete"
                                         icon="pi pi-trash"
@@ -353,9 +412,9 @@ export default function QPRUploadForm() {
                                         onClick={() => handleDeleteSketch(sketch.key)}
                                     />
                                 </div>
-                            ))}
+                            })}
                         </div>
-                        <div>
+                        <div style={{ minWidth: '200px', width: '25%' }}>
                             <div className="flex flex-col gap-2">
                                 <label htmlFor="contactPerson">Contact Person</label>
                                 <Dropdown
@@ -367,6 +426,7 @@ export default function QPRUploadForm() {
                                         setEmail(searchEmail.length ? searchEmail[0].email : '')
                                         setContactPerson(e.value)
                                     }}
+
                                     optionLabel="label"
                                 />
                             </div>
@@ -387,20 +447,20 @@ export default function QPRUploadForm() {
                 <div className="flex justify-between gap-3 w-full">
                     <Button label="BACK" className="p-button-danger min-w-[150px]" onClick={() => router.back()} />
                     <div className="flex gap-4">
-                        <Button 
-                            label="SAVE" 
-                            className="p-button-primary min-w-[150px]" 
-                            onClick={() => onSave()} 
+                        <Button
+                            label="SAVE"
+                            className="p-button-primary min-w-[150px]"
+                            onClick={() => onSave()}
                             disabled={sketches.filter((x) => !x.file.delete).filter((x) => !x.file.file).length > 0}
                         />
                         <Button
                             label="Confirm and send to JATH"
                             className="p-button-success min-w-[150px]"
                             disabled={sketches.filter((x) => !x.file.delete).filter((x) => x.file?.name || false).length == 0 ||
-                                sketches.filter((x) => !x.file.delete).filter((x) => !x.file.file).length > 0 || 
-                                !(date) || 
-                                !(time) || 
-                                !(quantity) || 
+                                sketches.filter((x) => !x.file.delete).filter((x) => !x.file.file).length > 0 ||
+                                !(date) ||
+                                !(time) ||
+                                !(quantity) ||
                                 !(contactPerson)
                             }
                             onClick={() => onConfirm()}

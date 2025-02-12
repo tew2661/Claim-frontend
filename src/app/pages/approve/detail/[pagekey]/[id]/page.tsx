@@ -1,5 +1,5 @@
 'use client';
-import { Get, Put } from "@/components/fetch";
+import { Get, Put, fetchFileAsFile } from "@/components/fetch";
 import Footer from "@/components/footer";
 import moment from "moment";
 import { useParams, useRouter } from "next/navigation";
@@ -437,7 +437,19 @@ export default function PDFApproval() {
                                             return <>{arr.name}</>
                                         }}></Column>
                                         <Column field="download" header="Download" bodyClassName="w-[200px]" body={(arr: DocumentOther) => {
-                                            return <Button label="Download" />
+                                            return <Button label="Download" tooltip="New tab open view file" tooltipOptions={{ position: 'top' }} onClick={ async () => {
+                                                if (arr.path) {
+                                                    const res = await fetchFileAsFile(`/${arr.path}`);
+                                                    if (res.ok) {
+                                                        const data = await res.blob();
+                                                        const fileUrl = URL.createObjectURL(data);
+                                                        window.open(fileUrl, '_blank');
+                                                    } else {
+                                                        toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await res!.json()).message)}`, life: 3000 });
+                                                    }
+                                                    
+                                                }
+                                            }} />
                                         }}></Column>
                                         <Column field="approve" header="Approve/Reject" bodyClassName="w-[200px]" body={(arr: DocumentOther) => {
                                             return <div className="flex gap-2">
@@ -658,7 +670,7 @@ export default function PDFApproval() {
                                     !!(formData.documentOther.filter((x) => x.approve == undefined).length)
                                 )
                             }
-                            onClick={() => ConfirmData()}
+                            onClick={() => ConfirmData('completed')}
                         /> : <></>
                     }
 

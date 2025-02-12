@@ -89,7 +89,7 @@ export interface FormDataQpr {
     quickReportSupplierStatus?: "Pending" | "Approved" | "Wait for Supplier" | "Rejected" | "Save",
     quickReportDate?: Date | null,
     quickReportSupplierDate?: Date | null,
-    eightDReportStatus?: "Pending" | "Approved" | "Wait for supplier" | "Completed" | "Save",
+    eightDReportStatus?: "Pending" | "Approved" | "Wait for supplier" | "Completed" | "Save" | "Rejected",
     eightDReportSupplierStatus?: "Pending" | "Approved" | "Wait for Supplier" | "Rejected" | "Save",
     eightDReportDate?: Date | null,
     eightDReportSupplierDate?: Date | null,
