@@ -14,6 +14,7 @@ import { Toast } from "primereact/toast";
 import { FormDataQpr, Defect } from "../create-qpr/page";
 import { getSocket } from "@/components/socket/socket";
 import { Dropdown, DropdownChangeEvent } from "primereact/dropdown";
+import { Socket } from "socket.io-client";
 
 interface DataActionList {
     id: number,
@@ -21,8 +22,8 @@ interface DataActionList {
     qprNo: string,
     problem: string,
     severity: string,
-    report8D: string,
-    quickReportClass: "text-green-600" | "text-red-600" | "text-yellow-500",
+    eightDReport: string,
+    eightDReportClass: "text-green-600" | "text-red-600" | "text-yellow-500",
     success?: boolean
 }
 
@@ -47,17 +48,17 @@ export default function ProblemReportTable() {
         status: "All",
     })
 
-    const quickReportBodyTemplate = (rowData: any) => {
+    const eightDReportBodyTemplate = (rowData: any) => {
         return (
             <div
-                className={`font-bold w-[170px] ${rowData.quickReportClass === "text-green-600"
+                className={`font-bold w-[170px] ${rowData.eightDReportClass === "text-green-600"
                     ? "text-green-600"
-                    : rowData.quickReportClass === "text-red-600"
+                    : rowData.eightDReportClass === "text-red-600"
                         ? "text-red-600"
                         : "text-yellow-500"
                     }`}
             >
-                {rowData.quickReport}
+                {rowData.eightDReport}
             </div>
         );
     };
@@ -79,12 +80,12 @@ export default function ProblemReportTable() {
                     qprNo: x.qprIssueNo || '',
                     problem: x.defectiveContents.problemCase || '',
                     severity: (x.importanceLevel || '') + (x.urgent ? ` (Urgent)` : ''),
-                    // quickReport: `${x.eightDReportSupplierDate ? `${moment(x.eightDReportSupplierDate).format('DD/MM/YYYY')}` : ""} ${x.eightDReportSupplierStatus ? `(${x.eightDReportSupplierStatus})`: ''}`,
-                    // quickReportClass: x.eightDReportSupplierStatus == "Approved" ? "text-green-600" : (x.eightDReportSupplierStatus == "Pending" || x.eightDReportSupplierStatus == "Save" ? "text-yellow-600" : "text-yellow-600"),
+                    // eightDReport: `${x.eightDReportSupplierDate ? `${moment(x.eightDReportSupplierDate).format('DD/MM/YYYY')}` : ""} ${x.eightDReportSupplierStatus ? `(${x.eightDReportSupplierStatus})`: ''}`,
+                    // eightDReportClass: x.eightDReportSupplierStatus == "Approved" ? "text-green-600" : (x.eightDReportSupplierStatus == "Pending" || x.eightDReportSupplierStatus == "Save" ? "text-yellow-600" : "text-yellow-600"),
                     // report8D: `${x.eightDReportDate ? moment(x.eightDReportDate).format('DD/MM/YYYY') : ''}${x.eightDReportStatus ? `(${x.eightDReportStatus})` : '-'}`,
 
-                    quickReport: `${x.eightDReportSupplierDate ? `${moment(x.eightDReportSupplierDate).format('DD/MM/YYYY HH:mm:ss')}` : ""} ${x.eightDReportSupplierStatus ? ` (${x.eightDReportSupplierStatus})`: ''}`,
-                    quickReportClass: x.eightDReportSupplierStatus == "Approved" ? "text-green-600" : (x.eightDReportSupplierStatus == "Pending" || x.eightDReportSupplierStatus == "Save" ? "text-yellow-600" : "text-red-600"),
+                    eightDReport: `${x.eightDReportSupplierDate ? `${moment(x.eightDReportSupplierDate).format('DD/MM/YYYY HH:mm:ss')}` : ""} ${x.eightDReportSupplierStatus ? ` (${x.eightDReportSupplierStatus})`: ''}`,
+                    eightDReportClass: x.eightDReportSupplierStatus == "Approved" ? "text-green-600" : (x.eightDReportSupplierStatus == "Pending" || x.eightDReportSupplierStatus == "Save" ? "text-yellow-600" : "text-red-600"),
                     success: x.eightDReportSupplierStatus == "Approved" 
                 }
             }))
@@ -93,16 +94,43 @@ export default function ProblemReportTable() {
         }
     }
 
+    const socketRef = useRef<Socket | null>(null);
     const SocketConnect = () => {
-        const socket = getSocket();
+        if (!socketRef.current) {
+            socketRef.current = getSocket();
+        }
+
+        const socket = socketRef.current;
         // Listen for an event
         socket.on("create-qpr", (data: any) => {
             GetDatas();
         });
 
+        socket.on("reload-status-reject-8d", (x: FormDataQpr) => {
+            setQprList((old: DataActionList[]) => {
+                return old.map((arr) => {
+                    if (arr.id == x.id) {
+                       return {
+                            id: x.id,
+                            date: x.dateReported ? moment(x.dateReported).format('DD/MM/YYYY HH:mm:ss') : '',
+                            qprNo: x.qprIssueNo || '',
+                            problem: x.defectiveContents.problemCase || '',
+                            severity: (x.importanceLevel || '') + (x.urgent ? ` (Urgent)` : ''),
+                            eightDReport: `${x.eightDReportSupplierDate ? `${moment(x.eightDReportSupplierDate).format('DD/MM/YYYY HH:mm:ss')}` : ""} ${x.eightDReportSupplierStatus ? ` (${x.eightDReportSupplierStatus})`: ''}`,
+                            eightDReportClass: x.eightDReportSupplierStatus == "Approved" ? "text-green-600" : (x.eightDReportSupplierStatus == "Pending" || x.eightDReportSupplierStatus == "Save" ? "text-yellow-600" : "text-red-600"),
+                            success: x.eightDReportSupplierStatus == "Approved" 
+                        } as DataActionList;
+                    } else {
+                        return arr;
+                    }
+                })
+            })
+        });
+
         // Cleanup on unmount
         return () => {
             socket.off("create-qpr");
+            socket.off("reload-status-reject-8d");
         };
     }
 
@@ -214,7 +242,7 @@ export default function ProblemReportTable() {
                         <Column
                             field="report8D"
                             header="8D Report"
-                            body={quickReportBodyTemplate}
+                            body={eightDReportBodyTemplate}
                             
                         />
                         <Column field="action" header="" bodyStyle={{ textAlign: 'center', width: '10%' , minWidth: '180px' }} body={(rowData: DataActionList) => {

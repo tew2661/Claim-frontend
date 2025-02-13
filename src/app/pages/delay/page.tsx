@@ -12,6 +12,7 @@ import { Toast } from "primereact/toast";
 import moment from 'moment';
 import { getSocket } from "@/components/socket/socket";
 import { Dropdown, DropdownChangeEvent } from "primereact/dropdown";
+import { Socket } from "socket.io-client";
 interface FilterDelay {
     supplier: string;
     qprNo: string;
@@ -69,8 +70,13 @@ export default function ReportTable() {
         }
     }
 
+    const socketRef = useRef<Socket | null>(null);
     const SocketConnect = () => {
-        const socket = getSocket();
+        if (!socketRef.current) {
+            socketRef.current = getSocket();
+        }
+
+        const socket = socketRef.current;
         // Listen for an event
         socket.on("create-qpr", (data: any) => {
             GetDatas();

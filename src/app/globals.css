@@ -198,3 +198,90 @@ table {
   user-select: text
 }
 
+
+.step.active {
+  /* // background-color: #ffd700; */
+  /* Highlight color for active step */
+  box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  /* Glow effect */
+  border: 2px solid #fff;
+  /* White border for highlight */
+  transform: scale(1.05);
+  /* Slight zoom effect */
+}
+
+.step-indicator {
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.step {
+  position: relative;
+  padding: 10px 20px;
+  text-align: center;
+  font-size: 16px;
+  font-weight: bold;
+  color: white;
+  background: gray;
+  border: 1px solid #ccc;
+  flex: 1;
+  clip-path: polygon(0 0, 95% 0, 100% 50%, 95% 100%, 0 100%, 5% 50%);
+  cursor: pointer;
+  transition: all 0.3s ease-in-out;
+  margin-right: 5px;
+}
+
+.step:first-child {
+  clip-path: polygon(0 0, 95% 0, 100% 50%, 95% 100%, 0 100%);
+}
+
+.step:last-child {
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 5% 50%);
+}
+
+.step.create {
+  background-color: #1e90ff;
+  /* Blue */
+}
+
+.step.confirm {
+  background-color: #ffa500;
+  /* Orange */
+}
+
+.step.delivery {
+  background-color: #32cd32;
+  /* Green */
+}
+
+.step.approve {
+  background-color: #daa520;
+  /* Gold */
+}
+
+.step.disabled {
+  background-color: #d3d3d3;
+  /* Light gray for disabled */
+  color: #a9a9a9;
+  /* Darker gray for text */
+  /* cursor: not-allowed; */
+}
+
+.step:not(:first-child)::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -20px;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 10px 20px 0;
+  border-color: transparent transparent transparent white;
+  z-index: 1;
+}
+
+.step.active:hover {
+  transform: scale(1.05);
+  /* Zoom effect on hover */
+}

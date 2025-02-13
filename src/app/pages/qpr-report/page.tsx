@@ -14,6 +14,7 @@ import moment from "moment";
 import { FormDataQpr, Defect } from "../create-qpr/page";
 import { Toast } from "primereact/toast";
 import { getSocket } from "@/components/socket/socket";
+import { Socket } from "socket.io-client";
 
 interface DataActionList {
     id: number,
@@ -90,16 +91,44 @@ export default function ProblemReportTable() {
         }
     }
 
+    const socketRef = useRef<Socket | null>(null);
     const SocketConnect = () => {
-        const socket = getSocket();
+        if (!socketRef.current) {
+            socketRef.current = getSocket();
+        }
+
+        const socket = socketRef.current;
         // Listen for an event
         socket.on("create-qpr", (data: any) => {
             GetDatas();
         });
 
+        socket.on("reload-status-reject-qpr", (x: FormDataQpr) => {
+            setQprList((old: DataActionList[]) => {
+                return old.map((arr) => {
+                    if (arr.id == x.id) {
+                       return {
+                            id: x.id,
+                            date: x.dateReported ? moment(x.dateReported).format('DD/MM/YYYY HH:mm:ss') : '',
+                            qprNo: x.qprIssueNo || '',
+                            problem: x.defectiveContents.problemCase || '',
+                            severity: (x.importanceLevel || '') + (x.urgent ? ` (Urgent)` : ''),
+                            quickReport: `${x.quickReportSupplierDate ? `${moment(x.quickReportSupplierDate).format('DD/MM/YYYY HH:mm:ss')}` : ""} ${x.quickReportSupplierStatus ? ` (${x.quickReportSupplierStatus})`: ''}`,
+                            quickReportClass: x.quickReportSupplierStatus == "Approved" ? "text-green-600" : (x.quickReportSupplierStatus == "Pending" || x.quickReportSupplierStatus == "Save" ? "text-yellow-600" : "text-red-600"),
+                            report8D: `${x.eightDReportDate ? moment(x.eightDReportDate).format('DD/MM/YYYY HH:mm:ss') : ''}${x.eightDReportStatus ? ` (${x.eightDReportStatus})` : '-'}`,
+                            success: x.quickReportSupplierStatus == "Approved" 
+                        } as DataActionList;
+                    } else {
+                        return arr;
+                    }
+                })
+            })
+        });
+
         // Cleanup on unmount
         return () => {
             socket.off("create-qpr");
+            socket.off("reload-status-reject-qpr");
         };
     }
 

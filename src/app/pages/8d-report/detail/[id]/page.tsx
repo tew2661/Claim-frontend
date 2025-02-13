@@ -13,12 +13,14 @@ import { fileToBase64 } from "@/components/picture_uploader/convertToBase64";
 import { OverlayPanel } from "primereact/overlaypanel";
 import { Tooltip } from 'primereact/tooltip';
 import { Image } from 'primereact/image';
+import moment from "moment";
 
 export default function QPRUploadForm() {
     const opRefs = useRef<(OverlayPanel | null)[]>([]);
     const param = useParams();
     const toast = useRef<Toast>(null);
     const router = useRouter();
+    const [urlFileView, setUrlFileView] = useState<string | undefined>(undefined);
     const [uploadSections, setUploadSections] = useState<{ key: string; name: string, extension: string, file: File | null, new?: boolean, edit?: boolean, delete?: boolean, remark?: string }[]>([
         { key: uuidv4(), name: "", extension: "", file: null, new: true, edit: false, delete: false },
     ]);
@@ -56,12 +58,26 @@ export default function QPRUploadForm() {
 
     const [uploadSectionsOld, setUploadSectionsOld] = useState<any[]>([]);
     const [dueDate, setdueDate] = useState<string>('');
+    const [dueDateReject, setDueDateReject] = useState<string>('');
     const [reqDocumentOther, setReqDocumentOther] = useState<string>('');
     const [remarkForReject, setRemarkForReject] = useState<string>('');
+    const [qprIssueNo, setQprIssueNo] = useState<string>('');
     const GetDatas = async () => {
         const res2 = await Get({ url: `/qpr/${param.id}` });
         if (res2?.ok) {
             const dataForID = await res2.json();
+
+            const response = await fetchFileAsFile(`/qpr/pdf/view/${param.id}`)
+            if (response.ok) {
+                const data = await response.blob();
+                const urlfile = new Blob([data], { type: 'application/pdf' });
+                const fileURL = URL.createObjectURL(urlfile);
+                setUrlFileView(fileURL + '#toolbar=0')
+            } else {
+                toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await response!.json()).message)}`, life: 3000 });
+            }
+
+            setQprIssueNo(dataForID.qprIssueNo || '-')
             const object8DReportDto = dataForID.object8DReportDto || [];
             const index0object8DReportDto = object8DReportDto.length ? object8DReportDto[object8DReportDto.length - 1] : undefined;
             const urlUpload8DReportFile = index0object8DReportDto?.object8D && index0object8DReportDto.object8D.upload8DReport && index0object8DReportDto.object8D.upload8DReport.file ? index0object8DReportDto.object8D.upload8DReport.file : undefined
@@ -79,10 +95,12 @@ export default function QPRUploadForm() {
 
             const uploadSections = index0object8DReportDto?.object8D && index0object8DReportDto?.object8D?.uploadSections || [];
             const checker = index0object8DReportDto?.checker3 ? index0object8DReportDto?.checker3 : (index0object8DReportDto?.checker2 ? index0object8DReportDto?.checker2 : (index0object8DReportDto?.checker1 ? index0object8DReportDto?.checker1 : undefined))
+            console.log('checker' , checker)
             setdueDate(checker?.dueDateReqDocumentOther ?? "")
             setReqDocumentOther(checker?.reqDocumentOther ?? "")
             setUploadSectionsOld(uploadSections);
-            setRemarkForReject(checker?.approve == 'reject' && checker?.remark ? checker?.remark : "")
+            setRemarkForReject(checker?.approve == 'reject' && checker?.remark ? `${checker?.remark}` : "")
+            setDueDateReject(`${moment(checker?.duedate8d).format('DD MMMM YYYY')}`)
 
             const documentOther = checker?.documentOther || []
 
@@ -215,7 +233,15 @@ export default function QPRUploadForm() {
             <div className="container p-4 flex flex-col h-[calc(100vh-115px)]">
                 {/* Header */}
                 <div className="border border-black bg-white text-center mb-6 flex items-center justify-center h-full overflow-auto">
-                    <h1 className="text-2xl font-bold">Display QPR Data from JATH</h1>
+                    {/* <h1 className="text-2xl font-bold">Display QPR Data from JATH</h1> */}
+                    {
+                        urlFileView ? <iframe
+                            src={urlFileView}
+                            style={{ width: '100%', height: '100%' }}
+                            title="PDF Viewer"
+                            frameBorder="0"
+                        /> : <h1 className="text-2xl font-bold">Display QPR Data from JATH</h1> 
+                    } 
                 </div>
 
                 {/* Upload Section */}
@@ -282,16 +308,32 @@ export default function QPRUploadForm() {
                         <div className="mt-4">
                             <Button
                                 label="Download 8D Report"
-                                severity="danger"
+                                severity="danger"  
+                                onClick={async () => {
+                                    const response = await fetchFileAsFile(`/qpr/pdf/download/${param.id}`)
+                                    if (response.ok) {
+                                        const data = await response.blob();
+                                        const url = URL.createObjectURL(new Blob([data], { type: 'application/pdf' }));
+                                        const link = document.createElement("a");
+                                        link.href = url;
+                                        link.download = `8D_Report_${qprIssueNo}.pdf`; // กำหนดชื่อไฟล์ที่ดาวน์โหลด
+                                        document.body.appendChild(link);
+                                        link.click(); // คลิกเพื่อดาวน์โหลด
+                                        document.body.removeChild(link);
+                                    } else {
+                                        toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await response!.json()).message)}`, life: 3000 });
+                                    }
+                                }}
                             />
                         </div>
                     </div>
 
                     {
-                        dueDate || reqDocumentOther ? <div className="flex flex-col my-2 bg-red-200 p-2 gap-2">
-                            <div>{remarkForReject ? <b>Reject: </b> : <></>} {remarkForReject}</div>
-                            <div>{dueDate ? <b className="mr-4">Due Date :</b> : ''} {dueDate}</div>
+                        dueDate || reqDocumentOther || remarkForReject ? <div className="flex flex-col my-2 bg-red-200 p-2 gap-2">
+                            <div>{remarkForReject ? <b className="mr-4">Reject: </b> : <></>} {remarkForReject}</div>
+                            <div>{dueDateReject ? <b className="mr-4">Due Date :</b> : ''} {dueDateReject}</div>
                             <div>{reqDocumentOther ? <b className="mr-4">เอกสารที่ต้องการเพิ่มเติม :</b> : ''} {reqDocumentOther}</div>
+                            <div>{dueDate ? <b className="mr-4">Due Date (เอกสารที่ต้องการเพิ่มเติม) :</b> : ''} {dueDate}</div>
                         </div> : <></>
                     }
 

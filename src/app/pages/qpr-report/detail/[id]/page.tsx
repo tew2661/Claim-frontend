@@ -17,6 +17,7 @@ import { Image } from 'primereact/image';
 
 export default function QPRUploadForm() {
     const opRefs = useRef<(OverlayPanel | null)[]>([]);
+    const [urlFileView, setUrlFileView] = useState<string | undefined>(undefined);
     const toast = useRef<Toast>(null);
     const router = useRouter();
     const param = useParams();
@@ -81,6 +82,17 @@ export default function QPRUploadForm() {
         const res2 = await Get({ url: `/qpr/${param.id}` });
         if (res2?.ok) {
             const dataForID = await res2.json();
+
+            const response = await fetchFileAsFile(`/qpr/pdf/view/${param.id}`)
+            if (response.ok) {
+                const data = await response.blob();
+                const urlfile = new Blob([data], { type: 'application/pdf' });
+                const fileURL = URL.createObjectURL(urlfile);
+                setUrlFileView(fileURL + '#toolbar=0')
+            } else {
+                toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await response!.json()).message)}`, life: 3000 });
+            }
+
             const objectQPRSupplier = (dataForID)?.objectQPRSupplier && (dataForID).objectQPRSupplier.length ? (dataForID).objectQPRSupplier[(dataForID).objectQPRSupplier.length - 1] : undefined
             const res_data = objectQPRSupplier && objectQPRSupplier?.objectQPR || null;
             const checkerRemark = objectQPRSupplier && objectQPRSupplier?.checker3 ? objectQPRSupplier?.checker3 : (objectQPRSupplier?.checker2 ? objectQPRSupplier?.checker2 : (objectQPRSupplier?.checker1 ? objectQPRSupplier?.checker1 : undefined))
@@ -250,7 +262,7 @@ export default function QPRUploadForm() {
         };
 
         fetchFiles();
-    }, [sketches]);
+    }, [sketches]); 
 
     useEffect(() => {
         GetDatas()
@@ -263,7 +275,15 @@ export default function QPRUploadForm() {
             <div className="container p-4 flex flex-col h-[calc(100vh-115px)]">
                 {/* Header */}
                 <div className="border border-black bg-white text-center mb-6 flex items-center justify-center h-full overflow-auto">
-                    <h1 className="text-2xl font-bold">Display QPR Data from JATH</h1>
+                    
+                    {
+                        urlFileView ? <iframe
+                            src={urlFileView}
+                            style={{ width: '100%', height: '100%' }}
+                            title="PDF Viewer"
+                            frameBorder="0"
+                        /> : <h1 className="text-2xl font-bold">Display QPR Data from JATH</h1>
+                    } 
                 </div>
 
                 {/* First Lot Delivery Section */}

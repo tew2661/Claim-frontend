@@ -15,6 +15,7 @@ import { Defect, FormDataQpr } from "../create-qpr/page";
 import { getSocket } from "@/components/socket/socket";
 import moment from "moment";
 import { Dropdown, DropdownChangeEvent } from "primereact/dropdown";
+import { Socket } from "socket.io-client";
 
 interface DataSummaryReportTable {
     id: number,
@@ -118,8 +119,13 @@ export default function SummaryReport() {
         }
     }
 
+    const socketRef = useRef<Socket | null>(null);
     const SocketConnect = () => {
-        const socket = getSocket();
+        if (!socketRef.current) {
+            socketRef.current = getSocket();
+        }
+
+        const socket = socketRef.current;
         // Listen for an event
         socket.on("create-qpr", (data: any) => {
             GetDatas();

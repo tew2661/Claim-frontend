@@ -41,6 +41,7 @@ export default function PDFApproval() {
     const param = useParams();
     const router = useRouter()
     const toast = useRef<Toast>(null);
+    const [urlFileView, setUrlFileView] = useState<string | undefined>(undefined);
     const [formData, setFormData] = useState<FormData>({
         approve: undefined,
         remark: "",
@@ -67,20 +68,50 @@ export default function PDFApproval() {
     const [email, setEmail] = useState<string>("");
     const [problemCase, setProblemCase] = useState<string>("");
     const [importanceLevel, setImportanceLevel] = useState<string>("");
-
+    const [file8D, setFile8D] = useState<{ file: string, name: string }>({ file: '', name: '' });
     const GetDatas = async () => {
         const res = await Get({ url: `/qpr/${param.id}` });
         if (res?.ok) {
             const dataForID = await res.json();
+
             let object8DReportDto = undefined;
             let remark = '';
-            let objectQPRSupplier =  dataForID?.objectQPRSupplier && dataForID?.objectQPRSupplier.length ? dataForID?.objectQPRSupplier[dataForID?.objectQPRSupplier.length - 1] : undefined
+            let objectQPRSupplier = dataForID?.objectQPRSupplier && dataForID?.objectQPRSupplier.length ? dataForID?.objectQPRSupplier[dataForID?.objectQPRSupplier.length - 1] : undefined
             if (dataForID.delayDocument == 'Quick Report') {
                 remark = objectQPRSupplier && objectQPRSupplier?.objectQPR ? (objectQPRSupplier?.objectQPR.remark || '') : '';
             } else if (dataForID.delayDocument == '8D Report') {
                 object8DReportDto = dataForID?.object8DReportDto && dataForID?.object8DReportDto.length ? dataForID?.object8DReportDto[dataForID?.object8DReportDto.length - 1] : undefined
                 remark = object8DReportDto && object8DReportDto?.object8D ? (object8DReportDto?.object8D.remark || '') : '';
             }
+
+            if (dataForID.delayDocument == 'Quick Report') {
+                const response = await fetchFileAsFile(`/qpr/pdf/view/${param.id}`)
+                if (response.ok) {
+                    const data = await response.blob();
+                    const urlfile = new Blob([data], { type: 'application/pdf' });
+                    const fileURL = URL.createObjectURL(urlfile);
+                    setUrlFileView(fileURL + '#toolbar=0')
+                } else {
+                    toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await response!.json()).message)}`, life: 3000 });
+                }
+            } else if (dataForID.delayDocument == '8D Report') {
+                if (object8DReportDto && object8DReportDto.object8D && object8DReportDto.object8D.upload8DReport && object8DReportDto.object8D.upload8DReport.file) {
+                    const file8D = object8DReportDto.object8D.upload8DReport;
+                    setFile8D(file8D);
+                    if (file8D.file) {
+                        const response = await fetchFileAsFile(`/qpr/pdf/view-8d/${param.id}`)
+                        if (response.ok) {
+                            const data = await response.blob();
+                            const urlfile = new Blob([data], { type: 'application/pdf' });
+                            const fileURL = URL.createObjectURL(urlfile);
+                            setUrlFileView(fileURL + '#toolbar=0')
+                        } else {
+                            toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await response!.json()).message)}`, life: 3000 });
+                        }
+                    }
+                }
+            }
+
 
             setReportType(dataForID.delayDocument ?? 'Quick Report')
             setSupplierName(objectQPRSupplier && objectQPRSupplier?.objectQPR && objectQPRSupplier?.objectQPR.contactPerson ? objectQPRSupplier?.objectQPR.contactPerson : '')
@@ -90,21 +121,21 @@ export default function PDFApproval() {
 
             let checkerBefore = undefined
             if (dataForID.delayDocument == 'Quick Report') {
-                checkerBefore = param.pagekey == 'checker2' ? objectQPRSupplier.checker1 : (param.pagekey == 'checker3' ? objectQPRSupplier.checker2 :  undefined)
+                checkerBefore = param.pagekey == 'checker2' ? objectQPRSupplier.checker1 : (param.pagekey == 'checker3' ? objectQPRSupplier.checker2 : undefined)
             } else if (dataForID.delayDocument == '8D Report') {
-                checkerBefore = param.pagekey == 'checker2' ? object8DReportDto.checker1 : (param.pagekey == 'checker3' ? object8DReportDto.checker2 :  undefined)
+                checkerBefore = param.pagekey == 'checker2' ? object8DReportDto.checker1 : (param.pagekey == 'checker3' ? object8DReportDto.checker2 : undefined)
             }
-            console.log('checkerBefore' , checkerBefore)
+            console.log('checkerBefore', checkerBefore)
             setFormData({
                 approve: checkerBefore?.approve || undefined,
                 remark,
-                claim: checkerBefore?.claim|| false,
-                complain: checkerBefore?.complain|| false,
+                claim: checkerBefore?.claim || false,
+                complain: checkerBefore?.complain || false,
                 resummit: checkerBefore?.resummit ? moment(checkerBefore.resummit).toDate() : undefined,
                 replay: checkerBefore?.replay ? moment(checkerBefore.replay).toDate() : undefined,
                 duedate8d: checkerBefore?.duedate8d ? moment(checkerBefore.duedate8d).toDate() : undefined,
-                documentOther: param.pagekey == 'checker1' && object8DReportDto && object8DReportDto.object8D && object8DReportDto.object8D.uploadSections && object8DReportDto.object8D.uploadSections.length ? 
-                    object8DReportDto.object8D.uploadSections.map((arr : any , index: number) => {
+                documentOther: param.pagekey == 'checker1' && object8DReportDto && object8DReportDto.object8D && object8DReportDto.object8D.uploadSections && object8DReportDto.object8D.uploadSections.length ?
+                    object8DReportDto.object8D.uploadSections.map((arr: any, index: number) => {
                         return {
                             key: arr.key || '-',
                             num: index + 1,
@@ -154,8 +185,8 @@ export default function PDFApproval() {
                         resummit: formData.resummit ? moment(formData.resummit).format('YYYY-MM-DD HH:mm:ss') : undefined,
                         replay: formData.replay ? moment(formData.replay).format('YYYY-MM-DD HH:mm:ss') : undefined,
                     }
-            
-                    const res = await Put({ url: `/qpr/qpr-report/checker1/${param.id}` , body: JSON.stringify(data) });
+
+                    const res = await Put({ url: `/qpr/qpr-report/checker1/${param.id}`, body: JSON.stringify(data) });
                     if (res?.ok) {
                         router.push('/pages/approve/checker1')
                     } else {
@@ -171,8 +202,8 @@ export default function PDFApproval() {
                         replay: formData.replay ? moment(formData.replay).format('YYYY-MM-DD HH:mm:ss') : undefined,
                         eightDReportApprover: formData.eightDReportApprover
                     }
-            
-                    const res = await Put({ url: `/qpr/qpr-report/checker2/${param.id}` , body: JSON.stringify(data) });
+
+                    const res = await Put({ url: `/qpr/qpr-report/checker2/${param.id}`, body: JSON.stringify(data) });
                     if (res?.ok) {
                         router.push('/pages/approve/checker2')
                     } else {
@@ -188,8 +219,8 @@ export default function PDFApproval() {
                         replay: formData.replay ? moment(formData.replay).format('YYYY-MM-DD HH:mm:ss') : undefined,
                         eightDReportApprover: formData.eightDReportApprover
                     }
-            
-                    const res = await Put({ url: `/qpr/qpr-report/checker3/${param.id}` , body: JSON.stringify(data) });
+
+                    const res = await Put({ url: `/qpr/qpr-report/checker3/${param.id}`, body: JSON.stringify(data) });
                     if (res?.ok) {
                         router.push('/pages/approve/checker3')
                     } else {
@@ -204,8 +235,8 @@ export default function PDFApproval() {
                         reqDocumentOther: formData.reqDocumentOther || "",
                         dueDateReqDocumentOther: formData.dueDateReqDocumentOther ? moment(formData.dueDateReqDocumentOther).format('YYYY-MM-DD HH:mm:ss') : undefined,
                     }
-                    
-                    const res = await Put({ url: `/qpr/8d-report/checker1/${param.id}` , body: JSON.stringify(data) });
+
+                    const res = await Put({ url: `/qpr/8d-report/checker1/${param.id}`, body: JSON.stringify(data) });
                     if (res?.ok) {
                         router.push('/pages/approve/checker1')
                     } else {
@@ -220,8 +251,8 @@ export default function PDFApproval() {
                         reqDocumentOther: formData.reqDocumentOther || "",
                         dueDateReqDocumentOther: formData.dueDateReqDocumentOther ? moment(formData.dueDateReqDocumentOther).format('YYYY-MM-DD HH:mm:ss') : undefined,
                     }
-                    
-                    const res = await Put({ url: `/qpr/8d-report/checker2/${param.id}` , body: JSON.stringify(data) });
+
+                    const res = await Put({ url: `/qpr/8d-report/checker2/${param.id}`, body: JSON.stringify(data) });
                     if (res?.ok) {
                         router.push('/pages/approve/checker2')
                     } else {
@@ -236,8 +267,8 @@ export default function PDFApproval() {
                         reqDocumentOther: formData.reqDocumentOther || "",
                         dueDateReqDocumentOther: formData.dueDateReqDocumentOther ? moment(formData.dueDateReqDocumentOther).format('YYYY-MM-DD HH:mm:ss') : undefined,
                     }
-                    
-                    const res = await Put({ url: `/qpr/8d-report/checker3/${param.id}` , body: JSON.stringify(data) });
+
+                    const res = await Put({ url: `/qpr/8d-report/checker3/${param.id}`, body: JSON.stringify(data) });
                     if (res?.ok) {
                         router.push('/pages/approve/checker3')
                     } else {
@@ -252,8 +283,8 @@ export default function PDFApproval() {
                         reqDocumentOther: formData.reqDocumentOther || "",
                         dueDateReqDocumentOther: formData.dueDateReqDocumentOther ? moment(formData.dueDateReqDocumentOther).format('YYYY-MM-DD HH:mm:ss') : undefined,
                     }
-                    
-                    const res = await Put({ url: `/qpr/8d-report/checker3-completed/${param.id}` , body: JSON.stringify(data) });
+
+                    const res = await Put({ url: `/qpr/8d-report/checker3-completed/${param.id}`, body: JSON.stringify(data) });
                     if (res?.ok) {
                         router.push('/pages/approve/checker3')
                     } else {
@@ -261,10 +292,10 @@ export default function PDFApproval() {
                     }
                 }
             },
-            reject: () => {},
+            reject: () => { },
         });
 
-        return ;
+        return;
     }
 
     return (
@@ -274,7 +305,15 @@ export default function PDFApproval() {
             <div className="container p-4 flex flex-col h-[calc(100vh-115px)] overflow-auto">
                 {/* PDF Display Section */}
                 <div className="flex-1 border border-black bg-white flex items-center justify-center min-h-[500px]">
-                    <span className="text-xl font-bold">PDF Display {reportType}</span>
+                    {/* <span className="text-xl font-bold">PDF Display {reportType}</span> */}
+                    {
+                        urlFileView ? <iframe
+                            src={urlFileView}
+                            style={{ width: '100%', height: '100%' }}
+                            title="PDF Viewer"
+                            frameBorder="0"
+                        /> : <span className="text-xl font-bold">PDF Display {reportType}</span>
+                    }
                 </div>
                 {
                     `${param.id}` == "8D Report" ? <>
@@ -387,6 +426,24 @@ export default function PDFApproval() {
                                     <Button
                                         label="Download 8D Report"
                                         className="bg-red-600 text-white border-red-600"
+                                        onClick={async () => {
+                                            if (file8D && file8D.file) {
+                                                const response = await fetchFileAsFile(`/${file8D.file}`)
+                                                if (response.ok) {
+                                                    const data = await response.blob();
+                                                    const url = URL.createObjectURL(new Blob([data], { type: 'application/pdf' }));
+                                                    const link = document.createElement("a");
+                                                    link.href = url;
+                                                    link.download = `${file8D.name || '8D_Report.pdf'}`; // กำหนดชื่อไฟล์ที่ดาวน์โหลด
+                                                    document.body.appendChild(link);
+                                                    link.click(); // คลิกเพื่อดาวน์โหลด
+                                                    document.body.removeChild(link);
+                                                } else {
+                                                    toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await response!.json()).message)}`, life: 3000 });
+                                                }
+                                            }
+
+                                        }}
                                     />
                                     {/* <Button
                                         label="Download other evident document"
@@ -437,7 +494,7 @@ export default function PDFApproval() {
                                             return <>{arr.name}</>
                                         }}></Column>
                                         <Column field="download" header="Download" bodyClassName="w-[200px]" body={(arr: DocumentOther) => {
-                                            return <Button label="Download" tooltip="New tab open view file" tooltipOptions={{ position: 'top' }} onClick={ async () => {
+                                            return <Button label="Download" tooltip="New tab open view file" tooltipOptions={{ position: 'top' }} onClick={async () => {
                                                 if (arr.path) {
                                                     const res = await fetchFileAsFile(`/${arr.path}`);
                                                     if (res.ok) {
@@ -447,7 +504,7 @@ export default function PDFApproval() {
                                                     } else {
                                                         toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await res!.json()).message)}`, life: 3000 });
                                                     }
-                                                    
+
                                                 }
                                             }} />
                                         }}></Column>
@@ -457,9 +514,9 @@ export default function PDFApproval() {
                                                     label="Approve"
                                                     className="bg-blue-800 text-white border-blue-700"
                                                     style={{ opacity: (!!arr.approve && arr.approve == 'reject') ? .6 : 1 }}
-                                                    onClick={() => setFormData((old: FormData) => { 
-                                                        return { 
-                                                            ...old, 
+                                                    onClick={() => setFormData((old: FormData) => {
+                                                        return {
+                                                            ...old,
                                                             documentOther: old.documentOther.map((arr_remark: DocumentOther) => {
                                                                 if (arr.key == arr_remark.key) {
                                                                     return {
@@ -476,9 +533,9 @@ export default function PDFApproval() {
                                                     label="Reject"
                                                     severity="danger"
                                                     style={{ opacity: (!!arr.approve && arr.approve == 'approve') ? .6 : 1 }}
-                                                    onClick={() => setFormData((old: FormData) => { 
-                                                        return { 
-                                                            ...old, 
+                                                    onClick={() => setFormData((old: FormData) => {
+                                                        return {
+                                                            ...old,
                                                             documentOther: old.documentOther.map((arr_remark: DocumentOther) => {
                                                                 if (arr.key == arr_remark.key) {
                                                                     return {
@@ -494,11 +551,11 @@ export default function PDFApproval() {
                                             </div>
                                         }}></Column>
                                         <Column field="remark" header="Remark" body={(arr: DocumentOther) => {
-                                            return <InputText 
-                                                value={arr.remark} 
-                                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((old: FormData) => { 
-                                                    return { 
-                                                        ...old, 
+                                            return <InputText
+                                                value={arr.remark}
+                                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((old: FormData) => {
+                                                    return {
+                                                        ...old,
                                                         documentOther: old.documentOther.map((arr_remark: DocumentOther) => {
                                                             if (arr.key == arr_remark.key) {
                                                                 return {
@@ -518,7 +575,47 @@ export default function PDFApproval() {
                                 <div className="mt-1">
                                     <Button
                                         label="Download All"
+                                        onClick={async () => {
+                                            const doc = formData.documentOther;
+                                            if (doc && doc.length) {
+                                                try {
+                                                    // 🔹 ใช้ Promise.all เพื่อโหลดไฟล์ทั้งหมดพร้อมกัน
+                                                    const filePromises = doc.map(async (item) => {
+                                                        if (item.path) {
+                                                            const res = await fetchFileAsFile(`/${item.path}`);
+                                                            if (res.ok) {
+                                                                const data = await res.blob();
+                                                                const url = URL.createObjectURL(new Blob([data])); // แปลง Blob เป็น URL
+                                                                return { name: item.name || 'file', url }; // คืนค่า {name, url}
+                                                            } else {
+                                                                throw new Error(`Error downloading: ${item.name}`);
+                                                            }
+                                                        }
+                                                        return null;
+                                                    });
+
+                                                    const files = await Promise.all(filePromises); // รอให้โหลดทุกไฟล์เสร็จ
+
+                                                    // 🔹 ดาวน์โหลดทุกไฟล์
+                                                    files.forEach((file) => {
+                                                        if (file) {
+                                                            const link = document.createElement("a");
+                                                            link.href = file.url;
+                                                            link.download = `${file.name}.png`; // เปลี่ยนนามสกุลตามไฟล์จริง
+                                                            document.body.appendChild(link);
+                                                            link.click();
+                                                            document.body.removeChild(link);
+                                                            URL.revokeObjectURL(file.url); // ล้าง URL
+                                                        }
+                                                    });
+
+                                                } catch (error: any) {
+                                                    toast.current?.show({ severity: 'error', summary: 'Error', detail: (error && error?.message ? error?.message : ''), life: 3000 });
+                                                }
+                                            }
+                                        }}
                                     />
+
                                 </div>
                             </div>
 
@@ -559,7 +656,7 @@ export default function PDFApproval() {
                                         value={formData.resummit}
                                         dateFormat="dd/mm/yy"
                                         placeholder="dd/mm/yy hh:mm:ss"
-                                        showTime 
+                                        showTime
                                         hourFormat="24"
                                         disabled={!(formData.approve == 'reject')}
                                         onChange={(e) => setFormData((old) => { return { ...old, resummit: e.value || undefined } })}
@@ -574,7 +671,7 @@ export default function PDFApproval() {
                                         value={formData.replay}
                                         dateFormat="dd/mm/yy"
                                         placeholder="dd/mm/yy hh:mm:ss"
-                                        showTime 
+                                        showTime
                                         hourFormat="24"
                                         disabled={!(formData.approve == 'approve')}
                                         onChange={(e) => setFormData((old) => { return { ...old, replay: e.value || undefined } })}
@@ -598,7 +695,7 @@ export default function PDFApproval() {
                                                 ]}
                                                 optionLabel="label"
                                                 className="w-full"
-                                                style={{ paddingLeft: 0, paddingRight: 0 , marginTop: '10px' }}
+                                                style={{ paddingLeft: 0, paddingRight: 0, marginTop: '10px' }}
                                             />
                                         </div>
                                     </> : <></>
@@ -619,34 +716,34 @@ export default function PDFApproval() {
                                 (reportType == '8D Report' &&
                                     (
                                         (
-                                            !!(formData.approve == undefined) || 
+                                            !!(formData.approve == undefined) ||
                                             !!(formData.documentOther.filter((x) => x.approve == undefined).length)
-                                        ) 
+                                        )
                                         ||
                                         (
-                                            (formData.approve == 'reject') && 
+                                            (formData.approve == 'reject') &&
                                             (!(formData.remark) || !(formData.duedate8d))
-                                        ) 
+                                        )
                                         ||
                                         ((
-                                            (formData.documentOther.filter((x) => x.approve == 'reject' && !x.remark).length > 0) || 
-                                            (formData.documentOther.filter((x) => x.approve == 'reject').length > 0 && !(formData.dueDateReqDocumentOther)) 
-                                        )) 
+                                            (formData.documentOther.filter((x) => x.approve == 'reject' && !x.remark).length > 0) ||
+                                            (formData.documentOther.filter((x) => x.approve == 'reject').length > 0 && !(formData.dueDateReqDocumentOther))
+                                        ))
                                         ||
                                         (
-                                            (formData.reqDocumentOther) && 
+                                            (formData.reqDocumentOther) &&
                                             !(formData.dueDateReqDocumentOther)
                                         )
                                     )
-                                ) 
-                                || 
+                                )
+                                ||
                                 (
                                     reportType == 'Quick Report' && (
                                         !!(formData.approve == undefined) ||
                                         !!(formData.approve == 'approve' && param.pagekey == 'checker1' && (formData.claim == false && formData.complain == false || formData.replay == undefined)) ||
                                         !!(formData.approve == 'approve' && (param.pagekey == 'checker2' || param.pagekey == 'checker3') && (formData.claim == false && formData.complain == false || formData.replay == undefined || !formData.eightDReportApprover))
                                     )
-                                ) || 
+                                ) ||
                                 (
                                     reportType == 'Quick Report' && (
                                         !!(formData.approve == undefined) ||
@@ -662,10 +759,10 @@ export default function PDFApproval() {
                             label="Confirm and complete"
                             className="bg-blue-800 text-white min-w-[150px]"
                             disabled={
-                                !(reportType == '8D Report' && param.pagekey == 'checker3') || 
+                                !(reportType == '8D Report' && param.pagekey == 'checker3') ||
                                 (
-                                    !!(formData.approve == 'reject') || 
-                                    !!(formData.approve == undefined) || 
+                                    !!(formData.approve == 'reject') ||
+                                    !!(formData.approve == undefined) ||
                                     !!(formData.documentOther.filter((x) => x.approve == 'reject').length) ||
                                     !!(formData.documentOther.filter((x) => x.approve == undefined).length)
                                 )

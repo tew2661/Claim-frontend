@@ -13,6 +13,7 @@ import moment from "moment";
 import { FormDataQpr, Defect } from "../create-qpr/page";
 import { Toast } from "primereact/toast";
 import { getSocket } from "@/components/socket/socket";
+import { Socket } from "socket.io-client";
 
 interface DataActionList {
     date: string,
@@ -101,13 +102,19 @@ export default function ProblemReportTable() {
         }
     }
 
+    const socketRef = useRef<Socket | null>(null);
     const SocketConnect = () => {
-        const socket = getSocket();
+        if (!socketRef.current) {
+            socketRef.current = getSocket();
+        }
+
+        const socket = socketRef.current;
+
         // Listen for an event
         socket.on("create-qpr", (data: any) => {
             GetDatas();
         });
-
+        
         // Cleanup on unmount
         return () => {
             socket.off("create-qpr");
