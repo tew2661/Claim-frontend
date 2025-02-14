@@ -1,0 +1,34 @@
+# 👇 ใช้ Image Node.js ที่เบาและเร็วที่สุด
+FROM node:18-alpine AS builder
+
+# ตั้งค่า Working Directory
+WORKDIR /app
+
+# คัดลอก package.json และ lockfile เพื่อทำการ install dependencies ก่อน
+COPY package.json package-lock.json* yarn.lock* ./
+
+# ติดตั้ง dependencies แบบ production เท่านั้น
+RUN yarn install --frozen-lockfile
+
+# คัดลอกไฟล์ทั้งหมดของโปรเจค
+COPY . .
+
+# Build Next.js
+RUN yarn build
+
+# 👇 ใช้ Image ที่เล็กสำหรับ Production
+FROM node:18-alpine AS runner
+
+WORKDIR /app
+
+# คัดลอกไฟล์ที่ build แล้วจาก stage `builder`
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./package.json
+
+# กำหนด Port ที่ Container ใช้งาน
+EXPOSE 3000
+
+# คำสั่งเริ่มต้นเมื่อ Container รัน
+CMD ["yarn", "start"]

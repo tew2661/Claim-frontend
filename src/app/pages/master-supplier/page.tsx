@@ -13,7 +13,7 @@ import { CreateQueryString, Delete, Get, Post, Put } from "@/components/fetch";
 import { Toast } from "primereact/toast";
 import { confirmDialog, ConfirmDialog } from "primereact/confirmdialog";
 
-interface DataSupplierTable {
+export interface DataSupplierTable {
     id: number,
     supplierCode: string;
     supplierName: string;

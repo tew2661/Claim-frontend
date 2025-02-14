@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { InputText } from "primereact/inputtext";
 import { Button } from "primereact/button";
 import { DataTable } from "primereact/datatable";
@@ -7,6 +7,13 @@ import { Column } from "primereact/column";
 import { Paginator } from "primereact/paginator";
 import { TemplatePaginator } from "@/components/template-pagination";
 import { Calendar } from "primereact/calendar";
+import { Dropdown, DropdownChangeEvent } from "primereact/dropdown";
+import { CreateQueryString, Get } from "@/components/fetch";
+import moment from "moment";
+import { FormDataQpr, Defect } from "../create-qpr/page";
+import { Toast } from "primereact/toast";
+import { getSocket } from "@/components/socket/socket";
+import { Socket } from "socket.io-client";
 
 interface DataActionList {
     date: string,
@@ -26,49 +33,22 @@ interface FilterTable {
 }
 
 export default function ProblemReportTable() {
+    const toast = useRef<Toast>(null);
+    const [qprList, setQprList] = useState<DataActionList[]>([])
     const [first, setFirst] = useState(0);
     const [rows, setRows] = useState(10);
-    const [totalRows,] = useState(10);
+    const [totalRows, setTotalRows] = useState(10);
     const [filters, setFilters] = useState<FilterTable>({
         date: undefined,
         qprNo: "",
-        severity: "",
-        status: ""
+        severity: "All",
+        status: "All"
     })
-    const data: DataActionList[] = [
-        {
-            date: "08/11/2024",
-            qprNo: "QPR-001",
-            problem: "สีหลุด",
-            severity: "A",
-            quickReport: "09/11/2024(ส่งแล้ว)",
-            quickReportClass: "text-green-600",
-            report8D: "11/11/2024(Pending)",
-        },
-        {
-            date: "08/11/2024",
-            qprNo: "QPR-002",
-            problem: "ผิวชิ้นงานไม่เรียบ",
-            severity: "B",
-            quickReport: "10/11/2024(Reject)",
-            quickReportClass: "text-red-600",
-            report8D: "11/11/2024(Pending)",
-        },
-        {
-            date: "08/11/2024",
-            qprNo: "QPR-003",
-            problem: "สีเพี้ยน",
-            severity: "C",
-            quickReport: "09/11/2024(Delay)",
-            quickReportClass: "text-yellow-500",
-            report8D: "11/11/2024(Pending)",
-        },
-    ];
 
     const quickReportBodyTemplate = (rowData: any) => {
         return (
-            <span
-                className={`font-bold ${rowData.quickReportClass === "text-green-600"
+            <div
+                className={`font-bold w-[170px] ${rowData.quickReportClass === "text-green-600"
                     ? "text-green-600"
                     : rowData.quickReportClass === "text-red-600"
                         ? "text-red-600"
@@ -76,12 +56,79 @@ export default function ProblemReportTable() {
                     }`}
             >
                 {rowData.quickReport}
-            </span>
+            </div>
         );
     };
 
+    const report8DBodyTemplate = (rowData: any) => {
+        return (
+            <div
+                className={`font-bold w-[170px] ${rowData.report8DClass === "text-green-600"
+                    ? "text-green-600"
+                    : rowData.report8DClass === "text-red-600"
+                        ? "text-red-600"
+                        : "text-yellow-500"
+                    }`}
+            >
+                {rowData.report8D}
+            </div>
+        );
+    };
+
+    const GetDatas = async () => {
+        const quertString = CreateQueryString({
+            ...filters,
+            date: filters.date ? moment(filters.date).format('YYYY-MM-DD') : undefined,
+        });
+        const res = await Get({ url: `/qpr?limit=${rows}&offset=${first}&${quertString}` });
+        if (res.ok) {
+            const res_data = await res.json();
+            setTotalRows(res_data.total || 0)
+            setQprList((res_data.data || []).map((x: FormDataQpr) => {
+                return {
+                    id: x.id,
+                    date: x.dateReported ? moment(x.dateReported).format('DD/MM/YYYY HH:mm:ss') : '',
+                    qprNo: x.qprIssueNo || '',
+                    problem: x.defectiveContents.problemCase || '',
+                    severity: (x.importanceLevel || '') + (x.urgent ? ` (Urgent)` : ''),
+                    quickReport: `${x.quickReportSupplierDate ? `${moment(x.quickReportSupplierDate).format('DD/MM/YYYY HH:mm:ss')}` : ""} ${x.quickReportSupplierStatus ? ` (${x.quickReportSupplierStatus})`: ''}`,
+                    quickReportClass: x.quickReportSupplierStatus == "Approved" ? "text-green-600" : (x.quickReportSupplierStatus == "Rejected" ? "text-red-600" : "text-yellow-600"),
+                    report8D: `${x.eightDReportSupplierDate ? moment(x.eightDReportSupplierDate).format('DD/MM/YYYY HH:mm:ss') : ''}${x.eightDReportSupplierStatus ? ` (${x.eightDReportSupplierStatus})` : '-'}`,
+                    report8DClass: x.eightDReportSupplierStatus == "Approved" ? "text-green-600" : (x.eightDReportSupplierStatus == "Rejected" ? "text-red-600" : "text-yellow-600"),
+                }
+            }))
+        } else {
+            toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await res!.json()).message)}`, life: 3000 });
+        }
+    }
+
+    const socketRef = useRef<Socket | null>(null);
+    const SocketConnect = () => {
+        if (!socketRef.current) {
+            socketRef.current = getSocket();
+        }
+
+        const socket = socketRef.current;
+
+        // Listen for an event
+        socket.on("create-qpr", (data: any) => {
+            GetDatas();
+        });
+        
+        // Cleanup on unmount
+        return () => {
+            socket.off("create-qpr");
+        };
+    }
+
+    useEffect(() => {
+        GetDatas()
+        SocketConnect();
+    }, [])
+
     return (
         <div className="flex justify-center pt-6 px-6">
+            <Toast ref={toast} />
             <div className="container">
                 <div className="p-4 rounded-lg">
                     {/* Filters */}
@@ -118,22 +165,45 @@ export default function ProblemReportTable() {
                                 <label htmlFor="severity" className="font-bold mb-2">
                                     ระดับความรุนแรง
                                 </label>
-                                <InputText 
+                                <Dropdown 
+                                    value={filters.severity} 
+                                    onChange={(e: DropdownChangeEvent) => setFilters({ ...filters, severity: e.target.value || "" })} 
+                                    options={[
+                                        { label: 'All' , value: 'All'}, 
+                                        { label: 'SP' , value: 'SP'}, 
+                                        { label: 'A' , value: 'A' } ,
+                                        { label: 'B' , value: 'B' },
+                                        { label: 'C' , value: 'C' },
+                                    ]} 
+                                    optionLabel="label" 
+                                    className="w-full" 
+                                />
+                                {/* <InputText 
                                     id="severity" 
                                     className="w-full" 
                                     value={filters.severity}
                                     onChange={(e) => setFilters({ ...filters, severity: e.target.value || "" })}
-                                />
+                                /> */}
                             </div>
                             <div className="flex flex-col">
                                 <label htmlFor="status" className="font-bold mb-2">
                                     Status
                                 </label>
-                                <InputText 
-                                    id="status" 
+                                {/* "Approved" | "Wait for Supplier" | "Rejected" */}
+                                <Dropdown 
+                                    value={filters.status} 
+                                    onChange={(e: DropdownChangeEvent) => setFilters({ ...filters, status: e.target.value || "" })} 
+                                    options={[
+                                        { label: 'All' , value: 'All'}, 
+                                        { label: 'Approved [QuickReport]' , value: 'approved-quick-report'}, 
+                                        { label: 'Wait for Supplier [QuickReport]' , value: 'wait-for-supplier-quick-report' } ,
+                                        { label: 'Rejected [QuickReport]' , value: 'rejected-quick-report' },
+                                        { label: 'Approved [8D Report]' , value: 'approved-8d-report'}, 
+                                        { label: 'Wait for Supplier [8D Report]' , value: 'wait-for-supplier-8d-report' } ,
+                                        { label: 'Rejected [8D Report]' , value: 'rejected-8d-report' },
+                                    ]} 
+                                    optionLabel="label" 
                                     className="w-full" 
-                                    value={filters.status}
-                                    onChange={(e) => setFilters({ ...filters, status: e.target.value || "" })}
                                 />
                             </div>
 
@@ -141,14 +211,14 @@ export default function ProblemReportTable() {
                         <div className="w-[100px]">
                             <div className="flex flex-col gap-2">
                                 <label>&nbsp;</label>
-                                <Button label="Search" icon="pi pi-search" />
+                                <Button label="Search" icon="pi pi-search" onClick={() => GetDatas() } />
                             </div>
                         </div>
                     </div>
 
                     {/* Table */}
                     <DataTable
-                        value={data}
+                        value={qprList}
                         showGridlines
                         className='table-header-center mt-4'
                         footer={<Paginator
@@ -168,11 +238,11 @@ export default function ProblemReportTable() {
                         <Column field="severity" header="ระดับความรุนแรง" bodyStyle={{ textAlign: 'center' }} />
                         <Column
                             field="quickReport"
-                            header="Quick report"
+                            header="Quick Report"
                             body={quickReportBodyTemplate}
                             
                         />
-                        <Column field="report8D" header="8D Report"  />
+                        <Column field="report8D" header="8D Report" body={report8DBodyTemplate} />
                     </DataTable>
                 </div>
             </div>

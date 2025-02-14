@@ -92,6 +92,7 @@ const Post = async ({ url , body , headers }:PropsPost): Promise<Response> => {
     const data = await fetch(domainURL+url , {
         method: 'POST',
         headers: {
+            'Content-Type': 'application/json',
             ...headers,
             'Authorization': `Bearer ${token ?? ''}`,
         },
@@ -104,6 +105,7 @@ const Post = async ({ url , body , headers }:PropsPost): Promise<Response> => {
             const data = await fetch(domainURL+url,{
                 method: 'POST' ,
                 headers: {
+                    'Content-Type': 'application/json',
                     ...headers,
                     'Authorization': `Bearer ${token ?? ''}`,
                 },
@@ -145,6 +147,7 @@ const Put = async ({ url , body , headers }:PropsPost): Promise<Response> => {
     const data = await fetch(domainURL+url , {
         method: 'PUT',
         headers: {
+            'Content-Type': 'application/json',
             ...headers,
             'Authorization': `Bearer ${token ?? ''}`,
         },
@@ -157,6 +160,7 @@ const Put = async ({ url , body , headers }:PropsPost): Promise<Response> => {
             const data = await fetch(domainURL+url,{
                 method: 'PUT' ,
                 headers: {
+                    'Content-Type': 'application/json',
                     ...headers,
                     'Authorization': `Bearer ${token ?? ''}`,
                 },
@@ -184,6 +188,7 @@ const Patch = async ({ url , body , headers }:PropsPost): Promise<Response> => {
     const data = await fetch(domainURL+url , {
         method: 'Patch',
         headers: {
+            'Content-Type': 'application/json',
             ...headers,
             'Authorization': `Bearer ${token ?? ''}`,
         },
@@ -196,6 +201,7 @@ const Patch = async ({ url , body , headers }:PropsPost): Promise<Response> => {
             const data = await fetch(domainURL+url,{
                 method: 'Patch' ,
                 headers: {
+                    'Content-Type': 'application/json',
                     ...headers,
                     'Authorization': `Bearer ${token ?? ''}`,
                 },
@@ -223,6 +229,7 @@ const Delete = async ({ url , body , headers }:PropsPost): Promise<Response> => 
     const data = await fetch(domainURL+url , {
         method: 'DELETE',
         headers: {
+            'Content-Type': 'application/json',
             ...headers,
             'Authorization': `Bearer ${token ?? ''}`,
         },
@@ -235,6 +242,7 @@ const Delete = async ({ url , body , headers }:PropsPost): Promise<Response> => 
             const data = await fetch(domainURL+url,{
                 method: 'DELETE' ,
                 headers: {
+                    'Content-Type': 'application/json',
                     ...headers,
                     'Authorization': `Bearer ${token ?? ''}`,
                 },
@@ -304,7 +312,7 @@ const CreateQueryString = (filter: any) => {
 
     // Loop through the filter object
     for (const [key, value] of Object.entries(filter)) {
-        if (value !== 'ALL' && value !== 'all' && value) { // Exclude parameters with the value 'ALL'
+        if (value !== 'ALL' && `${value}`.toLocaleLowerCase() !== 'all' && value) { // Exclude parameters with the value 'ALL'
             query.append(key, String(value)); // Cast value to string
         }
     }
@@ -313,5 +321,5 @@ const CreateQueryString = (filter: any) => {
 };
 
 export {
-    Get , Post , Put , Patch, Delete , Login , CheckEmtyToken ,fetchFileAsFile , CreateQueryString
+    Get , Post , Put , Patch, Delete , Login , CheckEmtyToken ,fetchFileAsFile , CreateQueryString 
 };

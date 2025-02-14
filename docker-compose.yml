@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  # nextjs-prod:
+  #   build:
+  #     context: .
+  #     dockerfile: dockerfile
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     - NODE_ENV=production
+  #   restart: always
+
+  nextjs-dev-jtekt:
+    build:
+      context: .
+      dockerfile: dockerfile.dev.jtekt
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+      # - ./src:/app/src
+      # - ./public:/app/public
+      # - ./eslint.config.mjs:/app/eslint.config.mjs
+      # - ./next.config.ts:/app/next.config.ts
+      # - ./package.json:/app/package.json
+      # - ./postcss.config.mjs:/app/postcss.config.mjs
+      # - ./tailwind.config.ts:/app/tailwind.config.ts
+      # - ./next-env.d.ts:/app/next-env.d.ts
+      # - ./tsconfig.json:/app/tsconfig.json
+      # - ./.eslintrc.json:/app/.eslintrc.json
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_MODE=jtekt
+      - NEXT_TEST=TEST1
+      - NEXT_PUBLIC_URL_API=http://localhost:3010/api/v1
+      - NEXT_PUBLIC_SOCKET_SERVER_URL=http://localhost:3010
+    command: sh -c "yarn dev"
+  nextjs-dev-supplier:
+    build:
+      context: .
+      dockerfile: dockerfile.dev.supplier
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+
+      # - ./src:/app/src
+      # - ./public:/app/public
+      # - ./eslint.config.mjs:/app/eslint.config.mjs
+      # - ./next.config.ts:/app/next.config.ts
+      # - ./package.json:/app/package.json
+      # - ./postcss.config.mjs:/app/postcss.config.mjs
+      # - ./tailwind.config.ts:/app/tailwind.config.ts
+      # - ./next-env.d.ts:/app/next-env.d.ts
+      # - ./tsconfig.json:/app/tsconfig.json
+      # - ./.eslintrc.json:/app/.eslintrc.json
+    ports:
+      - "3001:3000"
+    environment:
+      - NEXT_MODE=supplier
+      - NEXT_TEST=TEST2
+      - NEXT_PUBLIC_URL_API=http://localhost:3010/api/v1
+      - NEXT_PUBLIC_SOCKET_SERVER_URL=http://localhost:3010
+    command: sh -c "yarn dev"

@@ -1,14 +1,19 @@
 'use client';
-import { useState } from "react";
+import { ChangeEvent, useEffect, useRef, useState } from "react";
 import { InputText } from "primereact/inputtext";
 import { Button } from "primereact/button";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
 import { Paginator } from "primereact/paginator";
 import { TemplatePaginator } from "@/components/template-pagination";
-import { Calendar } from "primereact/calendar";
-import { Nullable } from "primereact/ts-helpers";
 import { useRouter } from "next/navigation";
+import { CreateQueryString, Get } from "@/components/fetch";
+import moment from "moment";
+import { Toast } from "primereact/toast";
+import { FormDataQpr, Defect } from "../create-qpr/page";
+import { getSocket } from "@/components/socket/socket";
+import { Dropdown, DropdownChangeEvent } from "primereact/dropdown";
+import { Socket } from "socket.io-client";
 
 interface FilterApprove {
     qprNo: string,
@@ -26,72 +31,22 @@ interface DataQPR {
     problem: string,
     importance: string,
     status: string,
+    action?: boolean
 }
 
-const mockData: DataQPR[] = [
-    {
-        id: 1,
-        qprNo: 'QPR-001',
-        date: "11/11/2024",
-        supplier: "Supplier A",
-        reportType: "Quick Report",
-        problem: "สีหลุดลอกไม่สม่ำเสมอ",
-        importance: "SP",
-        status: "Pending",
-    },
-    {
-        id: 2,
-        qprNo: 'QPR-002',
-        date: "11/11/2024",
-        supplier: "Supplier B",
-        reportType: "8D Report",
-        problem: "ผิวชิ้นงานขรุขระ",
-        importance: "A",
-        status: "Pending",
-    },
-    {
-        id: 3,
-        qprNo: 'QPR-003',
-        date: "11/11/2024",
-        supplier: "Supplier C",
-        reportType: "8D Report",
-        problem: "วัสดุไม่ตรงตามสเปค",
-        importance: "B",
-        status: "Pending",
-    },
-    {
-        id: 4,
-        qprNo: 'QPR-004',
-        date: "11/11/2024",
-        supplier: "Supplier D",
-        reportType: "8D Report",
-        problem: "สีเพี้ยนไปจาก Standard",
-        importance: "C",
-        status: "Approved",
-    },
-    {
-        id: 5,
-        qprNo: 'QPR-005',
-        date: "11/11/2024",
-        supplier: "Supplier E",
-        reportType: "8D Report",
-        problem: "ความแข็งแรงต่ำกว่ามาตรฐาน",
-        importance: "C (Urgent)",
-        status: "Approved",
-    },
-];
-
-export default function ApprovedTable(props: { page: 1 | 2 | 3 }) {
+export default function ApprovedTable(props: { checker: 1 | 2 | 3 }) {
+    const toast = useRef<Toast>(null);
+    const [qprList, setQprList] = useState<DataQPR[]>([])
     const [first, setFirst] = useState<number>(0);
     const [rows, setRows] = useState<number>(10);
-    const [totalRows, ] = useState<number>(10);
+    const [totalRows, setTotalRows] = useState<number>(10);
     const router = useRouter()
 
     const [filters, setFilters] = useState<FilterApprove>({
         qprNo: "",
-        supplier: "",
-        reportType: "",
-        status: "",
+        supplier: "All",
+        reportType: "All",
+        status: "All",
     });
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>, field: string) => {
@@ -99,14 +54,141 @@ export default function ApprovedTable(props: { page: 1 | 2 | 3 }) {
     };
 
     const actionBodyTemplate = (rowData: DataQPR) => {
-        return (
-            <Button label="View" className="p-button-primary" outlined onClick={() => router.push(`detail/checker${props.page}/${rowData.id}`) } />
-        );
+        if (rowData.action) {
+            return (
+                <Button label="View" className="p-button-primary" outlined onClick={() => router.push(`detail/checker${props.checker}/${rowData.id}`)} />
+            );
+        } else {
+            return <div className="w-[100px]">&nbsp;</div>
+        }
+
     };
+
+    const getActionStatus = (x: FormDataQpr, checker: number): boolean => {
+        const key = `${checker}-${x.delayDocument}` as `${1 | 2 | 3}-Quick Report` | `${1 | 2 | 3}-8D Report`;
+    
+        const conditions: Record<`${1 | 2 | 3}-Quick Report` | `${1 | 2 | 3}-8D Report`, boolean> = {
+            "1-Quick Report": x.quickReportStatus === 'Pending' && !x.quickReportStatusChecker1,
+            "2-Quick Report": x.quickReportStatus === 'Pending' && x.quickReportStatusChecker1 === 'Approved' && !x.quickReportStatusChecker2,
+            "3-Quick Report": x.quickReportStatus === 'Pending' && x.quickReportStatusChecker2 === 'Approved' && !x.quickReportStatusChecker3,
+            "1-8D Report": x.eightDReportStatus === 'Pending' && !x.eightDStatusChecker1,
+            "2-8D Report": x.eightDReportStatus === 'Pending' && x.eightDStatusChecker1 === 'Approved' && !x.eightDStatusChecker2,
+            "3-8D Report": (x.eightDReportStatus === 'Pending' && x.eightDStatusChecker2 === 'Approved' && !x.eightDStatusChecker3) || x.eightDStatusChecker3 === "Approved",
+        };
+    
+        return conditions[key] ?? false;
+    };
+    
+    const getStatus = (x: FormDataQpr, checker: number): "Pending" | "Approved" | "Rejected" | "Wait for Supplier" => {
+        if (!x.delayDocument || (x.delayDocument !== "Quick Report" && x.delayDocument !== "8D Report")) {
+            return "Pending"; // ป้องกัน undefined หรือค่าอื่นๆ
+        }
+    
+        const key = `${checker}-${x.delayDocument}` as `${1 | 2 | 3}-Quick Report` | `${1 | 2 | 3}-8D Report`;
+    
+        const statusMap: Record<`${1 | 2 | 3}-Quick Report` | `${1 | 2 | 3}-8D Report`, "Pending" | "Approved" | "Rejected" | "Wait for Supplier"> = {
+            "1-Quick Report": x.quickReportStatusChecker1 || "Pending",
+            "2-Quick Report": x.quickReportStatusChecker2 || "Pending",
+            "3-Quick Report": x.quickReportStatusChecker3 || "Pending",
+            "1-8D Report": x.eightDStatusChecker1 || "Pending",
+            "2-8D Report": x.eightDStatusChecker2 || "Pending",
+            "3-8D Report": x.eightDStatusChecker3 || "Pending",
+        };
+    
+        return statusMap[key] ?? "Pending"; // ใช้ key อย่างปลอดภัย
+    };
+    
+    
+    const GetDatas = async () => {
+        const queryString = CreateQueryString({ 
+            ...filters,
+            page: `checker${props.checker}`
+        });
+        const res = await Get({ url: `/qpr?limit=${rows}&offset=${first}&${queryString}` });
+    
+        if (res.ok) {
+            const res_data = await res.json();
+            setTotalRows(res_data.total || 0);
+            setQprList(
+                (res_data.data || []).map((x: FormDataQpr) => ({
+                    id: x.id,
+                    date: x.dateReported ? moment(x.dateReported).format('DD/MM/YYYY HH:mm:ss') : '',
+                    qprNo: x.qprIssueNo || '',
+                    supplier: x.supplier?.supplierName || '',
+                    problem: x.defectiveContents.problemCase || '',
+                    importance: (x.importanceLevel || '') + (x.urgent ? ` (Urgent)` : ''),
+                    reportType: x.delayDocument,
+                    status: getStatus(x, props.checker),
+                    action: getActionStatus(x, props.checker),
+                }))
+            );
+        } else {
+            toast.current?.show({
+                severity: 'error',
+                summary: 'Error',
+                detail: `${JSON.stringify((await res.json()).message)}`,
+                life: 3000
+            });
+        }
+    };
+    
+    const socketRef = useRef<Socket | null>(null);
+    const SocketConnect = () => {
+        if (!socketRef.current) {
+            socketRef.current = getSocket();
+        }
+
+        const socket = socketRef.current;
+    
+        socket.on("create-qpr", () => GetDatas());
+    
+        socket.on("reload-status", (x: FormDataQpr) => {
+            setQprList((old: DataQPR[]) =>
+                old.map((arr: DataQPR) =>
+                    arr.id === x.id
+                        ? {
+                              ...arr,
+                              status: getStatus(x, props.checker),
+                              action: getActionStatus(x, props.checker),
+                          }
+                        : arr
+                )
+            );
+        });
+    
+        return () => {
+            socket.off("create-qpr");
+            socket.off("reload-status");
+        };
+    };    
+
+    const [supplier, setSupplier] = useState<{ label: string, value: string }[]>([]);
+    const GetSupplier = async () => {
+        const res = await Get({ url: `/supplier/dropdown` });
+        if (res.ok) {
+            const res_data = await res.json();
+            setSupplier((res_data || []))
+        } else {
+            toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await res!.json()).message)}`, life: 3000 });
+        }
+    }
+
+    useEffect(() => {
+        GetDatas();
+        SocketConnect();
+        GetSupplier();
+    }, [])
 
     return (
         <div className="flex justify-center pt-6 px-6">
+            <Toast ref={toast} />
             <div className="container">
+                <div className="step-indicator px-6 mb-3">
+                    <div className={"step create " + (props.checker == 1 || props.checker == 2 || props.checker == 3 ? 'active' : 'disabled')} onClick={() => router.push('/pages/approve/checker1')}>Checker 1</div>
+                    <div className={"step confirm " + (props.checker == 2 || props.checker == 3 ? 'active' : 'disabled')} onClick={() => router.push('/pages/approve/checker2')}>Checker 2</div>
+                    <div className={"step delivery " + (props.checker == 3 ? 'active' : 'disabled')} onClick={() => router.push('/pages/approve/checker3')}>Approver</div>
+                    {/* <div className={"step approve " + (props.checker == 1 ? 'active' : 'disabled')}>Approve</div> */}
+                </div>
                 <div className="flex gap-2 mx-4 mb-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 w-[calc(100%-100px)]">
                         <div className="flex flex-col gap-2 w-full">
@@ -120,30 +202,49 @@ export default function ApprovedTable(props: { page: 1 | 2 | 3 }) {
                         </div>
                         <div className="flex flex-col gap-2">
                             <label htmlFor="supplier">Supplier</label>
-                            <InputText
-                                id="supplier"
-                                value={filters.supplier}
-                                onChange={(e) => handleInputChange(e, "supplier")}
+                            <Dropdown
+                                value={filters.supplier || ""}
+                                onChange={(e: DropdownChangeEvent) => handleInputChange({ target: { value: e.value } } as React.ChangeEvent<HTMLInputElement>, "supplier")}
+                                options={[{ label: 'All', value: 'All' }, ...supplier]}
+                                optionLabel="label"
+                                // placeholder="Select Supplier" 
                                 className="w-full"
                             />
-                            
+
                         </div>
                         <div className="flex flex-col gap-2">
                             <label htmlFor="reportType">Report Type</label>
-                            <InputText
+                            {/* <InputText
                                 id="reportType"
                                 value={filters.reportType}
                                 onChange={(e) => handleInputChange(e, "reportType")}
                                 className="w-full"
+                            /> */}
+                            <Dropdown
+                                value={filters.reportType}
+                                onChange={(e: DropdownChangeEvent) => handleInputChange(e as any as ChangeEvent<HTMLInputElement>, "reportType")}
+                                options={[
+                                    { label: 'All', value: 'All' },
+                                    { label: 'Quick Report', value: 'quick-report' },
+                                    { label: '8D Report', value: '8d-report' },
+                                ]}
+                                optionLabel="label"
+                                className="w-full"
                             />
-                            
                         </div>
                         <div className="flex flex-col gap-2">
                             <label htmlFor="status">Status</label>
-                            <InputText
-                                id="status"
+                            <Dropdown
                                 value={filters.status}
-                                onChange={(e) => handleInputChange(e, "status")}
+                                onChange={(e: DropdownChangeEvent) => setFilters({ ...filters, status: e.target.value || "" })}
+                                options={[
+                                    { label: 'All', value: 'All' },
+                                    { label: 'Approved', value: 'approved' },
+                                    { label: 'Pending', value: 'pending' },
+                                    { label: 'Wait for Supplier', value: 'wait-for-supplier' },
+                                    { label: 'Rejected', value: 'rejected' },
+                                ]}
+                                optionLabel="label"
                                 className="w-full"
                             />
                         </div>
@@ -151,13 +252,13 @@ export default function ApprovedTable(props: { page: 1 | 2 | 3 }) {
                     <div className="w-[100px]">
                         <div className="flex flex-col gap-2">
                             <label>&nbsp;</label>
-                            <Button label="Search" icon="pi pi-search" />
+                            <Button label="Search" icon="pi pi-search" onClick={() => GetDatas()} />
                         </div>
                     </div>
                 </div>
 
                 <DataTable
-                    value={mockData}
+                    value={qprList}
                     showGridlines
                     className='table-header-center mt-4'
                     footer={<Paginator
@@ -176,8 +277,8 @@ export default function ApprovedTable(props: { page: 1 | 2 | 3 }) {
                     <Column field="reportType" header="Report Type"></Column>
                     <Column field="problem" header="ปัญหา" bodyStyle={{ width: '30%' }}></Column>
                     <Column field="importance" header="Importance Level"></Column>
-                    <Column field="status" header="Status" bodyStyle={{ textAlign: 'center' }}></Column>
-                    <Column body={actionBodyTemplate} header="" bodyStyle={{ textAlign: 'center' }}></Column>
+                    <Column field="status" header="Status" bodyStyle={{ textAlign: 'center', width: '15%' }}></Column>
+                    <Column body={actionBodyTemplate} header="Action" bodyStyle={{ textAlign: 'center' }}></Column>
                 </DataTable>
             </div>
 

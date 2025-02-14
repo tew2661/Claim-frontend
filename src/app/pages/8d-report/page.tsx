@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { InputText } from "primereact/inputtext";
 import { Button } from "primereact/button";
 import { DataTable } from "primereact/datatable";
@@ -8,6 +8,13 @@ import { Paginator } from "primereact/paginator";
 import { TemplatePaginator } from "@/components/template-pagination";
 import { Calendar } from "primereact/calendar";
 import { useRouter } from "next/navigation";
+import { CreateQueryString, Get } from "@/components/fetch";
+import moment from "moment";
+import { Toast } from "primereact/toast";
+import { FormDataQpr, Defect } from "../create-qpr/page";
+import { getSocket } from "@/components/socket/socket";
+import { Dropdown, DropdownChangeEvent } from "primereact/dropdown";
+import { Socket } from "socket.io-client";
 
 interface DataActionList {
     id: number,
@@ -15,8 +22,8 @@ interface DataActionList {
     qprNo: string,
     problem: string,
     severity: string,
-    report8D: string,
-    quickReportClass: "text-green-600" | "text-red-600" | "text-yellow-500",
+    eightDReport: string,
+    eightDReportClass: "text-green-600" | "text-red-600" | "text-yellow-500",
     success?: boolean
 }
 
@@ -29,63 +36,112 @@ interface FilterTable {
 
 export default function ProblemReportTable() {
     const router = useRouter()
+    const toast = useRef<Toast>(null);
+    const [qprList, setQprList] = useState<DataActionList[]>([])
     const [first, setFirst] = useState(0);
     const [rows, setRows] = useState(10);
-    const [totalRows,] = useState(10);
+    const [totalRows, setTotalRows] = useState(10);
     const [filters, setFilters] = useState<FilterTable>({
         date: undefined,
         qprNo: "",
-        severity: "",
-        status: ""
+        severity: "All",
+        status: "All",
     })
-    const data: DataActionList[] = [
-        {
-            id: 1,
-            qprNo: "QPR-001",
-            date: "08/11/2024",
-            problem: "สีหลุด",
-            severity: "A",
-            report8D: "Issue and sent",
-            quickReportClass: "text-green-600",
-            success: true
-        },
-        {
-            id: 2,
-            qprNo: "QPR-002",
-            date: "08/11/2024",
-            problem: "ผิวชิ้นงานไม่เรียบ",
-            severity: "B",
-            report8D: "Pending",
-            quickReportClass: "text-yellow-500",
-        },
-        {
-            id: 3,
-            qprNo: "QPR-003",
-            date: "08/11/2024",
-            problem: "สีเพี้ยน",
-            severity: "C",
-            report8D: "Delay",
-            quickReportClass: "text-red-600",
-        },
-    ];
 
-    const quickReportBodyTemplate = (rowData: any) => {
+    const eightDReportBodyTemplate = (rowData: any) => {
         return (
-            <span
-                className={`font-bold ${rowData.quickReportClass === "text-green-600"
+            <div
+                className={`font-bold w-[170px] ${rowData.eightDReportClass === "text-green-600"
                     ? "text-green-600"
-                    : rowData.quickReportClass === "text-red-600"
+                    : rowData.eightDReportClass === "text-red-600"
                         ? "text-red-600"
                         : "text-yellow-500"
                     }`}
             >
-                {rowData.report8D}
-            </span>
+                {rowData.eightDReport}
+            </div>
         );
     };
 
+    const GetDatas = async () => {
+        const quertString = CreateQueryString({
+            ...filters,
+            date: filters.date ? moment(filters.date).format('YYYY-MM-DD') : undefined,
+            page: '8d-report'
+        });
+        const res = await Get({ url: `/qpr?limit=${rows}&offset=${first}&${quertString}` });
+        if (res.ok) {
+            const res_data = await res.json();
+            setTotalRows(res_data.total || 0)
+            setQprList((res_data.data || []).map((x: FormDataQpr) => {
+                return {
+                    id: x.id,
+                    date: x.dateReported ? moment(x.dateReported).format('DD/MM/YYYY HH:mm:ss') : '',
+                    qprNo: x.qprIssueNo || '',
+                    problem: x.defectiveContents.problemCase || '',
+                    severity: (x.importanceLevel || '') + (x.urgent ? ` (Urgent)` : ''),
+                    // eightDReport: `${x.eightDReportSupplierDate ? `${moment(x.eightDReportSupplierDate).format('DD/MM/YYYY')}` : ""} ${x.eightDReportSupplierStatus ? `(${x.eightDReportSupplierStatus})`: ''}`,
+                    // eightDReportClass: x.eightDReportSupplierStatus == "Approved" ? "text-green-600" : (x.eightDReportSupplierStatus == "Pending" || x.eightDReportSupplierStatus == "Save" ? "text-yellow-600" : "text-yellow-600"),
+                    // report8D: `${x.eightDReportDate ? moment(x.eightDReportDate).format('DD/MM/YYYY') : ''}${x.eightDReportStatus ? `(${x.eightDReportStatus})` : '-'}`,
+
+                    eightDReport: `${x.eightDReportSupplierDate ? `${moment(x.eightDReportSupplierDate).format('DD/MM/YYYY HH:mm:ss')}` : ""} ${x.eightDReportSupplierStatus ? ` (${x.eightDReportSupplierStatus})`: ''}`,
+                    eightDReportClass: x.eightDReportSupplierStatus == "Approved" ? "text-green-600" : (x.eightDReportSupplierStatus == "Pending" || x.eightDReportSupplierStatus == "Save" ? "text-yellow-600" : "text-red-600"),
+                    success: x.eightDReportSupplierStatus == "Approved" 
+                }
+            }))
+        } else {
+            toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await res!.json()).message)}`, life: 3000 });
+        }
+    }
+
+    const socketRef = useRef<Socket | null>(null);
+    const SocketConnect = () => {
+        if (!socketRef.current) {
+            socketRef.current = getSocket();
+        }
+
+        const socket = socketRef.current;
+        // Listen for an event
+        socket.on("create-qpr", (data: any) => {
+            GetDatas();
+        });
+
+        socket.on("reload-status-reject-8d", (x: FormDataQpr) => {
+            setQprList((old: DataActionList[]) => {
+                return old.map((arr) => {
+                    if (arr.id == x.id) {
+                       return {
+                            id: x.id,
+                            date: x.dateReported ? moment(x.dateReported).format('DD/MM/YYYY HH:mm:ss') : '',
+                            qprNo: x.qprIssueNo || '',
+                            problem: x.defectiveContents.problemCase || '',
+                            severity: (x.importanceLevel || '') + (x.urgent ? ` (Urgent)` : ''),
+                            eightDReport: `${x.eightDReportSupplierDate ? `${moment(x.eightDReportSupplierDate).format('DD/MM/YYYY HH:mm:ss')}` : ""} ${x.eightDReportSupplierStatus ? ` (${x.eightDReportSupplierStatus})`: ''}`,
+                            eightDReportClass: x.eightDReportSupplierStatus == "Approved" ? "text-green-600" : (x.eightDReportSupplierStatus == "Pending" || x.eightDReportSupplierStatus == "Save" ? "text-yellow-600" : "text-red-600"),
+                            success: x.eightDReportSupplierStatus == "Approved" 
+                        } as DataActionList;
+                    } else {
+                        return arr;
+                    }
+                })
+            })
+        });
+
+        // Cleanup on unmount
+        return () => {
+            socket.off("create-qpr");
+            socket.off("reload-status-reject-8d");
+        };
+    }
+
+    useEffect(() => {
+        GetDatas()
+        SocketConnect()
+    }, [])
+
     return (
         <div className="flex justify-center pt-6 px-6">
+            <Toast ref={toast} />
             <div className="container">
                 <div className="p-4 rounded-lg">
                     {/* Filters */}
@@ -122,22 +178,35 @@ export default function ProblemReportTable() {
                                 <label htmlFor="severity" className="font-bold mb-2">
                                     ระดับความรุนแรง
                                 </label>
-                                <InputText 
-                                    id="severity" 
+                                <Dropdown 
+                                    value={filters.severity} 
+                                    onChange={(e: DropdownChangeEvent) => setFilters({ ...filters, severity: e.target.value || "" })} 
+                                    options={[
+                                        { label: 'All' , value: 'All'}, 
+                                        { label: 'SP' , value: 'SP'}, 
+                                        { label: 'A' , value: 'A' } ,
+                                        { label: 'B' , value: 'B' },
+                                        { label: 'C' , value: 'C' },
+                                    ]} 
+                                    optionLabel="label" 
                                     className="w-full" 
-                                    value={filters.severity}
-                                    onChange={(e) => setFilters({ ...filters, severity: e.target.value || "" })}
                                 />
                             </div>
                             <div className="flex flex-col">
                                 <label htmlFor="status" className="font-bold mb-2">
                                     Status
                                 </label>
-                                <InputText 
-                                    id="status" 
+                                <Dropdown 
+                                    value={filters.status} 
+                                    onChange={(e: DropdownChangeEvent) => setFilters({ ...filters, status: e.target.value || "" })} 
+                                    options={[
+                                        { label: 'All' , value: 'All'}, 
+                                        { label: 'Approved' , value: 'approved-8d-report'}, 
+                                        { label: 'Wait for Supplier' , value: 'wait-for-supplier-8d-report' } ,
+                                        { label: 'Rejected' , value: 'rejected-8d-report' },
+                                    ]} 
+                                    optionLabel="label" 
                                     className="w-full" 
-                                    value={filters.status}
-                                    onChange={(e) => setFilters({ ...filters, status: e.target.value || "" })}
                                 />
                             </div>
 
@@ -145,14 +214,14 @@ export default function ProblemReportTable() {
                         <div className="w-[100px]">
                             <div className="flex flex-col gap-2">
                                 <label>&nbsp;</label>
-                                <Button label="Search" icon="pi pi-search" />
+                                <Button label="Search" icon="pi pi-search" onClick={() => GetDatas() } />
                             </div>
                         </div>
                     </div>
 
                     {/* Table */}
                     <DataTable
-                        value={data}
+                        value={qprList}
                         showGridlines
                         className='table-header-center mt-4'
                         footer={<Paginator
@@ -172,8 +241,8 @@ export default function ProblemReportTable() {
                         <Column field="severity" header="ระดับความรุนแรง" bodyStyle={{ textAlign: 'center' }} />
                         <Column
                             field="report8D"
-                            header="8D report"
-                            body={quickReportBodyTemplate}
+                            header="8D Report"
+                            body={eightDReportBodyTemplate}
                             
                         />
                         <Column field="action" header="" bodyStyle={{ textAlign: 'center', width: '10%' , minWidth: '180px' }} body={(rowData: DataActionList) => {

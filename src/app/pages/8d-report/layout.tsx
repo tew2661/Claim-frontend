@@ -17,19 +17,11 @@ function LayoutPages({
     useEffect(() => {
         const isAuthenticated = localStorage.getItem('access_token')!;
         const IsJtekt = (process.env.NEXT_MODE == 'jtekt');
-        // ตรวจสอบสถานะล็อกอิน
-        if (!isAuthenticated && pathname !== '/login') {
-            router.push('/login'); // หากไม่ได้ล็อกอินและไม่ใช่หน้าล็อกอิน เปลี่ยนเส้นทางไปที่ /login
+        
+        if (IsJtekt) {
+            router.push('/pages'); 
         } else {
-            // แสดงผลตามหน้า
-            if (pathname === '/login') {
-                setPages(<>{children}</>); // หน้า login ไม่แสดง Header
-            } else {
-                setPages(<>
-                    <Header IsJtekt={IsJtekt} />
-                    <div className="body">{children}</div>
-                </>); // หน้าอื่น ๆ แสดง Header
-            }
+            setPages(<>{children}</>)
         }
     }, [pathname]); // useEffect จะทำงานเมื่อ pathname หรือ router เปลี่ยน
 
