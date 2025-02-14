@@ -77,7 +77,7 @@ export default function PresetsDemo() {
                         style={{
                             textShadow: 'rgb(182 182 182) 2px 0.5px'
                         }}
-                    >Materials Requirements Planning</h4>
+                    >Claim System Specifications</h4>
                     <form onSubmit={handleSubmit(onSubmit)} className=" align-items-center gap-2">
                         <div className='flex-1'>
                             <label htmlFor="username" className="font-bold block mb-2" >
