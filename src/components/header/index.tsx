@@ -21,6 +21,7 @@ const Header = (props: { IsJtekt: boolean }) => {
     useEffect(() => {
         const localUser = localStorage.getItem('user') ?? ''
         const jsonUser = JSON.parse(localUser || `{}`);
+        const NEXT_TEST = !!(process.env.NEXT_TEST);
         const role = jsonUser.role;
         const menuList: MenuCategory[] = [
             ...IsJtekt ? [{
@@ -32,17 +33,17 @@ const Header = (props: { IsJtekt: boolean }) => {
             ...IsJtekt ? [{
                 label: 'Approve',
                 items: [
-                    ...role == 'Leader / Engineer' ? [{
+                    ...role == 'Leader / Engineer' || NEXT_TEST ? [{
                         label: 'Checker 1',
                         icon: IconDot,
                         url: "/pages/approve/checker1",
                     }] : [],
-                    ...role == 'Supervision / Asistant Manager' ? [{
+                    ...role == 'Supervision / Asistant Manager' || NEXT_TEST ? [{
                         label: 'Checker 2',
                         icon: IconDot,
                         url: "/pages/approve/checker2",
                     }] : [],
-                    ...(role == 'Manager' || role == 'GM / DGM' || role == 'Plant Manager') ? [{
+                    ...(role == 'Manager' || role == 'GM / DGM' || role == 'Plant Manager' || NEXT_TEST) ? [{
                         label: 'Approver',
                         icon: IconDot,
                         url: "/pages/approve/checker3",

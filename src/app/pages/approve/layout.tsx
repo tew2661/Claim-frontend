@@ -21,15 +21,16 @@ function LayoutPages({
 
     useEffect(() => {
         const IsJtekt = (process.env.NEXT_MODE == 'jtekt');
+        const NEXT_TEST = !!(process.env.NEXT_TEST);
         const role = localStorage.getItem('role')!; 
         if (!IsJtekt) {
             router.push('/pages'); 
         } else {
-            if (getCheckerLevel(pathname) == 'checker1' && role == 'Leader / Engineer') {
+            if ((getCheckerLevel(pathname) == 'checker1' && role == 'Leader / Engineer') || NEXT_TEST) {
                 setPages(<>{children}</>)
-            } else if (getCheckerLevel(pathname) == 'checker2' && role == 'Supervision / Asistant Manager') {
+            } else if ((getCheckerLevel(pathname) == 'checker2' && role == 'Supervision / Asistant Manager') || NEXT_TEST) {
                 setPages(<>{children}</>)
-            } else if (getCheckerLevel(pathname) == 'checker3' && (role == 'Manager' || role == 'GM / DGM' || role == 'Plant Manager')) {
+            } else if ((getCheckerLevel(pathname) == 'checker3' && (role == 'Manager' || role == 'GM / DGM' || role == 'Plant Manager') || NEXT_TEST)) {
                 setPages(<>{children}</>)
             } else {
                 router.back()

@@ -73,7 +73,7 @@ export default function ApprovedTable(props: { checker: 1 | 2 | 3 }) {
             "3-Quick Report": x.quickReportStatus === 'Pending' && x.quickReportStatusChecker2 === 'Approved' && !x.quickReportStatusChecker3,
             "1-8D Report": x.eightDReportStatus === 'Pending' && !x.eightDStatusChecker1,
             "2-8D Report": x.eightDReportStatus === 'Pending' && x.eightDStatusChecker1 === 'Approved' && !x.eightDStatusChecker2,
-            "3-8D Report": (x.eightDReportStatus === 'Pending' && !x.eightDStatusChecker3) || x.eightDStatusChecker3 === "Approved",
+            "3-8D Report": (x.eightDReportStatus === 'Pending' && x.eightDStatusChecker2 === 'Approved' && !x.eightDStatusChecker3) || x.eightDStatusChecker3 === "Approved",
         };
     
         return conditions[key] ?? false;

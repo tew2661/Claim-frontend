@@ -485,7 +485,7 @@ export default function UserManagement() {
                                 </div> : <></>
                             }
                             <div className='flex justify-end mt-2 w-full gap-2'>
-                                <Button label="Add User" className="p-button-primary" onClick={chechInvalid} />
+                                <Button label={addOrEdit == 'E' ? "Edit User" : "Add User"} className="p-button-primary" onClick={chechInvalid} />
                             </div>
                         </>
                     }
