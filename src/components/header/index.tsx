@@ -14,7 +14,14 @@ import IconDot from '@/assets/icon/dot.png'
 const Header = (props: { IsJtekt: boolean }) => {
     const IsJtekt = props.IsJtekt;
     const [menuList, setMenuList] = useState<MenuCategory[]>([])
+    const router = useRouter();
+    const [name, setName] = useState('')
+    const [role, setRole] = useState('')
+
     useEffect(() => {
+        const localUser = localStorage.getItem('user') ?? ''
+        const jsonUser = JSON.parse(localUser || `{}`);
+        const role = jsonUser.role;
         const menuList: MenuCategory[] = [
             ...IsJtekt ? [{
                 label: 'Create Claim',
@@ -25,21 +32,21 @@ const Header = (props: { IsJtekt: boolean }) => {
             ...IsJtekt ? [{
                 label: 'Approve',
                 items: [
-                    {
+                    ...role == 'Leader / Engineer' ? [{
                         label: 'Checker 1',
                         icon: IconDot,
                         url: "/pages/approve/checker1",
-                    },
-                    {
+                    }] : [],
+                    ...role == 'Supervision / Asistant Manager' ? [{
                         label: 'Checker 2',
                         icon: IconDot,
                         url: "/pages/approve/checker2",
-                    },
-                    {
+                    }] : [],
+                    ...(role == 'Manager' || role == 'GM / DGM' || role == 'Plant Manager') ? [{
                         label: 'Approver',
                         icon: IconDot,
                         url: "/pages/approve/checker3",
-                    },
+                    }] : [],
                 ],
                 icon: undefined,
                 // url: "/pages/approve",
@@ -95,10 +102,6 @@ const Header = (props: { IsJtekt: boolean }) => {
         setMenuList(menuList);
 
     }, [])
-
-    const router = useRouter();
-    const [name, setName] = useState('')
-    const [role, setRole] = useState('')
 
     const socketRef = useRef<Socket | null>(null);
     useEffect(() => {

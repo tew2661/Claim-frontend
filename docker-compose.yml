@@ -17,6 +17,18 @@ services:
       dockerfile: dockerfile.dev.jtekt
     volumes:
       - .:/app
+      - /app/node_modules
+      - /app/.next
+      # - ./src:/app/src
+      # - ./public:/app/public
+      # - ./eslint.config.mjs:/app/eslint.config.mjs
+      # - ./next.config.ts:/app/next.config.ts
+      # - ./package.json:/app/package.json
+      # - ./postcss.config.mjs:/app/postcss.config.mjs
+      # - ./tailwind.config.ts:/app/tailwind.config.ts
+      # - ./next-env.d.ts:/app/next-env.d.ts
+      # - ./tsconfig.json:/app/tsconfig.json
+      # - ./.eslintrc.json:/app/.eslintrc.json
     ports:
       - "3000:3000"
     environment:
@@ -31,6 +43,19 @@ services:
       dockerfile: dockerfile.dev.supplier
     volumes:
       - .:/app
+      - /app/node_modules
+      - /app/.next
+
+      # - ./src:/app/src
+      # - ./public:/app/public
+      # - ./eslint.config.mjs:/app/eslint.config.mjs
+      # - ./next.config.ts:/app/next.config.ts
+      # - ./package.json:/app/package.json
+      # - ./postcss.config.mjs:/app/postcss.config.mjs
+      # - ./tailwind.config.ts:/app/tailwind.config.ts
+      # - ./next-env.d.ts:/app/next-env.d.ts
+      # - ./tsconfig.json:/app/tsconfig.json
+      # - ./.eslintrc.json:/app/.eslintrc.json
     ports:
       - "3001:3000"
     environment:

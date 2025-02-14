@@ -17,7 +17,6 @@ function LayoutPages({
     useEffect(() => {
         const isAuthenticated = localStorage.getItem('access_token')!;
         const IsJtekt = (process.env.NEXT_MODE == 'jtekt');
-        console.log(process.env.NEXT_MODE)
         // ตรวจสอบสถานะล็อกอิน
         if (!isAuthenticated && pathname !== '/login') {
             router.push('/login'); // หากไม่ได้ล็อกอินและไม่ใช่หน้าล็อกอิน เปลี่ยนเส้นทางไปที่ /login

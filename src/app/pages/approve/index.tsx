@@ -100,7 +100,10 @@ export default function ApprovedTable(props: { checker: 1 | 2 | 3 }) {
     
     
     const GetDatas = async () => {
-        const queryString = CreateQueryString({ ...filters });
+        const queryString = CreateQueryString({ 
+            ...filters,
+            page: `checker${props.checker}`
+        });
         const res = await Get({ url: `/qpr?limit=${rows}&offset=${first}&${queryString}` });
     
         if (res.ok) {
@@ -236,12 +239,10 @@ export default function ApprovedTable(props: { checker: 1 | 2 | 3 }) {
                                 onChange={(e: DropdownChangeEvent) => setFilters({ ...filters, status: e.target.value || "" })}
                                 options={[
                                     { label: 'All', value: 'All' },
-                                    { label: 'Approved [QuickReport]', value: 'approved-quick-report' },
-                                    { label: 'Wait for Supplier [QuickReport]', value: 'wait-for-supplier-quick-report' },
-                                    { label: 'Rejected [QuickReport]', value: 'rejected-quick-report' },
-                                    { label: 'Approved [8D Report]', value: 'approved-8d-report' },
-                                    { label: 'Wait for Supplier [8D Report]', value: 'wait-for-supplier-8d-report' },
-                                    { label: 'Rejected [8D Report]', value: 'rejected-8d-report' },
+                                    { label: 'Approved', value: 'approved' },
+                                    { label: 'Pending', value: 'pending' },
+                                    { label: 'Wait for Supplier', value: 'wait-for-supplier' },
+                                    { label: 'Rejected', value: 'rejected' },
                                 ]}
                                 optionLabel="label"
                                 className="w-full"
