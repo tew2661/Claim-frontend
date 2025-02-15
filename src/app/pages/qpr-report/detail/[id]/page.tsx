@@ -70,7 +70,7 @@ export default function QPRUploadForm() {
     const GetDatas = async () => {
         const localUser = localStorage.getItem('user') ?? ''
         const jsonUser = JSON.parse(localUser || '{}');
-        const res = await Get({ url: `/supplier/${jsonUser.id}` });
+        const res = await Get({ url: `/supplier/${jsonUser?.supplier && jsonUser.supplier?.id ? jsonUser.supplier?.id : -1 }` });
         if (res?.ok) {
             const res_data = await res.json();
             setSupplierName(res_data?.supplierName || '')

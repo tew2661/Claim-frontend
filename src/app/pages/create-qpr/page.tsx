@@ -107,6 +107,7 @@ export interface FormDataQpr {
     eightDDateChecker2?: string,
     eightDStatusChecker3?: "Pending" | "Approved" | "Rejected",
     eightDDateChecker3?: string,
+    approve8dAndRejectDocOther?: 'Y' | 'N'
 }
 
 
@@ -388,7 +389,7 @@ export default function QPRForm() {
         const res = await Post({ url: `/qpr`, body: JSON.stringify(formData), headers: { 'Content-Type': 'application/json' } });
         if (res.ok) {
             toast.current?.show({ severity: 'success', summary: 'บันทึกสำเร็จ', detail: `สร้าง QPR สำเร็จ`, life: 3000 });
-            router.refresh();
+            router.push('/pages/summary-report')
         } else {
             toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await res!.json()).message)}`, life: 3000 });
         }

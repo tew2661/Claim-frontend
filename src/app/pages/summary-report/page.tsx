@@ -9,7 +9,7 @@ import { Paginator } from "primereact/paginator";
 import Footer from "@/components/footer";
 import { Calendar } from "primereact/calendar";
 import { Nullable } from "primereact/ts-helpers";
-import { CreateQueryString, Get } from "@/components/fetch";
+import { CreateQueryString, Get, fetchFileAsFile } from "@/components/fetch";
 import { Toast } from "primereact/toast";
 import { Defect, FormDataQpr } from "../create-qpr/page";
 import { getSocket } from "@/components/socket/socket";
@@ -52,9 +52,23 @@ export default function SummaryReport() {
         setFilters({ ...filters, [field]: e.target.value });
     };
 
-    const exportToExcel = () => {
+    const exportToExcel = async () => {
         // Add logic to export data to Excel here
         console.log("Exporting to Excel...");
+        const exportExcel = await fetchFileAsFile(`/qpr/summary-report/exportExcel`);
+        if (exportExcel.ok) {
+            const data = await exportExcel.blob();
+            const urlfile = new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const fileURL = URL.createObjectURL(urlfile);
+            const link = document.createElement("a");
+            link.href = fileURL;
+            link.download = `${'export.xlsx'}`; // กำหนดชื่อไฟล์ที่ดาวน์โหลด
+            document.body.appendChild(link);
+            link.click(); // คลิกเพื่อดาวน์โหลด
+            document.body.removeChild(link);
+        } else {
+            toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await exportExcel!.json()).message)}`, life: 3000 });
+        }
     };
 
     const quickReportBodyTemplate = (rowData: any) => {
@@ -106,12 +120,12 @@ export default function SummaryReport() {
                     quickReport: `${x.quickReportDate ?
                         `${moment(x.quickReportDate).format('DD/MM/YYYY HH:mm:ss')}` : ""} ${x.quickReportStatus ? ` (${x.quickReportStatus})` : ''}`,
                     report8D: `${x.eightDReportDate ? moment(x.eightDReportDate).format('DD/MM/YYYY HH:mm:ss') : ''} ${x.eightDReportStatus ? ` (${x.eightDReportStatus})` : '-'}`,
-                    quickReportClass: x.quickReportStatus == "Approved" ? "text-green-600" : 
-                        (x.quickReportStatus == "Pending" ? "text-yellow-600" : 
-                        (x.quickReportStatus == "Rejected" ? "text-red-600" : "text-yellow-600")),
-                    report8DClass: x.eightDReportStatus == "Approved" ? "text-green-600" : 
-                        ((x.eightDReportStatus == "Pending" || x.eightDReportStatus == "Wait for supplier") ? "text-yellow-600" : 
-                        (x.eightDReportStatus == "Rejected" ? "text-red-600" : "text-yellow-600")),
+                    quickReportClass: x.quickReportStatus == "Approved" ? "text-green-600" :
+                        (x.quickReportStatus == "Pending" ? "text-yellow-600" :
+                            (x.quickReportStatus == "Rejected" ? "text-red-600" : "text-yellow-600")),
+                    report8DClass: x.eightDReportStatus == "Approved" ? "text-green-600" :
+                        ((x.eightDReportStatus == "Pending" || x.eightDReportStatus == "Wait for supplier") ? "text-yellow-600" :
+                            (x.eightDReportStatus == "Rejected" ? "text-red-600" : "text-yellow-600")),
                 }
             }))
         } else {
@@ -223,7 +237,7 @@ export default function SummaryReport() {
                     <div className="w-[100px]">
                         <div className="flex flex-col gap-2">
                             <label>&nbsp;</label>
-                            <Button label="Search" icon="pi pi-search" onClick={() =>  GetDatas()} />
+                            <Button label="Search" icon="pi pi-search" onClick={() => GetDatas()} />
                         </div>
                     </div>
                 </div>

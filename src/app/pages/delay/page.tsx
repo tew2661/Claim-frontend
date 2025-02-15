@@ -49,7 +49,7 @@ export default function ReportTable() {
         const quertString = CreateQueryString({
             ...filters,
         });
-        const res = await Get({ url: `/qpr?limit=${rows}&offset=${first}&${quertString}` });
+        const res = await Get({ url: `/qpr/delay?limit=${rows}&offset=${first}&${quertString}` });
         if (res.ok) {
             const res_data = await res.json();
             setTotalRows(res_data.total || 0)
@@ -62,7 +62,7 @@ export default function ReportTable() {
                     importance: (x.importanceLevel || '') + (x.urgent ? ` (Urgent)` : ''),
                     delayDocument: x.delayDocument,
                     commitmentDate: x.replyQuickAction ? moment(x.replyQuickAction).format('DD/MM/YYYY HH:mm:ss') : "-",
-                    delayDays: x.replyQuickAction ? (moment(x.replyQuickAction).diff(moment(), 'days')): "",
+                    delayDays: x.replyQuickAction ? (moment().diff(moment(x.replyQuickAction), 'days')): "",
                 }
             }))
         } else {
