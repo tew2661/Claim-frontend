@@ -408,7 +408,7 @@ export default function PDFApproval() {
                                             <input
                                                 type="checkbox"
                                                 checked={formData.claim}
-                                                disabled={formData.approve == 'reject'}
+                                                disabled={formData.approve && formData.approve !== 'approve'}
                                                 onChange={(e) =>
                                                     setFormData((old: FormData) => {
                                                         return {
@@ -426,7 +426,7 @@ export default function PDFApproval() {
                                             <input
                                                 type="checkbox"
                                                 checked={formData.complain}
-                                                disabled={formData.approve == 'reject'}
+                                                disabled={formData.approve && formData.approve !== 'approve'}
                                                 onChange={(e) => {
                                                     
                                                     setFormData((old: FormData) => {
