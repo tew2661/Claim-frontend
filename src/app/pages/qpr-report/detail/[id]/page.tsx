@@ -357,7 +357,7 @@ export default function QPRUploadForm() {
                     {/* Sketch Upload Section */}
                     <div className="flex justify-between gap-3 border border-solid border-gray-300 p-2">
                         <div className="flex flex-col gap-2">
-                            <label htmlFor="contactPerson">File Other</label>
+                            <label htmlFor="contactPerson">Sketch of Method Confirm and Identify</label>
                             {sketches.filter((x) => !x.file.delete).map((sketch, index) => {
                                 return <div key={sketch.key}
                                     className="flex items-center gap-4"
@@ -436,7 +436,7 @@ export default function QPRUploadForm() {
                         </div>
                         <div style={{ minWidth: '200px', width: '25%' }}>
                             <div className="flex flex-col gap-2">
-                                <label htmlFor="contactPerson">Contact Person</label>
+                                <label htmlFor="contactPerson">Supplier Acknowledge by</label>
                                 <Dropdown
                                     id="contactPerson"
                                     value={contactPerson}

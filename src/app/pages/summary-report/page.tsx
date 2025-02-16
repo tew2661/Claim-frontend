@@ -71,17 +71,42 @@ export default function SummaryReport() {
         }
     };
 
+    const openPdfQuickReport = async (id: number) => {
+        const response = await fetchFileAsFile(`/qpr/pdf/view/${id}`)
+        if (response.ok) {
+            const data = await response.blob();
+            const urlfile = new Blob([data], { type: 'application/pdf' });
+            const fileURL = URL.createObjectURL(urlfile);
+            window.open(fileURL, '_blank');
+        } else {
+            toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await response!.json()).message)}`, life: 3000 });
+        }
+    }
+
+    const openPdfEightDReport = async (id: number) => {
+        const response = await fetchFileAsFile(`/qpr/pdf/view-8d/${id}`)
+        if (response.ok) {
+            const data = await response.blob();
+            const urlfile = new Blob([data], { type: 'application/pdf' });
+            const fileURL = URL.createObjectURL(urlfile);
+            window.open(fileURL, '_blank');
+        } else {
+            toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await response!.json()).message)}`, life: 3000 });
+        }
+    }
+
     const quickReportBodyTemplate = (rowData: any) => {
         return (
             <div
-                className={`font-bold w-[170px] ${rowData.quickReportClass === "text-green-600"
+                className={`font-bold w-[200px] flex gap-2 ${rowData.quickReportClass === "text-green-600"
                     ? "text-green-600"
                     : rowData.quickReportClass === "text-red-600"
                         ? "text-red-600"
                         : "text-yellow-500"
                     }`}
             >
-                {rowData.quickReport}
+                <div className="w-[170px]">{rowData.quickReport}</div>
+                <Button icon="pi pi-eye" style={{ padding: 0 }} severity="secondary" outlined rounded onClick={() => openPdfQuickReport(rowData.id)} />
             </div>
         );
     };
@@ -89,14 +114,15 @@ export default function SummaryReport() {
     const Report8DClassBodyTemplate = (rowData: any) => {
         return (
             <div
-                className={`font-bold w-[170px] ${rowData.report8DClass === "text-green-600"
+                className={`font-bold w-[200px] flex gap-2 ${rowData.report8DClass === "text-green-600"
                     ? "text-green-600"
                     : rowData.report8DClass === "text-red-600"
                         ? "text-red-600"
                         : "text-yellow-500"
                     }`}
             >
-                {rowData.report8D}
+                <div className="w-[170px]">{rowData.report8D}</div>
+                <Button icon="pi pi-eye" style={{ padding: 0 }} severity="secondary" outlined rounded onClick={() => openPdfEightDReport(rowData.id)} />
             </div>
         );
     };
@@ -123,9 +149,10 @@ export default function SummaryReport() {
                     quickReportClass: x.quickReportStatus == "Approved" ? "text-green-600" :
                         (x.quickReportStatus == "Pending" ? "text-yellow-600" :
                             (x.quickReportStatus == "Rejected" ? "text-red-600" : "text-yellow-600")),
-                    report8DClass: x.eightDReportStatus == "Approved" ? "text-green-600" :
-                        ((x.eightDReportStatus == "Pending" || x.eightDReportStatus == "Wait for supplier") ? "text-yellow-600" :
+                    report8DClass: x.eightDReportStatus == "Completed" ? "text-green-600" :
+                        ((x.eightDReportStatus == "Pending" || x.eightDReportStatus == "Wait for supplier" || x.eightDReportStatus == "Approved") ? "text-yellow-600" :
                             (x.eightDReportStatus == "Rejected" ? "text-red-600" : "text-yellow-600")),
+
                 }
             }))
         } else {
