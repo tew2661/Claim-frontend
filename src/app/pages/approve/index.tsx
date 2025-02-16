@@ -73,20 +73,20 @@ export default function ApprovedTable(props: { checker: 1 | 2 | 3 }) {
             "3-Quick Report": x.quickReportStatus === 'Pending' && x.quickReportStatusChecker2 === 'Approved' && !x.quickReportStatusChecker3,
             "1-8D Report": x.eightDReportStatus === 'Pending' && !x.eightDStatusChecker1,
             "2-8D Report": x.eightDReportStatus === 'Pending' && x.eightDStatusChecker1 === 'Approved' && !x.eightDStatusChecker2,
-            "3-8D Report": (x.eightDReportStatus === 'Pending' && x.eightDStatusChecker2 === 'Approved' && !x.eightDStatusChecker3) || x.eightDStatusChecker3 === "Approved",
+            "3-8D Report": (x.eightDReportStatus === 'Pending' && x.eightDStatusChecker2 === 'Approved' && !x.eightDStatusChecker3) || (x.eightDStatusChecker3 === "Approved" && x.eightDStatusChecker2 !== 'Completed'),
         };
     
         return conditions[key] ?? false;
     };
     
-    const getStatus = (x: FormDataQpr, checker: number): "Pending" | "Approved" | "Rejected" | "Wait for Supplier" => {
+    const getStatus = (x: FormDataQpr, checker: number): "Pending" | "Approved" | "Rejected" | "Wait for Supplier" | "Completed" => {
         if (!x.delayDocument || (x.delayDocument !== "Quick Report" && x.delayDocument !== "8D Report")) {
             return "Pending"; // ป้องกัน undefined หรือค่าอื่นๆ
         }
     
         const key = `${checker}-${x.delayDocument}` as `${1 | 2 | 3}-Quick Report` | `${1 | 2 | 3}-8D Report`;
     
-        const statusMap: Record<`${1 | 2 | 3}-Quick Report` | `${1 | 2 | 3}-8D Report`, "Pending" | "Approved" | "Rejected" | "Wait for Supplier"> = {
+        const statusMap: Record<`${1 | 2 | 3}-Quick Report` | `${1 | 2 | 3}-8D Report`, "Pending" | "Approved" | "Rejected" | "Wait for Supplier"| "Completed"> = {
             "1-Quick Report": x.quickReportStatusChecker1 || "Pending",
             "2-Quick Report": x.quickReportStatusChecker2 || "Pending",
             "3-Quick Report": x.quickReportStatusChecker3 || "Pending",
@@ -178,6 +178,10 @@ export default function ApprovedTable(props: { checker: 1 | 2 | 3 }) {
         SocketConnect();
         GetSupplier();
     }, [])
+
+    useEffect(() => {
+        GetDatas()
+    },[first , rows])
 
     return (
         <div className="flex justify-center pt-6 px-6">

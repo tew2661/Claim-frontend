@@ -126,6 +126,10 @@ export default function ProblemReportTable() {
         SocketConnect();
     }, [])
 
+    useEffect(() => {
+        GetDatas()
+    },[first , rows])
+
     return (
         <div className="flex justify-center pt-6 px-6">
             <Toast ref={toast} />

@@ -103,9 +103,9 @@ export interface FormDataQpr {
     quickReportDateChecker3?: string,
     eightDStatusChecker1?: "Pending" | "Approved" | "Rejected",
     eightDDateChecker1?: string,
-    eightDStatusChecker2?: "Pending" | "Approved" | "Rejected",
+    eightDStatusChecker2?: "Pending" | "Approved" | "Rejected" | "Completed",
     eightDDateChecker2?: string,
-    eightDStatusChecker3?: "Pending" | "Approved" | "Rejected",
+    eightDStatusChecker3?: "Pending" | "Approved" | "Rejected" | "Completed",
     eightDDateChecker3?: string,
     approve8dAndRejectDocOther?: 'Y' | 'N'
 }

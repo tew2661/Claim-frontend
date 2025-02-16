@@ -137,6 +137,10 @@ export default function ProblemReportTable() {
         SocketConnect();
     }, [])
 
+    useEffect(() => {
+        GetDatas()
+    },[first , rows])
+
     return (
         <div className="flex justify-center pt-6 px-6">
             <Toast ref={toast} />
@@ -243,7 +247,7 @@ export default function ProblemReportTable() {
                             body={quickReportBodyTemplate}
                             
                         />
-                        <Column field="action" header="" bodyStyle={{ textAlign: 'center', width: '10%' , minWidth: '180px' }} body={(rowData: DataActionList) => {
+                        <Column field="action" header="Action" bodyStyle={{ textAlign: 'center', width: '10%' , minWidth: '180px' }} body={(rowData: DataActionList) => {
                             if (rowData.success) {
                                 return <div className="min-h-[32px]">&nbsp;</div>
                             } else {

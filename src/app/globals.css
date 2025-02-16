@@ -285,3 +285,8 @@ table {
   transform: scale(1.05);
   /* Zoom effect on hover */
 }
+
+.p-paginator.p-component .p-paginator-pages {
+  display: flex;
+  flex-direction: row;
+}

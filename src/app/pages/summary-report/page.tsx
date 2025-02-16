@@ -172,6 +172,28 @@ export default function SummaryReport() {
             GetDatas();
         });
 
+        socket.on("reload-status", (x: FormDataQpr) => {
+            setQprList((old: DataSummaryReportTable[]) =>
+                old.map((arr: DataSummaryReportTable) =>
+                    arr.id === x.id
+                        ? {
+                            ...arr,
+                            status: x.status,
+                            quickReport: `${x.quickReportDate ?
+                                `${moment(x.quickReportDate).format('DD/MM/YYYY HH:mm:ss')}` : ""} ${x.quickReportStatus ? ` (${x.quickReportStatus})` : ''}`,
+                            report8D: `${x.eightDReportDate ? moment(x.eightDReportDate).format('DD/MM/YYYY HH:mm:ss') : ''} ${x.eightDReportStatus ? ` (${x.eightDReportStatus})` : '-'}`,
+                            quickReportClass: x.quickReportStatus == "Approved" ? "text-green-600" :
+                                (x.quickReportStatus == "Pending" ? "text-yellow-600" :
+                                    (x.quickReportStatus == "Rejected" ? "text-red-600" : "text-yellow-600")),
+                            report8DClass: x.eightDReportStatus == "Completed" ? "text-green-600" :
+                                ((x.eightDReportStatus == "Pending" || x.eightDReportStatus == "Wait for supplier" || x.eightDReportStatus == "Approved") ? "text-yellow-600" :
+                                    (x.eightDReportStatus == "Rejected" ? "text-red-600" : "text-yellow-600")),
+                        } as DataSummaryReportTable
+                        : arr
+                )
+            );
+        });
+
         // Cleanup on unmount
         return () => {
             socket.off("create-qpr");
@@ -194,6 +216,10 @@ export default function SummaryReport() {
         SocketConnect();
         GetSupplier();
     }, [])
+
+    useEffect(() => {
+        GetDatas()
+    },[first , rows])
 
     return (
         <div className="flex justify-center pt-6 px-6">

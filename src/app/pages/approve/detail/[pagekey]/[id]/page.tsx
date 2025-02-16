@@ -34,6 +34,7 @@ interface FormData {
     eightDReportApprover?: string,
 
     reqDocumentOther: string,
+    approve8dAndRejectDocOther?: 'Y' | 'N',
     dueDateReqDocumentOther?: Date,
 }
 
@@ -117,7 +118,7 @@ export default function PDFApproval() {
             setSupplierName(objectQPRSupplier && objectQPRSupplier?.objectQPR && objectQPRSupplier?.objectQPR.contactPerson ? objectQPRSupplier?.objectQPR.contactPerson : '')
             setEmail(objectQPRSupplier && objectQPRSupplier?.objectQPR && objectQPRSupplier?.objectQPR.email ? (objectQPRSupplier?.objectQPR.email || '') : '')
             setProblemCase(dataForID.defectiveContents && dataForID.defectiveContents.problemCase ? dataForID.defectiveContents.problemCase : '');
-            setImportanceLevel(dataForID.importanceLevel ?? '');
+            setImportanceLevel(dataForID.importanceLevel ? `${dataForID.importanceLevel} ${dataForID.urgent ? '(Urgent)' : ''}` : '');
 
             let checkerBefore = undefined
             if (dataForID.delayDocument == 'Quick Report') {
@@ -127,7 +128,7 @@ export default function PDFApproval() {
             }
             console.log('checkerBefore', checkerBefore)
             setFormData({
-                approve: checkerBefore?.approve || undefined,
+                approve: checkerBefore?.approve ? checkerBefore?.approve : (dataForID.approve8dAndRejectDocOther == 'Y' ? "approve" : undefined),
                 remark,
                 claim: checkerBefore?.claim || false,
                 complain: checkerBefore?.complain || false,
@@ -139,7 +140,7 @@ export default function PDFApproval() {
                         return {
                             key: arr.key || '-',
                             num: index + 1,
-                            name: arr.name || '-',
+                            name: `${arr.name || '-'}.${arr.extension || 'bin'}`,
                             path: arr.file || undefined,
                             approve: undefined,
                             remark: ""
@@ -147,6 +148,7 @@ export default function PDFApproval() {
                     }) : (checkerBefore?.documentOther || []),
                 eightDReportApprover: checkerBefore?.eightDReportApprover || undefined,
                 reqDocumentOther: checkerBefore?.reqDocumentOther || "",
+                approve8dAndRejectDocOther: dataForID.approve8dAndRejectDocOther ?? 'N',
                 dueDateReqDocumentOther: checkerBefore?.dueDateReqDocumentOther ? moment(checkerBefore.dueDateReqDocumentOther).toDate() : undefined,
             })
 
@@ -338,120 +340,146 @@ export default function PDFApproval() {
 
                         {/* Problem Details */}
                         <div className="text-right">
-                            <p className="font-bold">ปัญหา {problemCase}</p>
-                            <p>ความรุนแรงของปัญหา {importanceLevel}</p>
+                            <p className="font-bold">ปัญหา : {problemCase}</p>
+                            <p>ความรุนแรงของปัญหา : {importanceLevel}</p>
                         </div>
                     </div>
 
                     {/* Buttons */}
-                    <div className="flex justify-between items-center mt-2">
-                        <div className="flex gap-4">
-                            <Button
-                                label="Approve"
-                                onClick={() => {
-                                    setFormData((old: FormData) => {
-                                        return {
-                                            ...old,
-                                            approve: 'approve',
-                                            resummit: undefined,
-                                            duedate8d: undefined
-                                        }
-                                    })
-                                }}
-                                style={{ opacity: (!!formData.approve && formData.approve == 'reject') ? .6 : 1 }}
-                                className="bg-blue-800 text-white border-blue-700"
-                            />
-                            <Button
-                                label="Reject"
-                                onClick={() => {
-                                    setFormData((old: FormData) => {
-                                        return {
-                                            ...old,
-                                            approve: 'reject',
-                                            claim: false,
-                                            complain: false,
-                                            replay: undefined,
-                                            eightDReportApprover: ""
-                                        }
-                                    })
-                                }}
-                                style={{ opacity: (!!formData.approve && formData.approve == 'approve') ? .6 : 1 }}
-                                className="bg-red-800 text-white border-red-700"
-                            />
-                            {
-                                reportType == 'Quick Report' ? <>
-                                    <label className="flex items-center font-bold">
-                                        <input
-                                            type="checkbox"
-                                            checked={formData.claim}
-                                            disabled={formData.approve == 'reject'}
-                                            onChange={(e) =>
-                                                setFormData((old: FormData) => {
-                                                    return {
-                                                        ...old,
-                                                        claim: e.target.checked || false,
-                                                        complain: false
-                                                    }
-                                                })
-                                            }
-                                            className="mr-2"
-                                        />
-                                        Claim
-                                    </label>
-                                    <label className="flex items-center font-bold">
-                                        <input
-                                            type="checkbox"
-                                            checked={formData.complain}
-                                            disabled={formData.approve == 'reject'}
-                                            onChange={(e) =>
-                                                setFormData((old: FormData) => {
-                                                    return {
-                                                        ...old,
-                                                        complain: e.target.checked || false,
-                                                        claim: false
-                                                    }
-                                                })
-                                            }
-                                            className="mr-2"
-                                        />
-                                        Complain
-                                    </label>
-                                </> : <></>
-                            }
-
-                        </div>
+                    <div className={formData.approve8dAndRejectDocOther == 'Y' ? "border border-solid border-green-600 bg-green-100 p-2 rounded" : ""}>
                         {
-                            reportType == 'Quick Report' ? <></> :
-                                <div className="flex gap-3">
-                                    <Button
-                                        label="Download 8D Report"
-                                        className="bg-red-600 text-white border-red-600"
-                                        onClick={async () => {
-                                            if (file8D && file8D.file) {
-                                                const response = await fetchFileAsFile(`/${file8D.file}`)
-                                                if (response.ok) {
-                                                    const data = await response.blob();
-                                                    const url = URL.createObjectURL(new Blob([data], { type: 'application/pdf' }));
-                                                    const link = document.createElement("a");
-                                                    link.href = url;
-                                                    link.download = `${file8D.name || '8D_Report.pdf'}`; // กำหนดชื่อไฟล์ที่ดาวน์โหลด
-                                                    document.body.appendChild(link);
-                                                    link.click(); // คลิกเพื่อดาวน์โหลด
-                                                    document.body.removeChild(link);
-                                                } else {
-                                                    toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await response!.json()).message)}`, life: 3000 });
-                                                }
+                            formData.approve8dAndRejectDocOther == 'Y' ? <>
+                                <span className="text-green-800">*8D Report successfully completed</span>
+                            </> : <></>
+                        }
+                        <div className="flex justify-between items-center mt-2">
+                            <div className="flex gap-4">
+                                <Button
+                                    label="Approve"
+                                    onClick={() => {
+                                        if (formData.approve8dAndRejectDocOther == 'Y') {
+                                            return;
+                                        }
+                                        setFormData((old: FormData) => {
+                                            return {
+                                                ...old,
+                                                approve: 'approve',
+                                                resummit: undefined,
+                                                duedate8d: undefined
                                             }
+                                        })
+                                    }}
+                                    // outlined={(!!formData.approve && formData.approve == 'reject')}
+                                    style={{
+                                        opacity: (!!formData.approve && formData.approve == 'reject') ? .6 : 1,
+                                        cursor: formData.approve8dAndRejectDocOther == 'Y' ? "no-drop" : "pointer"
+                                    }}
+                                    className="bg-blue-800 text-white border-blue-700"
+                                // severity="info"
+                                />
+                                <Button
+                                    label="Reject"
+                                    onClick={() => {
+                                        if (formData.approve8dAndRejectDocOther == 'Y') {
+                                            return;
+                                        }
+                                        setFormData((old: FormData) => {
+                                            return {
+                                                ...old,
+                                                approve: 'reject',
+                                                claim: false,
+                                                complain: false,
+                                                replay: undefined,
+                                                eightDReportApprover: ""
+                                            }
+                                        })
+                                    }}
+                                    // severity="danger"
+                                    // outlined={(!!formData.approve && formData.approve == 'approve')}
+                                    style={{
+                                        opacity: (!!formData.approve && formData.approve == 'approve') ? .6 : 1,
+                                        cursor: formData.approve8dAndRejectDocOther == 'Y' ? "no-drop" : "pointer"
+                                    }}
+                                    className="bg-red-800 text-white border-red-700"
+                                />
+                                {
+                                    reportType == 'Quick Report' && formData.approve == 'approve' ? <>
+                                        <label className="flex items-center font-bold">
+                                            <input
+                                                type="checkbox"
+                                                checked={formData.claim}
+                                                disabled={formData.approve == 'reject'}
+                                                onChange={(e) =>
+                                                    setFormData((old: FormData) => {
+                                                        return {
+                                                            ...old,
+                                                            claim: e.target.checked || false,
+                                                            complain: false
+                                                        }
+                                                    })
+                                                }
+                                                className="mr-2"
+                                            />
+                                            Claim
+                                        </label>
+                                        <label className="flex items-center font-bold">
+                                            <input
+                                                type="checkbox"
+                                                checked={formData.complain}
+                                                disabled={formData.approve == 'reject'}
+                                                onChange={(e) => {
+                                                    
+                                                    setFormData((old: FormData) => {
+                                                        return {
+                                                            ...old,
+                                                            complain: e.target.checked || false,
+                                                            claim: false
+                                                        }
+                                                    })
+                                                }
 
-                                        }}
-                                    />
-                                    {/* <Button
+                                                }
+                                                className="mr-2"
+                                            />
+                                            Complain
+                                        </label>
+                                    </> : <></>
+                                }
+
+                            </div>
+                            {
+                                reportType == 'Quick Report' ? <></> :
+                                    <div className="flex gap-3">
+                                        <Button
+                                            label="Download 8D Report"
+                                            className="bg-red-600 text-white border-red-600"
+                                            onClick={async () => {
+                                                if (file8D && file8D.file) {
+                                                    const response = await fetchFileAsFile(`/${file8D.file}`)
+                                                    if (response.ok) {
+                                                        const data = await response.blob();
+                                                        const url = URL.createObjectURL(new Blob([data], { type: 'application/pdf' }));
+                                                        const link = document.createElement("a");
+                                                        link.href = url;
+                                                        link.download = `${file8D.name || '8D_Report.pdf'}`; // กำหนดชื่อไฟล์ที่ดาวน์โหลด
+                                                        document.body.appendChild(link);
+                                                        link.click(); // คลิกเพื่อดาวน์โหลด
+                                                        document.body.removeChild(link);
+                                                    } else {
+                                                        toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await response!.json()).message)}`, life: 3000 });
+                                                    }
+                                                }
+
+                                            }}
+                                        />
+                                        {/* <Button
                                         label="Download other evident document"
                                         className="bg-blue-800 text-white border-blue-700"
                                     /> */}
-                                </div>
-                        }
+                                    </div>
+                            }
 
+                        </div>
                     </div>
 
                     {/* Remark Section */}
@@ -473,7 +501,7 @@ export default function PDFApproval() {
                                     <Calendar
                                         value={formData.duedate8d}
                                         dateFormat="dd/mm/yy"
-                                        placeholder="dd/mm/yy hh:mm"
+                                        placeholder="dd/mm/yy"
                                         showTime
                                         disabled={!(formData.approve == 'reject')}
                                         onChange={(e) => setFormData((old) => { return { ...old, duedate8d: e.value || undefined } })}
@@ -498,11 +526,33 @@ export default function PDFApproval() {
                                                 if (arr.path) {
                                                     const res = await fetchFileAsFile(`/${arr.path}`);
                                                     if (res.ok) {
-                                                        const data = await res.blob();
-                                                        const fileUrl = URL.createObjectURL(data);
-                                                        window.open(fileUrl, '_blank');
+                                                        const blobData = await res.blob();
+                                                        const newFileName = arr.name || 'null.bin';
+                                                        const renamedFile = new File([blobData], newFileName, { type: blobData.type });
+                                                        const fileUrl = URL.createObjectURL(renamedFile);
+
+                                                        // ตรวจสอบประเภทไฟล์ (PDF หรือ Image) เพื่อเปิดในแท็บใหม่
+                                                        const isViewableInTab = blobData.type.startsWith('image/') || blobData.type === 'application/pdf';
+
+                                                        if (isViewableInTab) {
+                                                            // เปิดไฟล์ในแท็บใหม่
+                                                            window.open(fileUrl, '_blank');
+                                                        } else {
+                                                            // ดาวน์โหลดไฟล์ประเภทอื่น
+                                                            const a = document.createElement('a');
+                                                            a.href = fileUrl;
+                                                            a.download = newFileName;
+                                                            document.body.appendChild(a);
+                                                            a.click();
+                                                            document.body.removeChild(a);
+                                                        }
                                                     } else {
-                                                        toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await res!.json()).message)}`, life: 3000 });
+                                                        toast.current?.show({
+                                                            severity: 'error',
+                                                            summary: 'Error',
+                                                            detail: `${JSON.stringify((await res.json()).message)}`,
+                                                            life: 3000
+                                                        });
                                                     }
 
                                                 }
@@ -634,7 +684,7 @@ export default function PDFApproval() {
                                 <Calendar
                                     value={formData.dueDateReqDocumentOther}
                                     dateFormat="dd/mm/yy"
-                                    placeholder="dd/mm/yy hh:mm"
+                                    placeholder="dd/mm/yy"
                                     showTime
                                     onChange={(e) => setFormData((old) => { return { ...old, dueDateReqDocumentOther: e.value || undefined } })}
                                     className="w-full"
@@ -651,11 +701,11 @@ export default function PDFApproval() {
                         reportType == 'Quick Report' ? <>
                             <div className="grid grid-cols-3 gap-4 mt-4">
                                 <div>
-                                    <label className="block font-bold mb-1">Resummit date</label>
+                                    <label className="block font-bold mb-1">Re-Summit Date</label>
                                     <Calendar
                                         value={formData.resummit}
                                         dateFormat="dd/mm/yy"
-                                        placeholder="dd/mm/yy hh:mm:ss"
+                                        placeholder="dd/mm/yy"
                                         showTime
                                         hourFormat="24"
                                         disabled={!(formData.approve == 'reject')}
@@ -666,11 +716,11 @@ export default function PDFApproval() {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block font-bold mb-1">Reply Report date</label>
+                                    <label className="block font-bold mb-1">Reply Report Date</label>
                                     <Calendar
                                         value={formData.replay}
                                         dateFormat="dd/mm/yy"
-                                        placeholder="dd/mm/yy hh:mm:ss"
+                                        placeholder="dd/mm/yy"
                                         showTime
                                         hourFormat="24"
                                         disabled={!(formData.approve == 'approve')}
@@ -709,8 +759,14 @@ export default function PDFApproval() {
             <Footer>
                 <div className="flex justify-end w-full gap-2">
                     <Button
+                        label="BACK"
+                        className="p-button-danger min-w-[150px]"
+                        onClick={() => router.back()}
+                    />
+                    <Button
                         label="Confirm"
                         severity="success"
+                        className="min-w-[150px]"
                         disabled={
                             (
                                 (reportType == '8D Report' &&
@@ -727,12 +783,18 @@ export default function PDFApproval() {
                                         ||
                                         ((
                                             (formData.documentOther.filter((x) => x.approve == 'reject' && !x.remark).length > 0) ||
-                                            (formData.documentOther.filter((x) => x.approve == 'reject').length > 0 && !(formData.dueDateReqDocumentOther))
+                                            (formData.documentOther.filter((x) => x.approve == 'reject' && x.remark).length > 0 && !(formData.dueDateReqDocumentOther))
                                         ))
                                         ||
                                         (
                                             (formData.reqDocumentOther) &&
                                             !(formData.dueDateReqDocumentOther)
+                                        )
+                                        ||
+                                        (
+                                            (formData.dueDateReqDocumentOther) &&
+                                            (!formData.reqDocumentOther && (formData.documentOther.filter((x) => x.approve == 'reject').length == 0))
+
                                         )
                                     )
                                 )
@@ -755,20 +817,24 @@ export default function PDFApproval() {
                         onClick={() => ConfirmData()}
                     />
                     {
-                        reportType == '8D Report' ? <Button
-                            label="Confirm and complete"
-                            className="bg-blue-800 text-white min-w-[150px]"
-                            disabled={
-                                !(reportType == '8D Report' && param.pagekey == 'checker3') ||
-                                (
-                                    !!(formData.approve == 'reject') ||
-                                    !!(formData.approve == undefined) ||
-                                    !!(formData.documentOther.filter((x) => x.approve == 'reject').length) ||
-                                    !!(formData.documentOther.filter((x) => x.approve == undefined).length)
-                                )
-                            }
-                            onClick={() => ConfirmData('completed')}
-                        /> : <></>
+                        reportType == '8D Report' ? <>
+                            <Button
+                                label="Confirm and complete"
+                                className="bg-blue-800 text-white min-w-[150px]"
+                                disabled={
+                                    !(reportType == '8D Report' && (param.pagekey == 'checker3' || (formData.approve8dAndRejectDocOther == 'Y' && param.pagekey == 'checker2'))) ||
+                                    (
+                                        !!(formData.approve == 'reject') ||
+                                        !!(formData.approve == undefined) ||
+                                        !!(formData.documentOther.filter((x) => x.approve == 'reject').length) ||
+                                        !!(formData.documentOther.filter((x) => x.approve == undefined).length) ||
+                                        !!formData.reqDocumentOther ||
+                                        !!formData.dueDateReqDocumentOther
+                                    )
+                                }
+                                onClick={() => ConfirmData('completed')}
+                            />
+                        </> : <></>
                     }
 
                 </div>

@@ -296,7 +296,7 @@ export default function QPRUploadForm() {
                             onChange={(e) => setRemark(e.target.value)}
                             rows={2}
                             disabled
-                            className="w-full border border-gray-300 rounded-md p-2"
+                            className="w-full border border-gray-300  rounded-md p-2"
                         ></textarea>
                     </div>
 
@@ -465,8 +465,13 @@ export default function QPRUploadForm() {
 
             <Footer>
                 <div className="flex justify-between gap-3 w-full">
-                    <Button label="BACK" className="p-button-danger min-w-[150px]" onClick={() => router.back()} />
+                    <div></div>
                     <div className="flex gap-4">
+                        <Button 
+                            label="BACK" 
+                            className="p-button-danger min-w-[150px]" 
+                            onClick={() => router.back()} 
+                        />
                         <Button
                             label="SAVE"
                             className="p-button-primary min-w-[150px]"

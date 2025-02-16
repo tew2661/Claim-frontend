@@ -85,7 +85,7 @@ export default function PictureUploader({ title, defualt, onImageChange }: Pictu
             <input
                 id={keyElement}
                 type="file"
-                accept="image/*"
+                accept="image/png, image/jpeg"
                 className="hidden" // ซ่อน input
                 onChange={handleImageChange}
             />

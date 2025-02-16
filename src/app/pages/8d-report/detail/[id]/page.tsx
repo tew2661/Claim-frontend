@@ -95,12 +95,12 @@ export default function QPRUploadForm() {
 
             const uploadSections = index0object8DReportDto?.object8D && index0object8DReportDto?.object8D?.uploadSections || [];
             const checker = index0object8DReportDto?.checker3 ? index0object8DReportDto?.checker3 : (index0object8DReportDto?.checker2 ? index0object8DReportDto?.checker2 : (index0object8DReportDto?.checker1 ? index0object8DReportDto?.checker1 : undefined))
-            console.log('checker' , checker)
-            setdueDate(checker?.dueDateReqDocumentOther ?? "")
+            console.log('checker', checker)
+            setdueDate(checker?.dueDateReqDocumentOther ? `${moment(checker?.dueDateReqDocumentOther).format('DD MMMM YYYY HH:mm')}` : "")
             setReqDocumentOther(checker?.reqDocumentOther ?? "")
             setUploadSectionsOld(uploadSections);
             setRemarkForReject(checker?.approve == 'reject' && checker?.remark ? `${checker?.remark}` : "")
-            setDueDateReject(`${moment(checker?.duedate8d).format('DD MMMM YYYY')}`)
+            setDueDateReject(checker?.duedate8d ? `${moment(checker?.duedate8d).format('DD MMMM YYYY HH:mm')}` : "")
 
             const documentOther = checker?.documentOther || []
 
@@ -240,8 +240,8 @@ export default function QPRUploadForm() {
                             style={{ width: '100%', height: '100%' }}
                             title="PDF Viewer"
                             frameBorder="0"
-                        /> : <h1 className="text-2xl font-bold">Display QPR Data from JATH</h1> 
-                    } 
+                        /> : <h1 className="text-2xl font-bold">Display QPR Data from JATH</h1>
+                    }
                 </div>
 
                 {/* Upload Section */}
@@ -260,7 +260,7 @@ export default function QPRUploadForm() {
                                 className="p-button"
                             /> */}
 
-                            
+
 
                             <div className="flex items-center">
                                 <Button
@@ -285,14 +285,14 @@ export default function QPRUploadForm() {
                                 <i
                                     className="pi pi-link"
                                     data-pr-tooltip="New tab view file"
-                                    data-pr-position="top" 
+                                    data-pr-position="top"
                                     // style={{ fontSize: '1rem', color: 'blue', cursor: 'pointer', marginLeft: '10px' }}
-                                    style={{ 
+                                    style={{
                                         fontSize: '1rem',
                                         ...upload8DReport ? { color: 'blue' } : { color: 'gray' },
-                                        cursor: 'pointer' , 
+                                        cursor: 'pointer',
                                         marginLeft: '10px'
-                                    }} 
+                                    }}
                                     onClick={(e) => {
                                         if (upload8DReport) {
                                             const fileUrl = URL.createObjectURL(upload8DReport);
@@ -305,26 +305,35 @@ export default function QPRUploadForm() {
 
                         </div>
 
-                        <div className="mt-4">
-                            <Button
-                                label="Download 8D Report"
-                                severity="danger"  
-                                onClick={async () => {
-                                    const response = await fetchFileAsFile(`/qpr/pdf/download/${param.id}`)
-                                    if (response.ok) {
-                                        const data = await response.blob();
-                                        const url = URL.createObjectURL(new Blob([data], { type: 'application/pdf' }));
-                                        const link = document.createElement("a");
-                                        link.href = url;
-                                        link.download = `8D_Report_${qprIssueNo}.pdf`; // กำหนดชื่อไฟล์ที่ดาวน์โหลด
-                                        document.body.appendChild(link);
-                                        link.click(); // คลิกเพื่อดาวน์โหลด
-                                        document.body.removeChild(link);
-                                    } else {
-                                        toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await response!.json()).message)}`, life: 3000 });
-                                    }
-                                }}
-                            />
+                        <div className="mt-4 flex gap-2">
+                            <div>
+                                <Button
+                                    label="Download QPR"
+                                    severity="help"
+                                    // severity="danger"  
+                                    onClick={async () => {
+                                        const response = await fetchFileAsFile(`/qpr/pdf/download/${param.id}`)
+                                        if (response.ok) {
+                                            const data = await response.blob();
+                                            const url = URL.createObjectURL(new Blob([data], { type: 'application/pdf' }));
+                                            const link = document.createElement("a");
+                                            link.href = url;
+                                            link.download = `8D_Report_${qprIssueNo}.pdf`; // กำหนดชื่อไฟล์ที่ดาวน์โหลด
+                                            document.body.appendChild(link);
+                                            link.click(); // คลิกเพื่อดาวน์โหลด
+                                            document.body.removeChild(link);
+                                        } else {
+                                            toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await response!.json()).message)}`, life: 3000 });
+                                        }
+                                    }}
+                                />
+                            </div>
+                            <div>
+                                <Button
+                                    label="Download 8D Excel"
+                                    severity="danger"
+                                />
+                            </div>
                         </div>
                     </div>
 
@@ -348,27 +357,40 @@ export default function QPRUploadForm() {
                                     <div className="flex gap-2 items-center">
                                         <label className="block font-bold">Document Name</label>
                                         {/* <Button icon="pi pi-link" style={{ padding: 0 }} rounded text aria-label="Link" onClick={(e) => opRefs.current[index]?.toggle(e)} /> */}
-                                        <i 
-                                            className="pi pi-link" 
-                                            style={{ 
+                                        <i
+                                            className="pi pi-link"
+                                            style={{
                                                 fontSize: '1rem',
                                                 ...section && section.file ? { color: 'blue' } : { color: 'gray' },
-                                                cursor: 'pointer' 
-                                            }} 
+                                                cursor: 'pointer'
+                                            }}
                                             onClick={(e) => opRefs.current[index]?.toggle(e)}
                                         ></i>
-                                        
-                                        {
-                                            section.file ? <OverlayPanel ref={(el) => { opRefs.current[index] = el || null; }} key={index} >
-                                                <Image 
-                                                    src={URL.createObjectURL(section.file)} 
-                                                    indicatorIcon={<i className="pi pi-search"></i>} 
-                                                    alt="Image" 
-                                                    preview 
-                                                    width="300" 
-                                                />
-                                            </OverlayPanel> : <></>
-                                        }
+
+                                        {section.file ? (
+                                            <OverlayPanel ref={(el) => { opRefs.current[index] = el || null; }} key={index}>
+                                                {section.file.type && !section.file.type.startsWith('image/') ? (
+                                                    <div className="flex flex-col items-center gap-1">
+                                                        <p className="p-0">Your browser does not support this file type.</p>
+                                                        <a
+                                                            href={URL.createObjectURL(section.file)}
+                                                            download={section.file.name || 'file.bin'}
+                                                            style={{ color: 'blue', textDecoration: 'underline', cursor: 'pointer' }}
+                                                        >
+                                                            Click here to download
+                                                        </a>
+                                                    </div>
+                                                ) : (
+                                                    <Image
+                                                        src={URL.createObjectURL(section.file)}
+                                                        indicatorIcon={<i className="pi pi-search"></i>}
+                                                        alt="Image"
+                                                        preview
+                                                        width="300"
+                                                    />
+                                                )}
+                                            </OverlayPanel>
+                                        ) : <></>}
                                     </div>
 
                                     <label className="block font-bold text-red-400">"Max 10mb / Document"</label>
@@ -404,7 +426,7 @@ export default function QPRUploadForm() {
                                 <input
                                     id={'keyElement-image-' + index}
                                     type="file"
-                                    accept="image/*"
+                                    accept="*"
                                     className="hidden"
                                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                                         const file = e.target.files?.[0];
