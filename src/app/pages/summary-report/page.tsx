@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState } from "react";
+import { JSX, useEffect, useRef, useState } from "react";
 import { InputText } from "primereact/inputtext";
 import { Button } from "primereact/button";
 import { DataTable } from "primereact/datatable";
@@ -23,8 +23,8 @@ interface DataSummaryReportTable {
     supplier: string,
     problem: string,
     importance: string,
-    quickReport: string,
-    report8D: string,
+    quickReport: JSX.Element,
+    report8D: JSX.Element,
     status: string,
 }
 
@@ -127,6 +127,24 @@ export default function SummaryReport() {
         );
     };
 
+    function replaceCheckerName8d(checker: string): string {
+        const replacements: Record<string, string> = {
+            "checker1": "Checker1",
+            "checker2": "Approve1",
+            "checker3": "Approve2"
+        };
+        return replacements[checker] ? `(${replacements[checker]})` : checker
+    }
+
+    function replaceCheckerNameQpr(checker: string): string {
+        const replacements: Record<string, string> = {
+            "checker1": "Checker1",
+            "checker2": "Checker2",
+            "checker3": "Approve1"
+        };
+        return replacements[checker] ? `(${replacements[checker]})` : checker
+    }
+
     const GetDatas = async () => {
         const quertString = CreateQueryString({
             ...filters,
@@ -136,6 +154,19 @@ export default function SummaryReport() {
             const res_data = await res.json();
             setTotalRows(res_data.total || 0)
             setQprList((res_data.data || []).map((x: FormDataQpr) => {
+                const objectQPRSupplierNow: any = x.objectQPRSupplier && x.objectQPRSupplier[x.objectQPRSupplier.length - 1] ? x.objectQPRSupplier[x.objectQPRSupplier.length - 1] : undefined;
+                const object8DSupplierNow: any = x.objectQPRSupplier && x.objectQPRSupplier[x.objectQPRSupplier.length - 1] ? x.objectQPRSupplier[x.objectQPRSupplier.length - 1] : undefined;
+
+                const latestCheckerobjectQPR = Object.entries(x)
+                    .filter(([key, value]) => key.startsWith("quickReportDateChecker") && value) // กรองเฉพาะค่าไม่เป็น null หรือ undefined
+                    .sort((a, b) => new Date(b[1]).getTime() - new Date(a[1]).getTime())[0]?.[0] // เรียงตามวันที่และดึงตัวที่มากที่สุด (เช็คว่ามีค่าหรือไม่)
+                    ?.replace("quickReportDateChecker", "checker") || ""; // ถ้าไม่มีค่าเลยให้ return เป็น "No valid checker"
+
+                const latestCheckerobject8D = Object.entries(x)
+                    .filter(([key, value]) => key.startsWith("eightDDateChecker") && value) // กรองเฉพาะค่าไม่เป็น null หรือ undefined
+                    .sort((a, b) => new Date(b[1]).getTime() - new Date(a[1]).getTime())[0]?.[0] // เรียงตามวันที่และดึงตัวที่มากที่สุด (เช็คว่ามีค่าหรือไม่)
+                    ?.replace("eightDDateChecker", "checker") || ""; // ถ้าไม่มีค่าเลยให้ return เป็น "No valid checker"
+
                 return {
                     id: x.id,
                     qprNo: x.qprIssueNo || '',
@@ -143,9 +174,18 @@ export default function SummaryReport() {
                     problem: x.defectiveContents.problemCase || '',
                     importance: (x.importanceLevel || '') + (x.urgent ? ` (Urgent)` : ''),
                     status: x.status,
-                    quickReport: `${x.quickReportDate ?
-                        `${moment(x.quickReportDate).format('DD/MM/YYYY HH:mm:ss')}` : ""} ${x.quickReportStatus ? ` (${x.quickReportStatus})` : ''}`,
-                    report8D: `${x.eightDReportDate ? moment(x.eightDReportDate).format('DD/MM/YYYY HH:mm:ss') : ''} ${x.eightDReportStatus ? ` (${x.eightDReportStatus})` : '-'}`,
+                    quickReport: <div>
+                        <div>{x.quickReportDate ? `${moment(x.quickReportDate).format('DD/MM/YYYY HH:mm:ss')}` : "-"}</div>
+                        <div>{x.quickReportStatus ? `(${x.quickReportStatus})` : '-'}</div>
+                        <div>{latestCheckerobjectQPR && objectQPRSupplierNow[latestCheckerobjectQPR] && objectQPRSupplierNow[latestCheckerobjectQPR].updatedBy ? (`${objectQPRSupplierNow[latestCheckerobjectQPR].updatedBy}`) : "-"}</div>
+                        <div>{replaceCheckerNameQpr(latestCheckerobjectQPR) || '-'}</div>
+                    </div>,
+                    report8D: <div>
+                        <div>{x.eightDReportDate ? `${moment(x.eightDReportDate).format('DD/MM/YYYY HH:mm:ss')}` : "-"}</div>
+                        <div>{x.eightDReportStatus ? `(${x.eightDReportStatus})` : '-'}</div>
+                        <div>{latestCheckerobject8D && object8DSupplierNow[latestCheckerobject8D] && object8DSupplierNow[latestCheckerobject8D].updatedBy ? `${object8DSupplierNow[latestCheckerobject8D].updatedBy}` : "-"}</div>
+                        <div>{replaceCheckerName8d(latestCheckerobject8D) || '-'}</div>
+                    </div>,
                     quickReportClass: x.quickReportStatus == "Approved" ? "text-green-600" :
                         (x.quickReportStatus == "Pending" ? "text-yellow-600" :
                             (x.quickReportStatus == "Rejected" ? "text-red-600" : "text-yellow-600")),
@@ -174,14 +214,35 @@ export default function SummaryReport() {
 
         socket.on("reload-status", (x: FormDataQpr) => {
             setQprList((old: DataSummaryReportTable[]) =>
-                old.map((arr: DataSummaryReportTable) =>
-                    arr.id === x.id
-                        ? {
+                old.map((arr: DataSummaryReportTable) => {
+                    const objectQPRSupplierNow: any = x.objectQPRSupplier && x.objectQPRSupplier[x.objectQPRSupplier.length - 1] ? x.objectQPRSupplier[x.objectQPRSupplier.length - 1] : undefined;
+                    const object8DSupplierNow: any = x.objectQPRSupplier && x.objectQPRSupplier[x.objectQPRSupplier.length - 1] ? x.objectQPRSupplier[x.objectQPRSupplier.length - 1] : undefined;
+
+                    const latestCheckerobjectQPR = Object.entries(x)
+                        .filter(([key, value]) => key.startsWith("quickReportDateChecker") && value) // กรองเฉพาะค่าไม่เป็น null หรือ undefined
+                        .sort((a, b) => new Date(b[1]).getTime() - new Date(a[1]).getTime())[0]?.[0] // เรียงตามวันที่และดึงตัวที่มากที่สุด (เช็คว่ามีค่าหรือไม่)
+                        ?.replace("quickReportDateChecker", "checker") || ""; // ถ้าไม่มีค่าเลยให้ return เป็น "No valid checker"
+
+                    const latestCheckerobject8D = Object.entries(x)
+                        .filter(([key, value]) => key.startsWith("eightDDateChecker") && value) // กรองเฉพาะค่าไม่เป็น null หรือ undefined
+                        .sort((a, b) => new Date(b[1]).getTime() - new Date(a[1]).getTime())[0]?.[0] // เรียงตามวันที่และดึงตัวที่มากที่สุด (เช็คว่ามีค่าหรือไม่)
+                        ?.replace("eightDDateChecker", "checker") || ""; // ถ้าไม่มีค่าเลยให้ return เป็น "No valid checker"
+                    if (arr.id === x.id) {
+                        return {
                             ...arr,
                             status: x.status,
-                            quickReport: `${x.quickReportDate ?
-                                `${moment(x.quickReportDate).format('DD/MM/YYYY HH:mm:ss')}` : ""} ${x.quickReportStatus ? ` (${x.quickReportStatus})` : ''}`,
-                            report8D: `${x.eightDReportDate ? moment(x.eightDReportDate).format('DD/MM/YYYY HH:mm:ss') : ''} ${x.eightDReportStatus ? ` (${x.eightDReportStatus})` : '-'}`,
+                            quickReport: <div>
+                                <div>{x.quickReportDate ? `${moment(x.quickReportDate).format('DD/MM/YYYY HH:mm:ss')}` : "-"}</div>
+                                <div>{x.quickReportStatus ? `(${x.quickReportStatus})` : '-'}</div>
+                                <div>{latestCheckerobjectQPR && objectQPRSupplierNow[latestCheckerobjectQPR] && objectQPRSupplierNow[latestCheckerobjectQPR].updatedBy ? (`${objectQPRSupplierNow[latestCheckerobjectQPR].updatedBy}`) : "-"}</div>
+                                <div>{replaceCheckerNameQpr(latestCheckerobjectQPR) || '-'}</div>
+                            </div>,
+                            report8D: <div>
+                                <div>{x.eightDReportDate ? `${moment(x.eightDReportDate).format('DD/MM/YYYY HH:mm:ss')}` : "-"}</div>
+                                <div>{x.eightDReportStatus ? `(${x.eightDReportStatus})` : '-'}</div>
+                                <div>{latestCheckerobject8D && object8DSupplierNow[latestCheckerobject8D] && object8DSupplierNow[latestCheckerobject8D].updatedBy ? `${object8DSupplierNow[latestCheckerobject8D].updatedBy}` : "-"}</div>
+                                <div>{replaceCheckerName8d(latestCheckerobject8D) || '-'}</div>
+                            </div>,
                             quickReportClass: x.quickReportStatus == "Approved" ? "text-green-600" :
                                 (x.quickReportStatus == "Pending" ? "text-yellow-600" :
                                     (x.quickReportStatus == "Rejected" ? "text-red-600" : "text-yellow-600")),
@@ -189,8 +250,10 @@ export default function SummaryReport() {
                                 ((x.eightDReportStatus == "Pending" || x.eightDReportStatus == "Wait for supplier" || x.eightDReportStatus == "Approved") ? "text-yellow-600" :
                                     (x.eightDReportStatus == "Rejected" ? "text-red-600" : "text-yellow-600")),
                         } as DataSummaryReportTable
-                        : arr
-                )
+                    } else {
+                        return arr
+                    }
+                })
             );
         });
 
@@ -219,7 +282,7 @@ export default function SummaryReport() {
 
     useEffect(() => {
         GetDatas()
-    },[first , rows])
+    }, [first, rows])
 
     return (
         <div className="flex justify-center pt-6 px-6">
@@ -312,13 +375,13 @@ export default function SummaryReport() {
                             setRows(event.rows);
                         }} />}
                 >
-                    <Column field="qprNo" header="QPR No."></Column>
-                    <Column field="supplier" header="Supplier"></Column>
-                    <Column field="problem" header="ปัญหา" bodyStyle={{ width: '30%' }}></Column>
+                    <Column field="qprNo" header="QPR No." bodyStyle={{ width: '10%' }}></Column>
+                    <Column field="supplier" header="Supplier" bodyStyle={{ width: '10%' }}></Column>
+                    <Column field="problem" header="ปัญหา" bodyStyle={{ width: '25%' }}></Column>
                     <Column field="importance" header="Importance Level"></Column>
                     <Column field="quickReport" header="Quick Report" body={quickReportBodyTemplate}></Column>
                     <Column field="report8D" header="8D Report" body={Report8DClassBodyTemplate}></Column>
-                    <Column field="status" header="Status" bodyStyle={{ width: '15%' }}></Column>
+                    <Column field="status" header="Status" bodyStyle={{ width: '10%' }}></Column>
                 </DataTable>
 
                 {/* Export Button */}

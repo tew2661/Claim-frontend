@@ -63,6 +63,13 @@ export default function ProblemReportTable() {
         );
     };
 
+    function replaceStatusName(checker: string): string {
+        const replacements: Record<string, string> = {
+            "Approved": "Submited",
+        };
+        return replacements[checker] ? `${replacements[checker]}` : checker
+    }
+
     const GetDatas = async () => {
         const quertString = CreateQueryString({
             ...filters,
@@ -80,11 +87,7 @@ export default function ProblemReportTable() {
                     qprNo: x.qprIssueNo || '',
                     problem: x.defectiveContents.problemCase || '',
                     severity: (x.importanceLevel || '') + (x.urgent ? ` (Urgent)` : ''),
-                    // eightDReport: `${x.eightDReportSupplierDate ? `${moment(x.eightDReportSupplierDate).format('DD/MM/YYYY')}` : ""} ${x.eightDReportSupplierStatus ? `(${x.eightDReportSupplierStatus})`: ''}`,
-                    // eightDReportClass: x.eightDReportSupplierStatus == "Approved" ? "text-green-600" : (x.eightDReportSupplierStatus == "Pending" || x.eightDReportSupplierStatus == "Save" ? "text-yellow-600" : "text-yellow-600"),
-                    // report8D: `${x.eightDReportDate ? moment(x.eightDReportDate).format('DD/MM/YYYY') : ''}${x.eightDReportStatus ? `(${x.eightDReportStatus})` : '-'}`,
-
-                    eightDReport: `${x.eightDReportSupplierDate ? `${moment(x.eightDReportSupplierDate).format('DD/MM/YYYY HH:mm:ss')}` : ""} ${x.eightDReportSupplierStatus ? ` (${x.eightDReportSupplierStatus})`: ''}`,
+                    eightDReport: `${x.eightDReportSupplierDate ? `${moment(x.eightDReportSupplierDate).format('DD/MM/YYYY HH:mm:ss')}` : ""} ${x.eightDReportSupplierStatus ? ` (${replaceStatusName(x.eightDReportSupplierStatus)})`: ''}`,
                     eightDReportClass: x.eightDReportSupplierStatus == "Approved" ? "text-green-600" : (x.eightDReportSupplierStatus == "Pending" || x.eightDReportSupplierStatus == "Save" ? "text-yellow-600" : "text-red-600"),
                     success: x.eightDReportSupplierStatus == "Approved" 
                 }
@@ -116,7 +119,7 @@ export default function ProblemReportTable() {
                             qprNo: x.qprIssueNo || '',
                             problem: x.defectiveContents.problemCase || '',
                             severity: (x.importanceLevel || '') + (x.urgent ? ` (Urgent)` : ''),
-                            eightDReport: `${x.eightDReportSupplierDate ? `${moment(x.eightDReportSupplierDate).format('DD/MM/YYYY HH:mm:ss')}` : ""} ${x.eightDReportSupplierStatus ? ` (${x.eightDReportSupplierStatus})`: ''}`,
+                            eightDReport: `${x.eightDReportSupplierDate ? `${moment(x.eightDReportSupplierDate).format('DD/MM/YYYY HH:mm:ss')}` : ""} ${x.eightDReportSupplierStatus ? ` (${replaceStatusName(x.eightDReportSupplierStatus)})`: ''}`,
                             eightDReportClass: x.eightDReportSupplierStatus == "Approved" ? "text-green-600" : (x.eightDReportSupplierStatus == "Pending" || x.eightDReportSupplierStatus == "Save" ? "text-yellow-600" : "text-red-600"),
                             success: x.eightDReportSupplierStatus == "Approved" 
                         } as DataActionList;

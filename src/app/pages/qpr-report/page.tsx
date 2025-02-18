@@ -63,6 +63,13 @@ export default function ProblemReportTable() {
         );
     };
 
+    function replaceStatusName(checker: string): string {
+        const replacements: Record<string, string> = {
+            "Approved": "Submited",
+        };
+        return replacements[checker] ? `${replacements[checker]}` : checker
+    }
+
     const GetDatas = async () => {
         const quertString = CreateQueryString({
             ...filters,
@@ -80,9 +87,8 @@ export default function ProblemReportTable() {
                     qprNo: x.qprIssueNo || '',
                     problem: x.defectiveContents.problemCase || '',
                     severity: (x.importanceLevel || '') + (x.urgent ? ` (Urgent)` : ''),
-                    quickReport: `${x.quickReportSupplierDate ? `${moment(x.quickReportSupplierDate).format('DD/MM/YYYY HH:mm:ss')}` : ""} ${x.quickReportSupplierStatus ? ` (${x.quickReportSupplierStatus})`: ''}`,
+                    quickReport: `${x.quickReportSupplierDate ? `${moment(x.quickReportSupplierDate).format('DD/MM/YYYY HH:mm:ss')}` : ""} ${x.quickReportSupplierStatus ? ` (${replaceStatusName(x.quickReportSupplierStatus)})`: ''}`,
                     quickReportClass: x.quickReportSupplierStatus == "Approved" ? "text-green-600" : (x.quickReportSupplierStatus == "Pending" || x.quickReportSupplierStatus == "Save" ? "text-yellow-600" : "text-red-600"),
-                    report8D: `${x.eightDReportDate ? moment(x.eightDReportDate).format('DD/MM/YYYY HH:mm:ss') : ''}${x.eightDReportStatus ? ` (${x.eightDReportStatus})` : '-'}`,
                     success: x.quickReportSupplierStatus == "Approved" 
                 }
             }))
@@ -113,9 +119,8 @@ export default function ProblemReportTable() {
                             qprNo: x.qprIssueNo || '',
                             problem: x.defectiveContents.problemCase || '',
                             severity: (x.importanceLevel || '') + (x.urgent ? ` (Urgent)` : ''),
-                            quickReport: `${x.quickReportSupplierDate ? `${moment(x.quickReportSupplierDate).format('DD/MM/YYYY HH:mm:ss')}` : ""} ${x.quickReportSupplierStatus ? ` (${x.quickReportSupplierStatus})`: ''}`,
+                            quickReport: `${x.quickReportSupplierDate ? `${moment(x.quickReportSupplierDate).format('DD/MM/YYYY HH:mm:ss')}` : ""} ${x.quickReportSupplierStatus ? ` (${replaceStatusName(x.quickReportSupplierStatus)})`: ''}`,
                             quickReportClass: x.quickReportSupplierStatus == "Approved" ? "text-green-600" : (x.quickReportSupplierStatus == "Pending" || x.quickReportSupplierStatus == "Save" ? "text-yellow-600" : "text-red-600"),
-                            report8D: `${x.eightDReportDate ? moment(x.eightDReportDate).format('DD/MM/YYYY HH:mm:ss') : ''}${x.eightDReportStatus ? ` (${x.eightDReportStatus})` : '-'}`,
                             success: x.quickReportSupplierStatus == "Approved" 
                         } as DataActionList;
                     } else {

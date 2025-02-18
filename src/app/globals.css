@@ -141,6 +141,9 @@ body {
   background-color: #373535;
   color: #e9ecef;
   font-weight: 800;
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
 .p-datatable .p-datatable-footer {
