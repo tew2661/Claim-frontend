@@ -107,7 +107,8 @@ export interface FormDataQpr {
     eightDDateChecker2?: string,
     eightDStatusChecker3?: "Pending" | "Approved" | "Rejected" | "Completed",
     eightDDateChecker3?: string,
-    approve8dAndRejectDocOther?: 'Y' | 'N'
+    approve8dAndRejectDocOther?: 'Y' | 'N',
+    eightDReportApprover?: string
 }
 
 

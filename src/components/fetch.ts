@@ -35,7 +35,7 @@ const RefreshToken = async () => {
         },
         body: JSON.stringify(body)
     });
-    if(data.status == 201){
+    if(data.ok){
         const res: any = await data.json();
         localStorage.setItem('access_token' , res.result.access_token)
         localStorage.setItem('refresh_token' , res.result.refresh_token)

@@ -42,6 +42,8 @@ export default function ApprovedTable(props: { checker: 1 | 2 | 3 }) {
     const [totalRows, setTotalRows] = useState<number>(10);
     const router = useRouter()
 
+    const role: string = localStorage.getItem('role')!
+
     const [filters, setFilters] = useState<FilterApprove>({
         qprNo: "",
         supplier: "All",
@@ -66,14 +68,17 @@ export default function ApprovedTable(props: { checker: 1 | 2 | 3 }) {
 
     const getActionStatus = (x: FormDataQpr, checker: number): boolean => {
         const key = `${checker}-${x.delayDocument}` as `${1 | 2 | 3}-Quick Report` | `${1 | 2 | 3}-8D Report`;
-    
+        
         const conditions: Record<`${1 | 2 | 3}-Quick Report` | `${1 | 2 | 3}-8D Report`, boolean> = {
-            "1-Quick Report": x.quickReportStatus === 'Pending' && !x.quickReportStatusChecker1,
-            "2-Quick Report": x.quickReportStatus === 'Pending' && x.quickReportStatusChecker1 === 'Approved' && !x.quickReportStatusChecker2,
-            "3-Quick Report": x.quickReportStatus === 'Pending' && x.quickReportStatusChecker2 === 'Approved' && !x.quickReportStatusChecker3,
-            "1-8D Report": x.eightDReportStatus === 'Pending' && !x.eightDStatusChecker1,
-            "2-8D Report": x.eightDReportStatus === 'Pending' && x.eightDStatusChecker1 === 'Approved' && !x.eightDStatusChecker2,
-            "3-8D Report": (x.eightDReportStatus === 'Pending' && x.eightDStatusChecker2 === 'Approved' && !x.eightDStatusChecker3) || (x.eightDStatusChecker3 === "Approved" && x.eightDStatusChecker2 !== 'Completed'),
+            "1-Quick Report": x.quickReportStatus !== 'Rejected' && x.quickReportSupplierStatus == "Approved" && !x.quickReportStatusChecker1,
+            "2-Quick Report": x.quickReportStatus !== 'Rejected' && x.quickReportSupplierStatus == "Approved" && x.quickReportStatusChecker1 === 'Approved' && !x.quickReportStatusChecker2,
+            "3-Quick Report": x.quickReportStatus !== 'Rejected' && x.quickReportSupplierStatus == "Approved" && x.quickReportStatusChecker2 === 'Approved' && !x.quickReportStatusChecker3,
+            "1-8D Report": x.eightDReportStatus !== 'Rejected' && x.eightDReportSupplierStatus == "Approved" && !x.eightDStatusChecker1,
+            "2-8D Report": x.eightDReportStatus !== 'Rejected' && x.eightDReportSupplierStatus == "Approved" && x.eightDStatusChecker1 === 'Approved' && !x.eightDStatusChecker2,
+            "3-8D Report": (
+                (x.eightDReportStatus !== 'Rejected' && x.eightDReportSupplierStatus == "Approved" && x.eightDStatusChecker2 === 'Approved' && !x.eightDStatusChecker3) || 
+                (x.eightDStatusChecker3 === "Approved" && x.eightDReportSupplierStatus == "Approved" && x.eightDStatusChecker2 !== 'Completed')
+            ) && x.eightDReportApprover === role,
         };
     
         return conditions[key] ?? false;
@@ -279,7 +284,7 @@ export default function ApprovedTable(props: { checker: 1 | 2 | 3 }) {
                     <Column field="qprNo" header="QPR No."></Column>
                     <Column field="supplier" header="Supplier"></Column>
                     <Column field="reportType" header="Report Type"></Column>
-                    <Column field="problem" header="ปัญหา" bodyStyle={{ width: '30%' }}></Column>
+                    <Column field="problem" header="Problem" bodyStyle={{ width: '30%' }}></Column>
                     <Column field="importance" header="Importance Level"></Column>
                     <Column field="status" header="Status" bodyStyle={{ textAlign: 'center', width: '15%' }}></Column>
                     <Column body={actionBodyTemplate} header="Action" bodyStyle={{ textAlign: 'center' }}></Column>

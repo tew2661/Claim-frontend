@@ -311,7 +311,7 @@ export default function UserManagement() {
                 <div className="flex gap-2 mx-4 mb-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 w-[calc(100%-100px)]">
                         <div className="flex flex-col gap-2 w-full">
-                            <label htmlFor="userCode">รหัสพนักงาน</label>
+                            <label htmlFor="userCode">Employee ID</label>
                             <InputText
                                 id="userCode"
                                 value={filters.code}
@@ -321,7 +321,7 @@ export default function UserManagement() {
 
                         </div>
                         <div className="flex flex-col gap-2 w-full">
-                            <label htmlFor="username">ชื่อพนักงาน</label>
+                            <label htmlFor="username">Name</label>
                             <InputText
                                 id="username"
                                 value={filters.name}
@@ -352,9 +352,9 @@ export default function UserManagement() {
                             setFirst(event.first);
                             setRows(event.rows);
                         }} />}>
-                    <Column field="code" header="รหัสพนักงาน" style={{ width: '10%', textAlign: 'center' }}></Column>
-                    <Column field="name" header="ชื่อพนักงาน" style={{ width: '35%' }}></Column>
-                    <Column field="department" header="หน่วยงาน" style={{ width: '20%' }}></Column>
+                    <Column field="code" header="Employee ID" style={{ width: '10%', textAlign: 'center' }}></Column>
+                    <Column field="name" header="Name" style={{ width: '35%' }}></Column>
+                    <Column field="department" header="Department" style={{ width: '20%' }}></Column>
                     <Column field="role" header="Role" style={{ width: '15%', textAlign: 'center' }}></Column>
                     <Column field="email" header="Email" style={{ width: '20%' }}></Column>
                     <Column field="active" header="Active" body={(arr: UserData) => {
@@ -407,7 +407,7 @@ export default function UserManagement() {
                             </div>
                         </> : <>
                             <div className="flex flex-col gap-2 w-full">
-                                <label htmlFor="code">รหัสพนักงาน</label>
+                                <label htmlFor="code">Employee ID</label>
                                 <InputText
                                     id="code"
                                     value={newUser.code}
@@ -417,7 +417,7 @@ export default function UserManagement() {
                                 />
                             </div>
                             <div className="flex flex-col gap-2 w-full">
-                                <label htmlFor="name">ชื่อพนักงาน</label>
+                                <label htmlFor="name">Name</label>
                                 <InputText
                                     id="name"
                                     value={newUser.name}
@@ -427,7 +427,7 @@ export default function UserManagement() {
                                 />
                             </div>
                             <div className="flex flex-col gap-2 w-full">
-                                <label htmlFor="department">หน่วยงาน</label>
+                                <label htmlFor="department">Department</label>
                                 <InputText
                                     id="department"
                                     value={newUser.department}

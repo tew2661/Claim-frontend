@@ -99,7 +99,7 @@ export default function QPRUploadForm() {
             setdueDate(checker?.dueDateReqDocumentOther ? `${moment(checker?.dueDateReqDocumentOther).format('DD MMMM YYYY HH:mm')}` : "")
             setReqDocumentOther(checker?.reqDocumentOther ?? "")
             setUploadSectionsOld(uploadSections);
-            setRemarkForReject(checker?.approve == 'reject' && checker?.remark ? `${checker?.remark}` : "")
+            setRemarkForReject(checker?.remark ? `${checker?.remark}` : "")
             setDueDateReject(checker?.duedate8d ? `${moment(checker?.duedate8d).format('DD MMMM YYYY HH:mm')}` : "")
 
             const documentOther = checker?.documentOther || []
@@ -339,8 +339,8 @@ export default function QPRUploadForm() {
 
                     {
                         dueDate || reqDocumentOther || remarkForReject ? <div className="flex flex-col my-2 bg-red-200 p-2 gap-2">
-                            <div>{remarkForReject ? <b className="mr-4">Reject: </b> : <></>} {remarkForReject}</div>
-                            <div>{dueDateReject ? <b className="mr-4">Due Date :</b> : ''} {dueDateReject}</div>
+                            <div>{remarkForReject ? <b className="mr-4">Remark: </b> : <></>} {remarkForReject}</div>
+                            <div>{dueDateReject ? <b className="mr-4">Due Date :</b> : '-------------------------------------------------------'} {dueDateReject}</div>
                             <div>{reqDocumentOther ? <b className="mr-4">เอกสารที่ต้องการเพิ่มเติม :</b> : ''} {reqDocumentOther}</div>
                             <div>{dueDate ? <b className="mr-4">Due Date (เอกสารที่ต้องการเพิ่มเติม) :</b> : ''} {dueDate}</div>
                         </div> : <></>

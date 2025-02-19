@@ -164,9 +164,9 @@ export default function ReportTable() {
                 >
                     <Column field="qprNo" header="QPR No."></Column>
                     <Column field="supplier" header="Supplier"></Column>
-                    <Column field="problem" header="ปัญหา"></Column>
-                    <Column field="importance" header="Importance Level"></Column>
-                    <Column field="delayDocument" header="Delay Document"></Column>
+                    <Column field="problem" header="Problem"></Column>
+                    <Column field="importance" header="Importance Level" bodyStyle={{ textAlign: 'center' }}></Column>
+                    <Column field="delayDocument" header="Document Type" bodyStyle={{ textAlign: 'center' }}></Column>
                     <Column field="commitmentDate" header="Commitment Date"></Column>
                     <Column field="delayDays" header="Delay (Date)" bodyStyle={{ textAlign: 'center' }}></Column>
                     {/* <Column body={actionBodyTemplate} header="" bodyStyle={{ textAlign: 'center' }}></Column> */}

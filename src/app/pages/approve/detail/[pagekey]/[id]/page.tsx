@@ -83,6 +83,11 @@ export default function PDFApproval() {
             } else if (dataForID.delayDocument == '8D Report') {
                 object8DReportDto = dataForID?.object8DReportDto && dataForID?.object8DReportDto.length ? dataForID?.object8DReportDto[dataForID?.object8DReportDto.length - 1] : undefined
                 remark = object8DReportDto && object8DReportDto?.object8D ? (object8DReportDto?.object8D.remark || '') : '';
+
+                if (!object8DReportDto.checker1 && !object8DReportDto.checker2 && !object8DReportDto.checker3 && dataForID?.object8DReportDto.length > 1) {
+                    const afer = ((dataForID?.object8DReportDto.length - 2) >= 0) && dataForID?.object8DReportDto[dataForID?.object8DReportDto.length - 2] ? dataForID?.object8DReportDto[dataForID?.object8DReportDto.length - 2] : undefined ;
+                    remark = afer && afer?.object8D ? (afer?.object8D.remark || '') : '';
+                }
             }
 
             if (dataForID.delayDocument == 'Quick Report') {
@@ -120,7 +125,8 @@ export default function PDFApproval() {
             setProblemCase(dataForID.defectiveContents && dataForID.defectiveContents.problemCase ? dataForID.defectiveContents.problemCase : '');
             setImportanceLevel(dataForID.importanceLevel ? `${dataForID.importanceLevel} ${dataForID.urgent ? '(Urgent)' : ''}` : '');
 
-            let checkerBefore = undefined
+            let checkerBefore = undefined;
+
             if (dataForID.delayDocument == 'Quick Report') {
                 checkerBefore = param.pagekey == 'checker2' ? objectQPRSupplier.checker1 : (param.pagekey == 'checker3' ? objectQPRSupplier.checker2 : undefined)
             } else if (dataForID.delayDocument == '8D Report') {
@@ -340,8 +346,8 @@ export default function PDFApproval() {
 
                         {/* Problem Details */}
                         <div className="text-right">
-                            <p className="font-bold">ปัญหา : {problemCase}</p>
-                            <p>ความรุนแรงของปัญหา : {importanceLevel}</p>
+                            <p className="font-bold">Problem : {problemCase}</p>
+                            <p>ความรุนแรงของProblem : {importanceLevel}</p>
                         </div>
                     </div>
 

@@ -167,7 +167,7 @@ export default function ProblemReportTable() {
                             </div>
                             <div className="flex flex-col">
                                 <label htmlFor="severity" className="font-bold mb-2">
-                                    ระดับความรุนแรง
+                                    Important Level
                                 </label>
                                 <Dropdown 
                                     value={filters.severity} 
@@ -238,8 +238,8 @@ export default function ProblemReportTable() {
                     >
                         <Column field="date" header="Date" bodyStyle={{ width: '10%' }} />
                         <Column field="qprNo" header="QPR No"  />
-                        <Column field="problem" header="ปัญหา" bodyStyle={{ width: '30%' }} />
-                        <Column field="severity" header="ระดับความรุนแรง" bodyStyle={{ textAlign: 'center' }} />
+                        <Column field="problem" header="Problem" bodyStyle={{ width: '30%' }} />
+                        <Column field="severity" header="Important Level" bodyStyle={{ textAlign: 'center' }} />
                         <Column
                             field="quickReport"
                             header="Quick Report"

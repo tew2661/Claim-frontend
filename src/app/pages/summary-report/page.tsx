@@ -25,7 +25,7 @@ interface DataSummaryReportTable {
     importance: string,
     quickReport: JSX.Element,
     report8D: JSX.Element,
-    status: string,
+    status: JSX.Element,
 }
 
 interface FilterSummaryReport {
@@ -127,11 +127,11 @@ export default function SummaryReport() {
         );
     };
 
-    function replaceCheckerName8d(checker: string): string {
+    function replaceCheckerName8d(checker: string , approve8dAndRejectDocOther: 'Y' | 'N'): string {
         const replacements: Record<string, string> = {
             "checker1": "Checker1",
             "checker2": "Approve1",
-            "checker3": "Approve2"
+            ...approve8dAndRejectDocOther === 'N' ? { "checker3": "Approve2" }: {}
         };
         return replacements[checker] ? `(${replacements[checker]})` : checker
     }
@@ -173,7 +173,16 @@ export default function SummaryReport() {
                     supplier: x.supplier?.supplierName || '',
                     problem: x.defectiveContents.problemCase || '',
                     importance: (x.importanceLevel || '') + (x.urgent ? ` (Urgent)` : ''),
-                    status: x.status,
+                    status: <div
+                        className={`font-bold w-[200px] flex gap-2 ${x.status === "Completed"
+                            ? "text-green-600"
+                            : x.status === "Rejected"
+                                ? "text-red-600"
+                                : "text-yellow-500"
+                            }`}
+                    >
+                        <div className="w-[170px]">{x.status}</div>
+                    </div>,
                     quickReport: <div>
                         <div>{x.quickReportDate ? `${moment(x.quickReportDate).format('DD/MM/YYYY HH:mm:ss')}` : "-"}</div>
                         <div>{x.quickReportStatus ? `(${x.quickReportStatus})` : '-'}</div>
@@ -182,15 +191,15 @@ export default function SummaryReport() {
                     </div>,
                     report8D: <div>
                         <div>{x.eightDReportDate ? `${moment(x.eightDReportDate).format('DD/MM/YYYY HH:mm:ss')}` : "-"}</div>
-                        <div>{x.eightDReportStatus ? `(${x.eightDReportStatus})` : '-'}</div>
+                        <div>{x.eightDReportStatus ? `(${x.eightDReportStatus} ${x.approve8dAndRejectDocOther == 'Y' ? "Doc Other" : ""})` : '-'}</div>
                         <div>{latestCheckerobject8D && object8DSupplierNow[latestCheckerobject8D] && object8DSupplierNow[latestCheckerobject8D].updatedBy ? `${object8DSupplierNow[latestCheckerobject8D].updatedBy}` : "-"}</div>
-                        <div>{replaceCheckerName8d(latestCheckerobject8D) || '-'}</div>
+                        <div>{replaceCheckerName8d(latestCheckerobject8D , x.approve8dAndRejectDocOther || 'N') || '-'}</div>
                     </div>,
                     quickReportClass: x.quickReportStatus == "Approved" ? "text-green-600" :
                         (x.quickReportStatus == "Pending" ? "text-yellow-600" :
                             (x.quickReportStatus == "Rejected" ? "text-red-600" : "text-yellow-600")),
-                    report8DClass: x.eightDReportStatus == "Completed" ? "text-green-600" :
-                        ((x.eightDReportStatus == "Pending" || x.eightDReportStatus == "Wait for supplier" || x.eightDReportStatus == "Approved") ? "text-yellow-600" :
+                    report8DClass: x.eightDReportStatus == "Completed" || x.eightDReportStatus == "Approved" ? "text-green-600" :
+                        ((x.eightDReportStatus == "Pending" || x.eightDReportStatus == "Wait for supplier") ? "text-yellow-600" :
                             (x.eightDReportStatus == "Rejected" ? "text-red-600" : "text-yellow-600")),
 
                 }
@@ -230,7 +239,16 @@ export default function SummaryReport() {
                     if (arr.id === x.id) {
                         return {
                             ...arr,
-                            status: x.status,
+                            status: <div
+                                className={`font-bold w-[200px] flex gap-2 ${x.status === "Completed"
+                                    ? "text-green-600"
+                                    : x.status === "Rejected"
+                                        ? "text-red-600"
+                                        : "text-yellow-500"
+                                    }`}
+                            >
+                                <div className="w-[170px]">{x.status}</div>
+                            </div>,
                             quickReport: <div>
                                 <div>{x.quickReportDate ? `${moment(x.quickReportDate).format('DD/MM/YYYY HH:mm:ss')}` : "-"}</div>
                                 <div>{x.quickReportStatus ? `(${x.quickReportStatus})` : '-'}</div>
@@ -239,15 +257,15 @@ export default function SummaryReport() {
                             </div>,
                             report8D: <div>
                                 <div>{x.eightDReportDate ? `${moment(x.eightDReportDate).format('DD/MM/YYYY HH:mm:ss')}` : "-"}</div>
-                                <div>{x.eightDReportStatus ? `(${x.eightDReportStatus})` : '-'}</div>
+                                <div>{x.eightDReportStatus ? `(${x.eightDReportStatus}) ${x.approve8dAndRejectDocOther == 'Y' ? "Doc Other" : ""}` : '-'}</div>
                                 <div>{latestCheckerobject8D && object8DSupplierNow[latestCheckerobject8D] && object8DSupplierNow[latestCheckerobject8D].updatedBy ? `${object8DSupplierNow[latestCheckerobject8D].updatedBy}` : "-"}</div>
-                                <div>{replaceCheckerName8d(latestCheckerobject8D) || '-'}</div>
+                                <div>{replaceCheckerName8d(latestCheckerobject8D, x.approve8dAndRejectDocOther || 'N') || '-'}</div>
                             </div>,
                             quickReportClass: x.quickReportStatus == "Approved" ? "text-green-600" :
                                 (x.quickReportStatus == "Pending" ? "text-yellow-600" :
                                     (x.quickReportStatus == "Rejected" ? "text-red-600" : "text-yellow-600")),
-                            report8DClass: x.eightDReportStatus == "Completed" ? "text-green-600" :
-                                ((x.eightDReportStatus == "Pending" || x.eightDReportStatus == "Wait for supplier" || x.eightDReportStatus == "Approved") ? "text-yellow-600" :
+                            report8DClass: x.eightDReportStatus == "Completed" || x.eightDReportStatus == "Approved" ? "text-green-600" :
+                                ((x.eightDReportStatus == "Pending" || x.eightDReportStatus == "Wait for supplier") ? "text-yellow-600" :
                                     (x.eightDReportStatus == "Rejected" ? "text-red-600" : "text-yellow-600")),
                         } as DataSummaryReportTable
                     } else {
@@ -377,8 +395,8 @@ export default function SummaryReport() {
                 >
                     <Column field="qprNo" header="QPR No." bodyStyle={{ width: '10%' }}></Column>
                     <Column field="supplier" header="Supplier" bodyStyle={{ width: '10%' }}></Column>
-                    <Column field="problem" header="ปัญหา" bodyStyle={{ width: '25%' }}></Column>
-                    <Column field="importance" header="Importance Level"></Column>
+                    <Column field="problem" header="Problem" bodyStyle={{ width: '25%' }}></Column>
+                    <Column field="importance" header="Importance Level" bodyStyle={{ width: '10%' }}></Column>
                     <Column field="quickReport" header="Quick Report" body={quickReportBodyTemplate}></Column>
                     <Column field="report8D" header="8D Report" body={Report8DClassBodyTemplate}></Column>
                     <Column field="status" header="Status" bodyStyle={{ width: '10%' }}></Column>
