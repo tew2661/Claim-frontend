@@ -81,6 +81,12 @@ const Header = (props: { IsJtekt: boolean }) => {
                 icon: undefined,
                 url: "/pages/delay",
             }] : [],
+            ...IsJtekt ? [{
+                label: 'History',
+                items: [],
+                icon: undefined,
+                url: "/pages/history",
+            }] : [],
             ...!IsJtekt ? [{
                 label: 'Action List',
                 items: [],
@@ -102,7 +108,7 @@ const Header = (props: { IsJtekt: boolean }) => {
         ];
         setMenuList(menuList);
 
-    }, [])
+    }, [role])
 
     const socketRef = useRef<Socket | null>(null);
     useEffect(() => {
