@@ -11,11 +11,12 @@ import { Calendar } from "primereact/calendar";
 import { Nullable } from "primereact/ts-helpers";
 import { CreateQueryString, Get, FetchFileAsFile } from "@/components/fetch";
 import { Toast } from "primereact/toast";
-import { Defect, FormDataQpr } from "../create-qpr/page";
+import { FormDataQpr } from "../create-qpr/page";
 import { getSocket } from "@/components/socket/socket";
 import moment from "moment";
 import { Dropdown, DropdownChangeEvent } from "primereact/dropdown";
 import { Socket } from "socket.io-client";
+import { Dialog } from "primereact/dialog";
 
 interface DataSummaryReportTable {
     id: number,
@@ -26,6 +27,16 @@ interface DataSummaryReportTable {
     quickReport: JSX.Element,
     report8D: JSX.Element,
     status: JSX.Element,
+}
+
+interface DataHistoryTable {
+    id: number,
+    qprNo: string,
+    documentType: string,
+    action: string,
+    performedBy: any
+    performedAt: string,
+    remark: string
 }
 
 interface FilterSummaryReport {
@@ -40,6 +51,9 @@ export default function SummaryReport() {
     const [first, setFirst] = useState(0);
     const [rows, setRows] = useState(10);
     const [totalRows, setTotalRows] = useState(10);
+    const [firstHistory, setFirstHistory] = useState(0);
+    const [rowsHistory, setRowsHistory] = useState(10);
+    const [totalRowsHistory, setTotalRowsHistory] = useState(10);
     const [qprList, setQprList] = useState<DataSummaryReportTable[]>([])
     const [filters, setFilters] = useState<FilterSummaryReport>({
         qprNo: "",
@@ -48,13 +62,32 @@ export default function SummaryReport() {
         status: "All",
     });
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>, field: string) => {
+    const [visibleHistory, setVisibleHistory] = useState<boolean>(false);
+    const [selectedReportHistory, setSelectedReportHistory] = useState<DataHistoryTable[]>([]);
+    const [qprNo, setQprNo] = useState<string>('');
+    const fetchReportHistory = async (qprNo: string) => {
+        setQprNo(qprNo);
+        const res = await Get({ url: `/logs?limit=${rowsHistory}&offset=${firstHistory}&qprNo=${qprNo}` });
+        if (res.ok) {
+            const res_data = await res.json();
+            setTotalRowsHistory(res_data.total || 0);
+            setSelectedReportHistory((res_data.data || []).map((x: any) => {
+                return {
+                    ...x,
+                    performedAt: x.performedAt ? moment(x.performedAt).format('DD/MM/YYYY HH:mm:ss'): ""
+                } as DataHistoryTable;
+            }));
+            setVisibleHistory(true);
+        } else {
+            toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await res!.json()).message)}`, life: 3000 });
+        }
+    };
+
+    const updateFilterCriteria = (e: React.ChangeEvent<HTMLInputElement>, field: string) => {
         setFilters({ ...filters, [field]: e.target.value });
     };
 
-    const exportToExcel = async () => {
-        // Add logic to export data to Excel here
-        console.log("Exporting to Excel...");
+    const exportSummaryReportToExcel = async () => {
         const exportExcel = await FetchFileAsFile(`/qpr/summary-report/exportExcel`);
         if (exportExcel.ok) {
             const data = await exportExcel.blob();
@@ -71,7 +104,7 @@ export default function SummaryReport() {
         }
     };
 
-    const openPdfQuickReport = async (id: number) => {
+    const viewQuickReportPdf = async (id: number) => {
         const response = await FetchFileAsFile(`/qpr/pdf/view/${id}`)
         if (response.ok) {
             const data = await response.blob();
@@ -83,7 +116,7 @@ export default function SummaryReport() {
         }
     }
 
-    const openPdfEightDReport = async (id: number) => {
+    const viewEightDReportPdf = async (id: number) => {
         const response = await FetchFileAsFile(`/qpr/pdf/view-8d/${id}`)
         if (response.ok) {
             const data = await response.blob();
@@ -106,7 +139,7 @@ export default function SummaryReport() {
                     }`}
             >
                 <div className="w-[170px]">{rowData.quickReport}</div>
-                <Button icon="pi pi-eye" style={{ padding: 0 }} severity="secondary" outlined rounded onClick={() => openPdfQuickReport(rowData.id)} />
+                <Button icon="pi pi-eye" style={{ padding: 0 }} severity="secondary" outlined rounded onClick={() => viewQuickReportPdf(rowData.id)} />
             </div>
         );
     };
@@ -122,16 +155,16 @@ export default function SummaryReport() {
                     }`}
             >
                 <div className="w-[170px]">{rowData.report8D}</div>
-                <Button icon="pi pi-eye" style={{ padding: 0 }} severity="secondary" outlined rounded onClick={() => openPdfEightDReport(rowData.id)} />
+                <Button icon="pi pi-eye" style={{ padding: 0 }} severity="secondary" outlined rounded onClick={() => viewEightDReportPdf(rowData.id)} />
             </div>
         );
     };
 
-    function replaceCheckerName8d(checker: string , approve8dAndRejectDocOther: 'Y' | 'N'): string {
+    function replaceCheckerName8d(checker: string, approve8dAndRejectDocOther: 'Y' | 'N'): string {
         const replacements: Record<string, string> = {
             "checker1": "Checker1",
             "checker2": "Approve1",
-            ...approve8dAndRejectDocOther === 'N' ? { "checker3": "Approve2" }: {}
+            ...approve8dAndRejectDocOther === 'N' ? { "checker3": "Approve2" } : {}
         };
         return replacements[checker] ? `(${replacements[checker]})` : checker
     }
@@ -145,7 +178,7 @@ export default function SummaryReport() {
         return replacements[checker] ? `(${replacements[checker]})` : checker
     }
 
-    const GetDatas = async () => {
+    const fetchSummaryReportData = async () => {
         const quertString = CreateQueryString({
             ...filters,
         });
@@ -193,7 +226,7 @@ export default function SummaryReport() {
                         <div>{x.eightDReportDate ? `${moment(x.eightDReportDate).format('DD/MM/YYYY HH:mm:ss')}` : "-"}</div>
                         <div>{x.eightDReportStatus ? `(${x.eightDReportStatus} ${x.approve8dAndRejectDocOther == 'Y' ? "Doc Other" : ""})` : '-'}</div>
                         <div>{latestCheckerobject8D && object8DSupplierNow[latestCheckerobject8D] && object8DSupplierNow[latestCheckerobject8D].updatedBy ? `${object8DSupplierNow[latestCheckerobject8D].updatedBy}` : "-"}</div>
-                        <div>{replaceCheckerName8d(latestCheckerobject8D , x.approve8dAndRejectDocOther || 'N') || '-'}</div>
+                        <div>{replaceCheckerName8d(latestCheckerobject8D, x.approve8dAndRejectDocOther || 'N') || '-'}</div>
                     </div>,
                     quickReportClass: x.quickReportStatus == "Approved" ? "text-green-600" :
                         (x.quickReportStatus == "Pending" ? "text-yellow-600" :
@@ -210,7 +243,7 @@ export default function SummaryReport() {
     }
 
     const socketRef = useRef<Socket | null>(null);
-    const SocketConnect = () => {
+    const establishSocketConnection = () => {
         if (!socketRef.current) {
             socketRef.current = getSocket();
         }
@@ -218,7 +251,7 @@ export default function SummaryReport() {
         const socket = socketRef.current;
         // Listen for an event
         socket.on("create-qpr", (data: any) => {
-            GetDatas();
+            fetchSummaryReportData();
         });
 
         socket.on("reload-status", (x: FormDataQpr) => {
@@ -282,7 +315,7 @@ export default function SummaryReport() {
     }
 
     const [supplier, setSupplier] = useState<{ label: string, value: string }[]>([]);
-    const GetSupplier = async () => {
+    const fetchSupplierData = async () => {
         const res = await Get({ url: `/supplier/dropdown` });
         if (res.ok) {
             const res_data = await res.json();
@@ -293,14 +326,18 @@ export default function SummaryReport() {
     }
 
     useEffect(() => {
-        GetDatas()
-        SocketConnect();
-        GetSupplier();
+        fetchSummaryReportData()
+        establishSocketConnection();
+        fetchSupplierData();
     }, [])
 
     useEffect(() => {
-        GetDatas()
+        fetchSummaryReportData()
     }, [first, rows])
+
+    useEffect(() => {
+        fetchReportHistory(qprNo);
+    }, [firstHistory, rowsHistory])
 
     return (
         <div className="flex justify-center pt-6 px-6">
@@ -327,7 +364,7 @@ export default function SummaryReport() {
                             <InputText
                                 id="qprNo"
                                 value={filters.qprNo}
-                                onChange={(e) => handleInputChange(e, "qprNo")}
+                                onChange={(e) => updateFilterCriteria(e, "qprNo")}
                                 className="w-full"
                             />
 
@@ -337,12 +374,12 @@ export default function SummaryReport() {
                             {/* <InputText
                                 id="supplier"
                                 value={filters.supplier}
-                                onChange={(e) => handleInputChange(e, "supplier")}
+                                onChange={(e) => updateFilterCriteria(e, "supplier")}
                                 className="w-full"
                             /> */}
                             <Dropdown
                                 value={filters.supplier || ""}
-                                onChange={(e: DropdownChangeEvent) => handleInputChange({ target: { value: e.value } } as React.ChangeEvent<HTMLInputElement>, "supplier")}
+                                onChange={(e: DropdownChangeEvent) => updateFilterCriteria({ target: { value: e.value } } as React.ChangeEvent<HTMLInputElement>, "supplier")}
                                 options={[{ label: 'All', value: 'All' }, ...supplier]}
                                 optionLabel="label"
                                 // placeholder="Select Supplier" 
@@ -371,7 +408,7 @@ export default function SummaryReport() {
                     <div className="w-[100px]">
                         <div className="flex flex-col gap-2">
                             <label>&nbsp;</label>
-                            <Button label="Search" icon="pi pi-search" onClick={() => GetDatas()} />
+                            <Button label="Search" icon="pi pi-search" onClick={() => fetchSummaryReportData()} />
                         </div>
                     </div>
                 </div>
@@ -382,6 +419,7 @@ export default function SummaryReport() {
                     value={qprList}
                     showGridlines
                     className='table-header-center mt-4'
+                    onRowClick={(e) => fetchReportHistory(e.data.qprNo)}
                     footer={<Paginator
                         first={first}
                         rows={rows}
@@ -405,9 +443,39 @@ export default function SummaryReport() {
                 {/* Export Button */}
                 <Footer>
                     <div className='flex justify-end mt-2 w-full gap-2'>
-                        <Button label="Export AS Excel" className="p-button-success min-w-[150px]" onClick={exportToExcel} />
+                        <Button label="Export AS Excel" className="p-button-success min-w-[150px]" onClick={exportSummaryReportToExcel} />
                     </div>
                 </Footer>
+
+                <Dialog header="Report History" visible={visibleHistory} style={{ width: '90vw' }} onHide={() => setVisibleHistory(false)}>
+                    <div>
+                        <DataTable
+                            value={selectedReportHistory}
+                            showGridlines
+                            className='table-header-center'
+                            footer={<Paginator
+                                first={firstHistory}
+                                rows={rowsHistory}
+                                totalRecords={totalRowsHistory}
+                                template={TemplatePaginator}
+                                rowsPerPageOptions={[10, 20, 50, 100]}
+                                onPageChange={(event) => {
+                                    setFirstHistory(event.first);
+                                    setRowsHistory(event.rows);
+                                }} />}
+                        >
+                            <Column field="qprNo" header="QPR No." bodyStyle={{ width: '10%' }}></Column>
+                            <Column field="documentType" header="Document Type" bodyStyle={{ width: '10%' }}></Column>
+                            <Column field="action" header="Action" body={(data) => {
+                                return <>{data.action} {data.IsDocumentOther == 'Y' ? "(Doc Other)" : ""}</>
+                            }} bodyStyle={{ width: '10%' }}></Column>
+                            <Column field="roleType" header="Action Role" bodyStyle={{ width: '10%' }}></Column>
+                            <Column field="performedBy.name" header="Action By" bodyStyle={{ width: '10%' }}></Column>
+                            <Column field="performedAt" header="Action Date" bodyStyle={{ width: '10%' }}></Column>
+                            <Column field="remark" header="Remark" bodyStyle={{ width: '25%' }}></Column>
+                        </DataTable>
+                    </div>
+                </Dialog>
             </div>
 
         </div>

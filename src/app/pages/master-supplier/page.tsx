@@ -324,7 +324,7 @@ export default function UserManagement() {
                     }}></Column>
                     <Column field="action" header="Action" style={{ width: '10%', textAlign: 'center' }} body={(arr) => {
                         return <div className="flex justify-center gap-2">
-                            <Button icon="pi pi-key" severity="warning" outlined onClick={() => {
+                            <Button icon="pi pi-sync" severity="warning" outlined onClick={() => {
                                 setNewSupplier(arr);
                                 setAddOrEdit('P');
                                 setVisibleAdd(true);
