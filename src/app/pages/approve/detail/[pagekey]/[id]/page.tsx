@@ -1,5 +1,5 @@
 'use client';
-import { Get, Put, fetchFileAsFile } from "@/components/fetch";
+import { Get, Put, FetchFileAsFile } from "@/components/fetch";
 import Footer from "@/components/footer";
 import moment from "moment";
 import { useParams, useRouter } from "next/navigation";
@@ -91,7 +91,7 @@ export default function PDFApproval() {
             }
 
             if (dataForID.delayDocument == 'Quick Report') {
-                const response = await fetchFileAsFile(`/qpr/pdf/view/${param.id}`)
+                const response = await FetchFileAsFile(`/qpr/pdf/view/${param.id}`)
                 if (response.ok) {
                     const data = await response.blob();
                     const urlfile = new Blob([data], { type: 'application/pdf' });
@@ -105,7 +105,7 @@ export default function PDFApproval() {
                     const file8D = object8DReportDto.object8D.upload8DReport;
                     setFile8D(file8D);
                     if (file8D.file) {
-                        const response = await fetchFileAsFile(`/qpr/pdf/view-8d/${param.id}`)
+                        const response = await FetchFileAsFile(`/qpr/pdf/view-8d/${param.id}`)
                         if (response.ok) {
                             const data = await response.blob();
                             const urlfile = new Blob([data], { type: 'application/pdf' });
@@ -461,7 +461,7 @@ export default function PDFApproval() {
                                             className="bg-red-600 text-white border-red-600"
                                             onClick={async () => {
                                                 if (file8D && file8D.file) {
-                                                    const response = await fetchFileAsFile(`/${file8D.file}`)
+                                                    const response = await FetchFileAsFile(`/${file8D.file}`)
                                                     if (response.ok) {
                                                         const data = await response.blob();
                                                         const url = URL.createObjectURL(new Blob([data], { type: 'application/pdf' }));
@@ -530,7 +530,7 @@ export default function PDFApproval() {
                                         <Column field="download" header="Download" bodyClassName="w-[200px]" body={(arr: DocumentOther) => {
                                             return <Button label="Download" tooltip="New tab open view file" tooltipOptions={{ position: 'top' }} onClick={async () => {
                                                 if (arr.path) {
-                                                    const res = await fetchFileAsFile(`/${arr.path}`);
+                                                    const res = await FetchFileAsFile(`/${arr.path}`);
                                                     if (res.ok) {
                                                         const blobData = await res.blob();
                                                         const newFileName = arr.name || 'null.bin';
@@ -638,7 +638,7 @@ export default function PDFApproval() {
                                                     // 🔹 ใช้ Promise.all เพื่อโหลดไฟล์ทั้งหมดพร้อมกัน
                                                     const filePromises = doc.map(async (item) => {
                                                         if (item.path) {
-                                                            const res = await fetchFileAsFile(`/${item.path}`);
+                                                            const res = await FetchFileAsFile(`/${item.path}`);
                                                             if (res.ok) {
                                                                 const data = await res.blob();
                                                                 const url = URL.createObjectURL(new Blob([data])); // แปลง Blob เป็น URL

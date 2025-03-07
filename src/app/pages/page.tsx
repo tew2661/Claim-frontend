@@ -2,12 +2,13 @@
 import { MenuCategory } from "@/components/header/interface";
 import React, { useEffect, useState } from "react";
 import IconWork from "@/assets/icon/work.png"
+import { useRouter } from "next/navigation";
 
 export default function Home() {
     const IsJtekt = (process.env.NEXT_MODE == 'jtekt');
     const [menuList, setMenuList] = useState<MenuCategory[]>([])
     const [role, setRole] = useState('')
-
+    const router = useRouter();
     useEffect(() => {
         const localUser = localStorage.getItem('user') ?? ''
         const jsonUser = JSON.parse(localUser || `{}`);
@@ -95,25 +96,23 @@ export default function Home() {
     }, [role])
     return (
         <div className="home flex flex-col">
-            <h1 className="text-2xl font-bold">Supplier Claim Management</h1>
-            {/* <h2>Select Menu</h2>
-            <div className="flex flex-row gap-2 justify-center">
-                <div className="columns-3">
-                    menu1
-                </div>
-                <div className="columns-3">
-                    menu1
-                </div>
-                <div className="columns-3">
-                    menu1
-                </div>
-                <div className="columns-3">
-                    menu1
-                </div>
-                <div className="columns-3">
-                    menu1
-                </div>
-            </div> */}
+            <h1 className="text-2xl font-bold mb-4">Supplier Claim Management</h1>
+            <div className="menu grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {menuList.map((category, index) => (
+                    <React.Fragment key={index}>
+                        {category.items.length === 0 && (
+                            <div onClick={() => router.push(category.url!)} className="menu-item text-center p-4 bg-gray-100 rounded shadow hover:bg-gray-200 cursor-pointer">
+                                {category.label}
+                            </div>
+                        )}
+                        {category.items.map((item, itemIndex) => (
+                            <div key={itemIndex} onClick={() => router.push(item.url!)} className="menu-item text-center p-4 bg-gray-100 rounded shadow hover:bg-gray-200 cursor-pointer">
+                                {item.label}
+                            </div>
+                        ))}
+                    </React.Fragment>
+                ))}
+            </div>
         </div>
     );
 }

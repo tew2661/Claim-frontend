@@ -1,8 +1,8 @@
 'use client';
+
 import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Loading from '@/components/loading/index';
-import Header from '@/components/header';
 import LoadingSpinner from '@/components/loading/index';
 
 function LayoutPages({
@@ -12,22 +12,24 @@ function LayoutPages({
 }>) {
     const router = useRouter();
     const pathname = usePathname();
-    const [pages, setPages] = useState(<Loading />);
+    const [pageContent, setPageContent] = useState(<Loading />);
 
     useEffect(() => {
-        const isAuthenticated = localStorage.getItem('access_token')!;
-        const IsJtekt = (process.env.NEXT_MODE == 'jtekt');
+        const isJtektMode = process.env.NEXT_MODE === 'jtekt';
         
-        if (IsJtekt) {
+        if (isJtektMode) {
             router.push('/pages'); 
         } else {
-            setPages(<>{children}</>)
+            setPageContent(<>{children}</>);
         }
-    }, [pathname]); // useEffect จะทำงานเมื่อ pathname หรือ router เปลี่ยน
+    }, [pathname]);
 
-    return <>
-        <div id="loadingSpinner" style={{ display: 'none' }}><LoadingSpinner/></div>{pages}
-    </>;
+    return (
+        <>
+            <div id="loadingSpinner" style={{ display: 'none' }}><LoadingSpinner/></div>
+            {pageContent}
+        </>
+    );
 }
 
 export default LayoutPages;

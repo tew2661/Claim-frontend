@@ -9,7 +9,7 @@ import { Paginator } from "primereact/paginator";
 import Footer from "@/components/footer";
 import { Calendar } from "primereact/calendar";
 import { Nullable } from "primereact/ts-helpers";
-import { CreateQueryString, Get, fetchFileAsFile } from "@/components/fetch";
+import { CreateQueryString, Get, FetchFileAsFile } from "@/components/fetch";
 import { Toast } from "primereact/toast";
 import { Defect, FormDataQpr } from "../create-qpr/page";
 import { getSocket } from "@/components/socket/socket";
@@ -55,7 +55,7 @@ export default function SummaryReport() {
     const exportToExcel = async () => {
         // Add logic to export data to Excel here
         console.log("Exporting to Excel...");
-        const exportExcel = await fetchFileAsFile(`/qpr/summary-report/exportExcel`);
+        const exportExcel = await FetchFileAsFile(`/qpr/summary-report/exportExcel`);
         if (exportExcel.ok) {
             const data = await exportExcel.blob();
             const urlfile = new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
@@ -72,7 +72,7 @@ export default function SummaryReport() {
     };
 
     const openPdfQuickReport = async (id: number) => {
-        const response = await fetchFileAsFile(`/qpr/pdf/view/${id}`)
+        const response = await FetchFileAsFile(`/qpr/pdf/view/${id}`)
         if (response.ok) {
             const data = await response.blob();
             const urlfile = new Blob([data], { type: 'application/pdf' });
@@ -84,7 +84,7 @@ export default function SummaryReport() {
     }
 
     const openPdfEightDReport = async (id: number) => {
-        const response = await fetchFileAsFile(`/qpr/pdf/view-8d/${id}`)
+        const response = await FetchFileAsFile(`/qpr/pdf/view-8d/${id}`)
         if (response.ok) {
             const data = await response.blob();
             const urlfile = new Blob([data], { type: 'application/pdf' });

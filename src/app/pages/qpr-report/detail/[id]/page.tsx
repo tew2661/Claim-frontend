@@ -7,7 +7,7 @@ import { v4 as uuidv4 } from "uuid";
 import { Calendar } from "primereact/calendar";
 import { InputNumber } from "primereact/inputnumber";
 import { Dropdown } from "primereact/dropdown";
-import { Get, Put, fetchFileAsFile } from "@/components/fetch";
+import { Get, Put, FetchFileAsFile } from "@/components/fetch";
 import { Toast } from "primereact/toast";
 import moment from "moment";
 import { ConfirmDialog, confirmDialog } from "primereact/confirmdialog";
@@ -83,7 +83,7 @@ export default function QPRUploadForm() {
         if (res2?.ok) {
             const dataForID = await res2.json();
 
-            const response = await fetchFileAsFile(`/qpr/pdf/view/${param.id}`)
+            const response = await FetchFileAsFile(`/qpr/pdf/view/${param.id}`)
             if (response.ok) {
                 const data = await response.blob();
                 const urlfile = new Blob([data], { type: 'application/pdf' });
@@ -242,7 +242,7 @@ export default function QPRUploadForm() {
             const previews: { [key: string]: File | null } = {};
             for (let sketch of sketches) {
                 if (typeof sketch.file.file === 'string') {
-                    const response = await fetchFileAsFile(`/${sketch.file.file}`);
+                    const response = await FetchFileAsFile(`/${sketch.file.file}`);
                     if (response.ok) {
                         const data = await response.blob();
                         const contentType = response.headers.get("Content-Type");

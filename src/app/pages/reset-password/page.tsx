@@ -10,12 +10,12 @@ import { useRouter } from "next/navigation";
 const ResetPassword = () => {
     const toast = useRef<Toast>(null);
     const router = useRouter();
-    const [newUser, setNewUser] = useState({
+    const [userPasswords, setUserPasswords] = useState({
         newPassword: '',
         confirmPassword: ''
     });
 
-    const [invalid, setInvalid] = useState({
+    const [validationErrors, setValidationErrors] = useState({
         newPassword: false,
         confirmPassword: false,
         passwordMismatch: false,
@@ -25,68 +25,67 @@ const ResetPassword = () => {
     });
 
     useEffect(() => {
-        if (invalid.clickConfirm) {
+        if (validationErrors.clickConfirm) {
             validateForm();
         }
-    }, [newUser]);
+    }, [userPasswords]);
 
-    const FixPasswordData = async () => {
-        const res = await Put({
+    const updatePassword = async () => {
+        const response = await Put({
             url: `/users/reset-password`,
             body: JSON.stringify({
                 id: -1,
-                newPassword: newUser.newPassword
+                newPassword: userPasswords.newPassword
             }),
             headers: {
                 'Content-Type': 'application/json',
             }
         });
-        if (res.ok) {
-            toast.current?.show({ severity: 'success', summary: 'บันทึกสำเร็จ', detail: `เปลี่ยนรหัสผ่านสำเร็จ`, life: 3000 });
+        if (response.ok) {
+            toast.current?.show({ severity: 'success', summary: 'Success', detail: `Password changed successfully`, life: 3000 });
             setTimeout(() => {
                 router.push('/pages')
-            },1000)
+            }, 1000)
         } else {
-            toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await res!.json()).message)}`, life: 3000 });
+            toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await response.json()).message)}`, life: 3000 });
         }
     }
 
     const validateForm = () => {
-        let newInvalid: any = {
-            password: false,
+        let errors: any = {
+            newPassword: false,
             confirmPassword: false,
             passwordMismatch: false,
             passwordTooShort: false,
             invalidCommonPassword: false,
         };
 
-        if (!newUser.newPassword) {
-            newInvalid.password = true;
-        } else if (newUser.newPassword.length < 8) {
-            newInvalid.passwordTooShort = true;
-        } else if (newUser.newPassword === "P@ssw0rd") {
-            newInvalid.invalidCommonPassword = true;
+        if (!userPasswords.newPassword) {
+            errors.newPassword = true;
+        } else if (userPasswords.newPassword.length < 8) {
+            errors.passwordTooShort = true;
+        } else if (userPasswords.newPassword === "P@ssw0rd") {
+            errors.invalidCommonPassword = true;
         }
 
-        if (!newUser.confirmPassword) {
-            newInvalid.confirmPassword = true;
+        if (!userPasswords.confirmPassword) {
+            errors.confirmPassword = true;
         }
 
-        if (newUser.newPassword && newUser.confirmPassword && newUser.newPassword !== newUser.confirmPassword) {
-            newInvalid.passwordMismatch = true;
+        if (userPasswords.newPassword && userPasswords.confirmPassword && userPasswords.newPassword !== userPasswords.confirmPassword) {
+            errors.passwordMismatch = true;
         }
 
-        if (Object.keys(newInvalid).filter((x) => x !== 'clickConfirm').filter((x: any) => (newInvalid[x])).length) {
-            setInvalid({ ...newInvalid, clickConfirm: true });
+        if (Object.keys(errors).filter((key) => key !== 'clickConfirm').some((key: any) => (errors[key]))) {
+            setValidationErrors({ ...errors, clickConfirm: true });
             return false;
         }
-        return true
+        return true;
     };
 
     const handleConfirm = () => {
-        const check = validateForm();
-        if (check)
-            FixPasswordData();
+        const isValid = validateForm();
+        if (isValid) updatePassword();
     };
 
     return (
@@ -100,13 +99,13 @@ const ResetPassword = () => {
                         id="password"
                         toggleMask
                         feedback={false}
-                        value={newUser.newPassword}
-                        invalid={invalid.newPassword || invalid.passwordTooShort}
-                        onChange={(e) => setNewUser((prev) => ({ ...prev, newPassword: e.target.value }))}
+                        value={userPasswords.newPassword}
+                        invalid={validationErrors.newPassword || validationErrors.passwordTooShort}
+                        onChange={(e) => setUserPasswords((prev) => ({ ...prev, newPassword: e.target.value }))}
                         className="w-full"
                     />
                 </div>
-                {invalid.passwordTooShort && invalid.clickConfirm && (
+                {validationErrors.passwordTooShort && validationErrors.clickConfirm && (
                     <div className="text-red-500 mt-1">* Password must be at least 8 characters long.</div>
                 )}
 
@@ -116,17 +115,17 @@ const ResetPassword = () => {
                         id="cpassword"
                         toggleMask
                         feedback={false}
-                        value={newUser.confirmPassword}
-                        invalid={invalid.confirmPassword || invalid.passwordMismatch}
-                        onChange={(e) => setNewUser((prev) => ({ ...prev, confirmPassword: e.target.value }))}
+                        value={userPasswords.confirmPassword}
+                        invalid={validationErrors.confirmPassword || validationErrors.passwordMismatch}
+                        onChange={(e) => setUserPasswords((prev) => ({ ...prev, confirmPassword: e.target.value }))}
                         className="w-full"
                     />
                 </div>
-                {invalid.passwordMismatch && invalid.clickConfirm && (
+                {validationErrors.passwordMismatch && validationErrors.clickConfirm && (
                     <div className="text-red-500 mt-1">* The confirmation password does not match.</div>
                 )}
 
-                {invalid.invalidCommonPassword && invalid.clickConfirm && (
+                {validationErrors.invalidCommonPassword && validationErrors.clickConfirm && (
                     <div className="text-red-500 mt-1">* This password is not allowed. Please choose another one.</div>
                 )}
 

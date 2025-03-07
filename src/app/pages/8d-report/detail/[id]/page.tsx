@@ -2,11 +2,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Button } from "primereact/button";
 import { InputText } from "primereact/inputtext";
-import { FileUpload } from "primereact/fileupload";
 import { useParams, useRouter } from "next/navigation";
 import Footer from "@/components/footer";
 import { v4 as uuidv4 } from "uuid";
-import { Get, Put, fetchFileAsFile } from "@/components/fetch";
+import { Get, Put, FetchFileAsFile } from "@/components/fetch";
 import { ConfirmDialog, confirmDialog } from "primereact/confirmdialog";
 import { Toast } from "primereact/toast";
 import { fileToBase64 } from "@/components/picture_uploader/convertToBase64";
@@ -67,7 +66,7 @@ export default function QPRUploadForm() {
         if (res2?.ok) {
             const dataForID = await res2.json();
 
-            const response = await fetchFileAsFile(`/qpr/pdf/view/${param.id}`)
+            const response = await FetchFileAsFile(`/qpr/pdf/view/${param.id}`)
             if (response.ok) {
                 const data = await response.blob();
                 const urlfile = new Blob([data], { type: 'application/pdf' });
@@ -83,7 +82,7 @@ export default function QPRUploadForm() {
             const urlUpload8DReportFile = index0object8DReportDto?.object8D && index0object8DReportDto.object8D.upload8DReport && index0object8DReportDto.object8D.upload8DReport.file ? index0object8DReportDto.object8D.upload8DReport.file : undefined
             const urlUpload8DReportName = index0object8DReportDto?.object8D && index0object8DReportDto.object8D.upload8DReport && index0object8DReportDto.object8D.upload8DReport.file ? index0object8DReportDto.object8D.upload8DReport.name : undefined
             if (urlUpload8DReportFile) {
-                const pdf8DReport = await fetchFileAsFile(`/${urlUpload8DReportFile}`)
+                const pdf8DReport = await FetchFileAsFile(`/${urlUpload8DReportFile}`)
                 if (pdf8DReport.ok) {
                     const data = await pdf8DReport.blob();
                     const file = new File([data], (urlUpload8DReportName || "8d-report.pdf"), { type: data.type });
@@ -134,7 +133,7 @@ export default function QPRUploadForm() {
                             };
                         } else {
                             // ถ้าไม่ใช่ Base64 ที่อนุญาต → ดึงไฟล์จาก URL
-                            const response = await fetchFileAsFile(`/${arr.file}`);
+                            const response = await FetchFileAsFile(`/${arr.file}`);
                             if (response.ok) {
                                 const data = await response.blob();
                                 return {
@@ -251,17 +250,6 @@ export default function QPRUploadForm() {
                     <div className="flex justify-between mb-4">
                         <div>
                             <h2 className="font-bold mb-2">Upload 8D Report Document</h2>
-                            {/* <FileUpload
-                                name="8d-report"
-                                mode="basic"
-                                accept="application/pdf"
-                                maxFileSize={1000000}
-                                chooseLabel="Upload 8D Report (PDF)"
-                                className="p-button"
-                            /> */}
-
-
-
                             <div className="flex items-center">
                                 <Button
                                     label={upload8DReport && upload8DReport.name ? upload8DReport.name : "Upload 8D Report (PDF)"}
@@ -312,7 +300,7 @@ export default function QPRUploadForm() {
                                     severity="help"
                                     // severity="danger"  
                                     onClick={async () => {
-                                        const response = await fetchFileAsFile(`/qpr/pdf/download/${param.id}`)
+                                        const response = await FetchFileAsFile(`/qpr/pdf/download/${param.id}`)
                                         if (response.ok) {
                                             const data = await response.blob();
                                             const url = URL.createObjectURL(new Blob([data], { type: 'application/pdf' }));
