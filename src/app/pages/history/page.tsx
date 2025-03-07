@@ -30,6 +30,7 @@ interface FilterSummaryReport {
     user: string;
     documentType: string,
     action: string;
+    roleType: string;
 }
 
 export default function SummaryReport() {
@@ -44,6 +45,7 @@ export default function SummaryReport() {
         user: "All",
         documentType: "All",
         action: "All",
+        roleType: "All",
     });
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>, field: string) => {
@@ -171,6 +173,25 @@ export default function SummaryReport() {
                                 className="w-full"
                             />
                         </div>
+
+                        <div className="flex flex-col gap-2 w-full">
+                            <label htmlFor="roleType">Action Role</label>
+                            <Dropdown
+                                value={filters.roleType}
+                                onChange={(e: DropdownChangeEvent) => setFilters({ ...filters, roleType: e.target.value || "" })}
+                                options={[
+                                    { label: 'All', value: 'All' },
+                                    { label: 'Supplier', value: 'Supplier' },
+                                    { label: 'Checker1', value: 'Checker1' },
+                                    { label: 'Checker2', value: 'Checker2' },
+                                    { label: 'Approver1', value: 'Approver1' },
+                                    { label: 'Approver2', value: 'Approver2' },
+                                ]}
+                                optionLabel="label"
+                                className="w-full"
+                            />
+                        </div>
+
                     </div>
                     <div className="w-[100px]">
                         <div className="flex flex-col gap-2">

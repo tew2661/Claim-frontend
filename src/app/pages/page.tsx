@@ -49,7 +49,7 @@ export default function Home() {
                 icon: undefined,
                 url: "/pages/summary-report",
             }] : [],
-            ...IsJtekt ? [{
+            ...IsJtekt && jsonUser.accessMasterManagement == 'Y' ? [{
                 label: 'Master Management',
                 items: [
                     {

@@ -16,6 +16,7 @@ function LayoutPages({
 
     useEffect(() => {
         const isAuthenticated = localStorage.getItem('access_token')!;
+        const user = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')!) : undefined;
         const IsJtekt = (process.env.NEXT_MODE == 'jtekt');
         // ตรวจสอบสถานะล็อกอิน
         if (!isAuthenticated && pathname !== '/login') {
@@ -25,6 +26,11 @@ function LayoutPages({
             if (pathname === '/login') {
                 setPages(<>{children}</>); // หน้า login ไม่แสดง Header
             } else {
+                
+                if (!user.expiresPassword || (new Date(user.expiresPassword) < new Date())) {
+                    router.push('/pages/reset-password')
+                }
+
                 setPages(<>
                     <Header IsJtekt={IsJtekt} />
                     <div className="body">{children}</div>

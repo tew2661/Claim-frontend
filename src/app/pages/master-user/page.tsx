@@ -22,6 +22,7 @@ interface UserData {
     department: string;
     role: string;
     email: string;
+    accessMasterManagement: "Y" | "N";
     active?: "Y" | "N";
     password?: string;
     confirmPassword?: string;
@@ -43,6 +44,7 @@ export default function UserManagement() {
         department: '',
         role: '',
         email: '',
+        accessMasterManagement: 'N',
         password: '',
         confirmPassword: ''
     }
@@ -53,6 +55,7 @@ export default function UserManagement() {
         department: false,
         role: false,
         email: false,
+        accessMasterManagement: false,
         password: false,
         confirmPassword: false
     }
@@ -99,6 +102,7 @@ export default function UserManagement() {
             role: false,
             email: false,
             password: false,
+            accessMasterManagement: false,
             confirmPassword: false
         }
         if (!newUser.code) {
@@ -115,6 +119,9 @@ export default function UserManagement() {
         }
         if (!newUser.email) {
             inInvalid.email = true
+        }
+        if (!newUser.accessMasterManagement) {
+            inInvalid.accessMasterManagement = true
         }
         if (addOrEdit == 'A' && !newUser.password) {
             inInvalid.password = true
@@ -143,6 +150,7 @@ export default function UserManagement() {
                     department: newUser.department,
                     role: newUser.role,
                     email: newUser.email,
+                    accessMasterManagement: newUser.accessMasterManagement,
                     password: newUser.password,
                 }),
                 headers: {
@@ -157,6 +165,7 @@ export default function UserManagement() {
                     name: newUser.name,
                     department: newUser.department,
                     role: newUser.role,
+                    accessMasterManagement: newUser.accessMasterManagement,
                     email: newUser.email,
                 }),
                 headers: {
@@ -189,6 +198,7 @@ export default function UserManagement() {
                     code: x.code,
                     name: x.name,
                     department: x.department,
+                    accessMasterManagement: x.accessMasterManagement || 'N',
                     role: x.role,
                     email: x.email,
                     active: x.active || 'N'
@@ -458,6 +468,24 @@ export default function UserManagement() {
                                     className="w-full"
                                 />
                             </div>
+
+                            {/* Access Master Management */}
+
+                            <div className="flex flex-col gap-2 w-full">
+                                <label htmlFor="accessmastermanagement">Access Master Management</label>
+                                <Dropdown 
+                                    value={newUser.accessMasterManagement} 
+                                    invalid={iInvalid.accessMasterManagement && !newUser.accessMasterManagement}
+                                    onChange={(e) => setNewUser((old) => ({ ...old, accessMasterManagement: e.target.value }))} 
+                                    options={[
+                                        { label: 'Yes' , value: 'Y' }, 
+                                        { label: 'No' , value: 'N' }, 
+                                    ]} 
+                                    optionLabel="label" 
+                                    className="w-full" 
+                                />
+                            </div>
+
                             {
                                 addOrEdit == 'A' ? <div className="border border-solid border-gray-300 rounded-md p-3 pb-5">
                                     <div className="flex flex-col gap-2 w-full">

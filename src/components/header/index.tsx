@@ -59,7 +59,7 @@ const Header = (props: { IsJtekt: boolean }) => {
                 icon: undefined,
                 url: "/pages/summary-report",
             }] : [],
-            ...IsJtekt ? [{
+            ...IsJtekt && jsonUser.accessMasterManagement == 'Y' ? [{
                 label: 'Master Management',
                 items: [
                     {
@@ -212,6 +212,14 @@ const Header = (props: { IsJtekt: boolean }) => {
                         <Image src={IconAvatar} alt="Logo" />
                     </button>
                     <div className="class-custom-dropdown-content class-custom-bar-block class-custom-card-4">
+                        <a className="class-custom-bar-item class-custom-button class-custom-menu" onClick={() => {
+                            router.push('/pages/reset-password')
+                        }}>
+                            <div className='mr-2'>
+                                <i className='pi pi-sync'></i>
+                            </div>
+                            Reset Password
+                        </a>
                         <a className="class-custom-bar-item class-custom-button class-custom-menu" onClick={() => {
                             localStorage.clear();
                             router.push('/login')

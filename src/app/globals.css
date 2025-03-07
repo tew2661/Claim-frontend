@@ -21,6 +21,16 @@ body {
   &.p-dropdown-panel {
     padding: 0px;
   }
+
+  &.p-password {
+    padding: 0;
+    div {
+      width: 100%; 
+      input {
+        width: 100%; 
+      }
+    }
+  }
 }
 
 .p-dropdown {
