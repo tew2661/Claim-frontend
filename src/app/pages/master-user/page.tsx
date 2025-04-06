@@ -123,17 +123,17 @@ export default function UserManagement() {
         if (!newUser.accessMasterManagement) {
             inInvalid.accessMasterManagement = true
         }
-        if (addOrEdit == 'A' && !newUser.password) {
-            inInvalid.password = true
-        }
-        if (addOrEdit == 'A' && !newUser.confirmPassword) {
-            inInvalid.confirmPassword = true
-        }
-        if (newUser.password !== newUser.confirmPassword) {
-            inInvalid.confirmPassword = true
-            toast.current?.show({ severity: 'warn', summary: 'Error', detail: `รหัสผ่านระบุไม่ตรงกัน`, life: 3000 });
-            return;
-        }
+        // if (addOrEdit == 'A' && !newUser.password) {
+        //     inInvalid.password = true
+        // }
+        // if (addOrEdit == 'A' && !newUser.confirmPassword) {
+        //     inInvalid.confirmPassword = true
+        // }
+        // if (newUser.password !== newUser.confirmPassword) {
+        //     inInvalid.confirmPassword = true
+        //     toast.current?.show({ severity: 'warn', summary: 'Error', detail: `รหัสผ่านระบุไม่ตรงกัน`, life: 3000 });
+        //     return;
+        // }
         setIInvalid(inInvalid);
 
         if (Object.keys(inInvalid).filter((x: any) => (inInvalid[x])).length) {
@@ -151,7 +151,7 @@ export default function UserManagement() {
                     role: newUser.role,
                     email: newUser.email,
                     accessMasterManagement: newUser.accessMasterManagement,
-                    password: newUser.password,
+                    // password: newUser.password,
                 }),
                 headers: {
                     'Content-Type': 'application/json',
@@ -486,7 +486,7 @@ export default function UserManagement() {
                                 />
                             </div>
 
-                            {
+                            {/* {
                                 addOrEdit == 'A' ? <div className="border border-solid border-gray-300 rounded-md p-3 pb-5">
                                     <div className="flex flex-col gap-2 w-full">
                                         <label htmlFor="password">Password</label>
@@ -511,7 +511,7 @@ export default function UserManagement() {
                                         />
                                     </div>
                                 </div> : <></>
-                            }
+                            } */}
                             <div className='flex justify-end mt-2 w-full gap-2'>
                                 <Button label={addOrEdit == 'E' ? "Edit User" : "Add User"} className="p-button-primary" onClick={chechInvalid} />
                             </div>

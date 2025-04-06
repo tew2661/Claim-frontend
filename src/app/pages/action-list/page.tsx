@@ -80,7 +80,7 @@ export default function ProblemReportTable() {
             ...filters,
             date: filters.date ? moment(filters.date).format('YYYY-MM-DD') : undefined,
         });
-        const res = await Get({ url: `/qpr?limit=${rows}&offset=${first}&${quertString}` });
+        const res = await Get({ url: `/qpr?limit=${rows}&offset=${first}&page=action-list&${quertString}` });
         if (res.ok) {
             const res_data = await res.json();
             setTotalRows(res_data.total || 0)

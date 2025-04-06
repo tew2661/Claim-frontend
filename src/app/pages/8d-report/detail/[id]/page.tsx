@@ -61,6 +61,7 @@ export default function QPRUploadForm() {
     const [reqDocumentOther, setReqDocumentOther] = useState<string>('');
     const [remarkForReject, setRemarkForReject] = useState<string>('');
     const [qprIssueNo, setQprIssueNo] = useState<string>('');
+    const [approve8dAndRejectDocOther, setApprove8dAndRejectDocOther] = useState<boolean>(false);
     const GetDatas = async () => {
         const res2 = await Get({ url: `/qpr/${param.id}` });
         if (res2?.ok) {
@@ -100,7 +101,7 @@ export default function QPRUploadForm() {
             setUploadSectionsOld(uploadSections);
             setRemarkForReject(checker?.remark ? `${checker?.remark}` : "")
             setDueDateReject(checker?.duedate8d ? `${moment(checker?.duedate8d).format('DD MMMM YYYY HH:mm')}` : "")
-
+            setApprove8dAndRejectDocOther(dataForID?.approve8dAndRejectDocOther == 'Y')
             const documentOther = checker?.documentOther || []
 
             setUploadSections(
@@ -255,6 +256,7 @@ export default function QPRUploadForm() {
                                     label={upload8DReport && upload8DReport.name ? upload8DReport.name : "Upload 8D Report (PDF)"}
                                     icon="pi pi-upload"
                                     className="p-button-primary"
+                                    disabled={approve8dAndRejectDocOther}
                                     onClick={() => document.getElementById('upload-8d-report-id')?.click()}
                                 />
                                 <input

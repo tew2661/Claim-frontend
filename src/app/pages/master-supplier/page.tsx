@@ -117,14 +117,14 @@ export default function UserManagement() {
             return inInvalid[key];
         });
 
-        if (addOrEdit == 'A' && !newSupplier.confirmPassword) {
-            inInvalid.confirmPassword = true
-        }
-        if (newSupplier.password !== newSupplier.confirmPassword) {
-            inInvalid.confirmPassword = true
-            toast.current?.show({ severity: 'warn', summary: 'Error', detail: `รหัสผ่านระบุไม่ตรงกัน`, life: 3000 });
-            return;
-        }
+        // if (addOrEdit == 'A' && !newSupplier.confirmPassword) {
+        //     inInvalid.confirmPassword = true
+        // }
+        // if (newSupplier.password !== newSupplier.confirmPassword) {
+        //     inInvalid.confirmPassword = true
+        //     toast.current?.show({ severity: 'warn', summary: 'Error', detail: `รหัสผ่านระบุไม่ตรงกัน`, life: 3000 });
+        //     return;
+        // }
 
         setIInvalid(inInvalid);
         if (hasInvalidFields) {
@@ -142,7 +142,7 @@ export default function UserManagement() {
                     tel: newSupplier.tel,
                     email: newSupplier.email,
                     contactPerson: newSupplier.contactPerson,
-                    password: newSupplier.password
+                    // password: newSupplier.password
                 }),
                 headers: {
                     'Content-Type': 'application/json',
@@ -485,7 +485,7 @@ export default function UserManagement() {
                                 }
                             </div>
 
-                            {
+                            {/* {
                                 addOrEdit == 'A' ? <div className="border border-solid border-gray-300 rounded-md p-3 pb-5">
                                     <div className="flex flex-col gap-2 w-full">
                                         <label htmlFor="password">Password</label>
@@ -510,7 +510,7 @@ export default function UserManagement() {
                                         />
                                     </div>
                                 </div> : <></>
-                            }
+                            } */}
 
                             <div className='flex justify-end mt-2 w-full gap-2'>
                                 <Button label={addOrEdit == 'A' ? "Add Supplier" : "Edit Supplier"} className="p-button-primary" onClick={checkInvalid} />

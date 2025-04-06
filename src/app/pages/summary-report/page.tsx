@@ -65,7 +65,7 @@ export default function SummaryReport() {
     const [visibleHistory, setVisibleHistory] = useState<boolean>(false);
     const [selectedReportHistory, setSelectedReportHistory] = useState<DataHistoryTable[]>([]);
     const [qprNo, setQprNo] = useState<string>('');
-    const fetchReportHistory = async (qprNo: string) => {
+    const fetchReportHistory = async (qprNo: string , openHistory?: boolean) => {
         setQprNo(qprNo);
         const res = await Get({ url: `/logs?limit=${rowsHistory}&offset=${firstHistory}&qprNo=${qprNo}` });
         if (res.ok) {
@@ -77,7 +77,7 @@ export default function SummaryReport() {
                     performedAt: x.performedAt ? moment(x.performedAt).format('DD/MM/YYYY HH:mm:ss'): ""
                 } as DataHistoryTable;
             }));
-            setVisibleHistory(true);
+            setVisibleHistory(openHistory || false);
         } else {
             toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await res!.json()).message)}`, life: 3000 });
         }
@@ -419,7 +419,7 @@ export default function SummaryReport() {
                     value={qprList}
                     showGridlines
                     className='table-header-center mt-4'
-                    onRowClick={(e) => fetchReportHistory(e.data.qprNo)}
+                    onRowClick={(e) => fetchReportHistory(e.data.qprNo, true)}
                     footer={<Paginator
                         first={first}
                         rows={rows}

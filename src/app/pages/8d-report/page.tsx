@@ -25,7 +25,8 @@ interface DataActionList {
     severity: string,
     eightDReport: string,
     eightDReportClass: "text-green-600" | "text-red-600" | "text-yellow-500",
-    success?: boolean
+    success?: boolean,
+    action: boolean
 }
 
 // Interface for table filters
@@ -92,7 +93,8 @@ export default function ProblemReportTable() {
             severity: `${item.importanceLevel || ''}${item.urgent ? ' (Urgent)' : ''}`,
             eightDReport: `${item.eightDReportSupplierDate ? moment(item.eightDReportSupplierDate).format('DD/MM/YYYY HH:mm:ss') : ''} ${item.eightDReportSupplierStatus ? `(${getFriendlyStatusName(item.eightDReportSupplierStatus)})` : ''}`,
             eightDReportClass: getEightDReportClass(item.eightDReportSupplierStatus),
-            success: item.eightDReportSupplierStatus === "Approved"
+            success: item.eightDReportSupplierStatus === "Approved" ,
+            action: item.eightDReportSupplierStatus == 'Pending' || item.eightDReportSupplierStatus == 'Rejected'
         };
     }
 
@@ -206,7 +208,7 @@ export default function ProblemReportTable() {
                                     onChange={(e: DropdownChangeEvent) => setFilters({ ...filters, status: e.target.value || "" })}
                                     options={[
                                         { label: 'All', value: 'All' },
-                                        { label: 'Approved', value: 'approved-8d-report' },
+                                        { label: 'Submitted', value: 'approved-8d-report' },
                                         { label: 'Wait for Supplier', value: 'wait-for-supplier-8d-report' },
                                         { label: 'Rejected', value: 'rejected-8d-report' },
                                     ]}
@@ -251,7 +253,7 @@ export default function ProblemReportTable() {
                         <Column field="action" header="Action" bodyStyle={{ textAlign: 'center', width: '10%', minWidth: '180px' }} body={(rowData: DataActionList) => {
                             if (rowData.success) {
                                 return <div className="min-h-[32px]">&nbsp;</div>
-                            } else {
+                            } else if (rowData.action) {
                                 return <Button label="Input Data" icon="pi pi-file-edit" onClick={() => router.push(`8d-report/detail/${rowData.id}`)} />
                             }
                         }} />

@@ -208,7 +208,7 @@ export default function ProblemReportTable() {
                                     onChange={(e: DropdownChangeEvent) => setFilters({ ...filters, status: e.target.value || "" })} 
                                     options={[
                                         { label: 'All' , value: 'All'}, 
-                                        { label: 'Approved' , value: 'approved-quick-report'}, 
+                                        { label: 'Submitted' , value: 'approved-quick-report'}, 
                                         { label: 'Wait for Supplier' , value: 'wait-for-supplier-quick-report' } ,
                                         { label: 'Rejected' , value: 'rejected-quick-report' },
                                     ]} 
