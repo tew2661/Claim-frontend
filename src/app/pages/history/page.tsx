@@ -174,23 +174,27 @@ export default function SummaryReport() {
                             />
                         </div>
 
-                        <div className="flex flex-col gap-2 w-full">
-                            <label htmlFor="roleType">Action Role</label>
-                            <Dropdown
-                                value={filters.roleType}
-                                onChange={(e: DropdownChangeEvent) => setFilters({ ...filters, roleType: e.target.value || "" })}
-                                options={[
-                                    { label: 'All', value: 'All' },
-                                    { label: 'Supplier', value: 'Supplier' },
-                                    { label: 'Checker1', value: 'Checker1' },
-                                    { label: 'Checker2', value: 'Checker2' },
-                                    { label: 'Approver1', value: 'Approver1' },
-                                    { label: 'Approver2', value: 'Approver2' },
-                                ]}
-                                optionLabel="label"
-                                className="w-full"
-                            />
-                        </div>
+                        {
+                            (process.env.NEXT_MODE == 'jtekt') ? <>
+                                <div className="flex flex-col gap-2 w-full">
+                                    <label htmlFor="roleType">Action Role</label>
+                                    <Dropdown
+                                        value={filters.roleType}
+                                        onChange={(e: DropdownChangeEvent) => setFilters({ ...filters, roleType: e.target.value || "" })}
+                                        options={[
+                                            { label: 'All', value: 'All' },
+                                            { label: 'Supplier', value: 'Supplier' },
+                                            { label: 'Checker1', value: 'Checker1' },
+                                            { label: 'Checker2', value: 'Checker2' },
+                                            { label: 'Approver1', value: 'Approver1' },
+                                            { label: 'Approver2', value: 'Approver2' },
+                                        ]}
+                                        optionLabel="label"
+                                        className="w-full"
+                                    />
+                                </div>
+                            </> : <></>
+                        }
 
                     </div>
                     <div className="w-[100px]">

@@ -117,15 +117,6 @@ export default function UserManagement() {
             return inInvalid[key];
         });
 
-        // if (addOrEdit == 'A' && !newSupplier.confirmPassword) {
-        //     inInvalid.confirmPassword = true
-        // }
-        // if (newSupplier.password !== newSupplier.confirmPassword) {
-        //     inInvalid.confirmPassword = true
-        //     toast.current?.show({ severity: 'warn', summary: 'Error', detail: `รหัสผ่านระบุไม่ตรงกัน`, life: 3000 });
-        //     return;
-        // }
-
         setIInvalid(inInvalid);
         if (hasInvalidFields) {
             console.log("Validation failed:", inInvalid);
@@ -205,35 +196,6 @@ export default function UserManagement() {
             reject
         });
 
-    }
-
-    const FixPasswordData = async (id: number) => {
-        if (!password.pass1) {
-            toast.current?.show({ severity: 'warn', summary: 'Error', detail: `กรุณาระบุข้อมูล`, life: 3000 });
-            return;
-        } else if (password.pass1.length < 8) {
-            toast.current?.show({ severity: 'warn', summary: 'Error', detail: `รหัสผ่านอย่างน้อย 8 ตัว`, life: 3000 });
-            return;
-        } else if (password.pass1 !== password.pass2) {
-            toast.current?.show({ severity: 'warn', summary: 'Error', detail: `รหัสผ่านระบุไม่ตรงกัน`, life: 3000 });
-            return;
-        }
-        const res = await Put({
-            url: `/supplier/${id}`,
-            body: JSON.stringify({
-                password: password.pass1
-            }),
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        });
-        if (res.ok) {
-            toast.current?.show({ severity: 'success', summary: 'บันทึกสำเร็จ', detail: `เปลี่ยนรหัสผ่านสำเร็จ`, life: 3000 });
-            GetDatas()
-        } else {
-            toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await res!.json()).message)}`, life: 3000 });
-        }
-        setVisibleAdd(false);
     }
 
     const GetDatas = async () => {
@@ -324,10 +286,32 @@ export default function UserManagement() {
                     }}></Column>
                     <Column field="action" header="Action" style={{ width: '10%', textAlign: 'center' }} body={(arr) => {
                         return <div className="flex justify-center gap-2">
-                            <Button icon="pi pi-sync" severity="warning" outlined onClick={() => {
-                                setNewSupplier(arr);
-                                setAddOrEdit('P');
-                                setVisibleAdd(true);
+                            <Button icon="pi pi-sync" severity="warning" outlined onClick={ async () => {
+                                confirmDialog({
+                                    message: `ต้องการ reset password ใช่หรือไม่`,
+                                    header: `ยืนยัน reset password`,
+                                    icon: 'pi pi-user-edit',
+                                    defaultFocus: 'reject',
+                                    acceptClassName: 'p-button-danger',
+                                    accept: async () => {
+                                        const res = await Put({
+                                            url: `/users/${arr.id}`,
+                                            body: JSON.stringify({
+                                                password: 'P@ssw0rd'
+                                            }),
+                                            headers: {
+                                                'Content-Type': 'application/json',
+                                            }
+                                        });
+                                        if (res.ok) {
+                                            toast.current?.show({ severity: 'success', summary: 'บันทึกสำเร็จ', detail: `เปลี่ยนรหัสผ่านสำเร็จ`, life: 3000 });
+                                            GetDatas()
+                                        } else {
+                                            toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await res!.json()).message)}`, life: 3000 });
+                                        }
+                                    },
+                                    reject: () => {}
+                                })
                             }} />
                             <Button icon="pi pi-pen-to-square" outlined onClick={() => {
                                 setNewSupplier(arr);
@@ -342,31 +326,7 @@ export default function UserManagement() {
             <Dialog header={addOrEdit == 'A' ? "Add Supplier" : (addOrEdit == 'E' ? "Edit Supplier" : "Fix Password")} visible={visibleAdd} onHide={() => { if (!visibleAdd) return; setVisibleAdd(false); }}
                 style={{ width: '50vw' }} breakpoints={{ '960px': '75vw', '641px': '100vw' }}>
                 {
-                    addOrEdit == 'P' ? <>
-                        <div className="flex flex-col gap-2 w-full">
-                            <label htmlFor="pass1">รหัสผ่านใหม่</label>
-                            <InputText
-                                id="pass1"
-                                type="password"
-                                value={password.pass1}
-                                onChange={(e) => setPassword((old) => ({ ...old, pass1: e.target.value || "" }))}
-                                className="w-full"
-                            />
-                        </div>
-                        <div className="flex flex-col gap-2 w-full">
-                            <label htmlFor="pass2">ยืนยันรหัสผ่าน</label>
-                            <InputText
-                                id="pass2"
-                                type="password"
-                                value={password.pass2}
-                                onChange={(e) => setPassword((old) => ({ ...old, pass2: e.target.value || "" }))}
-                                className="w-full"
-                            />
-                        </div>
-                        <div className='flex justify-end mt-2 w-full gap-2'>
-                            <Button label="Fix Password" className="p-button-primary" onClick={() => FixPasswordData(newSupplier.id)} />
-                        </div>
-                    </> : <>
+                    addOrEdit == 'P' ? <></> : <>
                         <div className="flex flex-col gap-2">
                             <div className="flex flex-col gap-2 w-full">
                                 <label htmlFor="supplierCode">Supplier Code</label>
@@ -484,33 +444,6 @@ export default function UserManagement() {
                                     })
                                 }
                             </div>
-
-                            {/* {
-                                addOrEdit == 'A' ? <div className="border border-solid border-gray-300 rounded-md p-3 pb-5">
-                                    <div className="flex flex-col gap-2 w-full">
-                                        <label htmlFor="password">Password</label>
-                                        <InputText
-                                            id="password"
-                                            type="password"
-                                            value={newSupplier.password}
-                                            invalid={iInvalid.password && !newSupplier.password}
-                                            onChange={(e) => handleInputChangeAdd(e, "password")}
-                                            className="w-full"
-                                        />
-                                    </div>
-                                    <div className="flex flex-col gap-2 w-full">
-                                        <label htmlFor="cpassword">Confirm Password</label>
-                                        <InputText
-                                            id="cpassword"
-                                            type="password"
-                                            value={newSupplier.confirmPassword}
-                                            invalid={iInvalid.confirmPassword && !newSupplier.confirmPassword}
-                                            onChange={(e) => handleInputChangeAdd(e, "confirmPassword")}
-                                            className="w-full"
-                                        />
-                                    </div>
-                                </div> : <></>
-                            } */}
 
                             <div className='flex justify-end mt-2 w-full gap-2'>
                                 <Button label={addOrEdit == 'A' ? "Add Supplier" : "Edit Supplier"} className="p-button-primary" onClick={checkInvalid} />

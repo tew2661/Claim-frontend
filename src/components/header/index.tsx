@@ -10,6 +10,7 @@ import { MenuCategory, MenuItem } from './interface';
 import { getSocket } from '../socket/socket';
 import { Socket } from 'socket.io-client';
 import IconDot from '@/assets/icon/dot.png'
+import ImageHistory from "@/assets/icon/history.png"
 
 const Header = (props: { IsJtekt: boolean }) => {
     const IsJtekt = props.IsJtekt;
@@ -105,6 +106,12 @@ const Header = (props: { IsJtekt: boolean }) => {
                 icon: undefined,
                 url: "/pages/8d-report",
             }] : [],
+            {
+                label: 'History',
+                items: [],
+                icon: undefined,
+                url: "/pages/history",
+            },
         ];
         setMenuList(menuList);
 
