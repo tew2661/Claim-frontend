@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "primereact/button";
 import { Password } from "primereact/password";
-import { Put } from "@/components/fetch";
+import { Patch, Put } from "@/components/fetch";
 import { Toast } from "primereact/toast";
 import { useRouter } from "next/navigation";
 
@@ -31,8 +31,8 @@ const ResetPassword = () => {
     }, [userPasswords]);
 
     const updatePassword = async () => {
-        const response = await Put({
-            url: `/users/reset-password`,
+        const response = await Patch({
+            url: `/users/fixPassword`,
             body: JSON.stringify({
                 id: -1,
                 newPassword: userPasswords.newPassword

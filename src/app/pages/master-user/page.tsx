@@ -352,9 +352,10 @@ export default function UserManagement() {
                                     acceptClassName: 'p-button-danger',
                                     accept: async () => {
                                         const res = await Put({
-                                            url: `/users/${arr.id}`,
+                                            url: `/users/reset-password`,
                                             body: JSON.stringify({
-                                                password: 'P@ssw0rd'
+                                                id: arr.id,
+                                                newPassword: 'P@ssw0rd'
                                             }),
                                             headers: {
                                                 'Content-Type': 'application/json',
