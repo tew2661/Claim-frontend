@@ -79,8 +79,7 @@ export default function ApprovedTable(props: { checker: 1 | 2 | 3 }) {
                 (x.eightDReportStatus !== 'Rejected' && x.eightDReportSupplierStatus == "Approved" && x.eightDStatusChecker2 === 'Approved' && !x.eightDStatusChecker3) || 
                 (x.eightDStatusChecker3 === "Approved" && x.eightDReportSupplierStatus == "Approved" && x.eightDStatusChecker2 !== 'Completed')
             ) && x.eightDReportApprover === role,
-        };
-    
+        };    
         return conditions[key] ?? false;
     };
     
@@ -198,6 +197,9 @@ export default function ApprovedTable(props: { checker: 1 | 2 | 3 }) {
                     <div className={"step delivery " + (props.checker == 3 ? 'active' : 'disabled')} onClick={() => router.push('/pages/approve/checker3')}>Approver</div>
                     {/* <div className={"step approve " + (props.checker == 1 ? 'active' : 'disabled')}>Approve</div> */}
                 </div>
+                <div className="mx-4 mb-4 text-2xl font-bold py-3 border-solid border-t-0 border-x-0 border-b-2 border-gray-600">
+                    {props.checker == 1 ? 'Checker 1' : props.checker == 2 ? 'Checker 2' : 'Approver'}
+                </div>
                 <div className="flex gap-2 mx-4 mb-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 w-[calc(100%-100px)]">
                         <div className="flex flex-col gap-2 w-full">
@@ -250,7 +252,7 @@ export default function ApprovedTable(props: { checker: 1 | 2 | 3 }) {
                                     { label: 'All', value: 'All' },
                                     { label: 'Approved', value: 'approved' },
                                     { label: 'Pending', value: 'pending' },
-                                    { label: 'Wait for Supplier', value: 'wait-for-supplier' },
+                                    // { label: 'Wait for Supplier', value: 'wait-for-supplier' },
                                     { label: 'Rejected', value: 'rejected' },
                                 ]}
                                 optionLabel="label"

@@ -59,11 +59,12 @@ export default function ProblemReportTable() {
     };
 
     // Replace status names with more user-friendly terms
-    function getFriendlyStatusName(status: string): string {
+    function getFriendlyStatusName(status?: string): string {
         const statusMap: Record<string, string> = {
-            "Approved": "Submitted",
+            "Approved": "Approved",
+            "Save" : "Pending",
         };
-        return statusMap[status] || status;
+        return statusMap[status ?? ''] || (status || '');
     }
 
     // Fetch data from the server
@@ -93,8 +94,8 @@ export default function ProblemReportTable() {
             severity: `${item.importanceLevel || ''}${item.urgent ? ' (Urgent)' : ''}`,
             eightDReport: `${item.eightDReportSupplierDate ? moment(item.eightDReportSupplierDate).format('DD/MM/YYYY HH:mm:ss') : ''} ${item.eightDReportSupplierStatus ? `(${getFriendlyStatusName(item.eightDReportSupplierStatus)})` : ''}`,
             eightDReportClass: getEightDReportClass(item.eightDReportSupplierStatus),
-            success: item.eightDReportSupplierStatus === "Approved" ,
-            action: item.eightDReportSupplierStatus == 'Pending' || item.eightDReportSupplierStatus == 'Rejected'
+            success: getFriendlyStatusName(item.eightDReportSupplierStatus) === "Approved" ,
+            action: getFriendlyStatusName(item.eightDReportSupplierStatus) == 'Pending' || item.eightDReportSupplierStatus == 'Rejected'
         };
     }
 
@@ -151,7 +152,10 @@ export default function ProblemReportTable() {
         <div className="flex justify-center pt-6 px-6">
             <Toast ref={toastRef} />
             <div className="container">
-                <div className="p-4 rounded-lg">
+                <div className="rounded-lg">
+                    <div className="mx-4 mb-4 text-2xl font-bold py-3 border-solid border-t-0 border-x-0 border-b-2 border-gray-600">
+                        8D Reports
+                    </div>
                     {/* Filters */}
                     <div className="flex gap-2 mx-4 mb-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 w-[calc(100%-100px)]">
@@ -208,8 +212,8 @@ export default function ProblemReportTable() {
                                     onChange={(e: DropdownChangeEvent) => setFilters({ ...filters, status: e.target.value || "" })}
                                     options={[
                                         { label: 'All', value: 'All' },
-                                        { label: 'Submitted', value: 'approved-8d-report' },
-                                        { label: 'Wait for Supplier', value: 'wait-for-supplier-8d-report' },
+                                        { label: 'Pending', value: 'wait-for-supplier-8d-report' },
+                                        { label: 'Approved', value: 'submitted-8d-report' },
                                         { label: 'Rejected', value: 'rejected-8d-report' },
                                     ]}
                                     optionLabel="label"

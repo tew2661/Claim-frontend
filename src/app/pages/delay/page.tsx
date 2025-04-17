@@ -113,6 +113,9 @@ export default function ReportTable() {
         <div className="flex justify-center pt-6 px-6">
             <Toast ref={toast} />
             <div className="container">
+                <div className="mx-4 mb-4 text-2xl font-bold py-3 border-solid border-t-0 border-x-0 border-b-2 border-gray-600">
+                    Delay
+                </div>
                 <div className="flex gap-2 mx-4 mb-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 w-[calc(100%-100px)]">
 

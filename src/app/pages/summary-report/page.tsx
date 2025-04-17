@@ -65,7 +65,7 @@ export default function SummaryReport() {
     const [visibleHistory, setVisibleHistory] = useState<boolean>(false);
     const [selectedReportHistory, setSelectedReportHistory] = useState<DataHistoryTable[]>([]);
     const [qprNo, setQprNo] = useState<string>('');
-    const fetchReportHistory = async (qprNo: string , openHistory?: boolean) => {
+    const fetchReportHistory = async (qprNo: string, openHistory?: boolean) => {
         setQprNo(qprNo);
         const res = await Get({ url: `/logs?limit=${rowsHistory}&offset=${firstHistory}&qprNo=${qprNo}` });
         if (res.ok) {
@@ -74,7 +74,7 @@ export default function SummaryReport() {
             setSelectedReportHistory((res_data.data || []).map((x: any) => {
                 return {
                     ...x,
-                    performedAt: x.performedAt ? moment(x.performedAt).format('DD/MM/YYYY HH:mm:ss'): ""
+                    performedAt: x.performedAt ? moment(x.performedAt).format('DD/MM/YYYY HH:mm:ss') : ""
                 } as DataHistoryTable;
             }));
             setVisibleHistory(openHistory || false);
@@ -336,7 +336,8 @@ export default function SummaryReport() {
     }, [first, rows])
 
     useEffect(() => {
-        fetchReportHistory(qprNo);
+        if (qprNo)
+            fetchReportHistory(qprNo);
     }, [firstHistory, rowsHistory])
 
     return (
@@ -344,6 +345,9 @@ export default function SummaryReport() {
             {/* Search Fields */}
             <Toast ref={toast} />
             <div className="container">
+                <div className="mx-4 mb-4 text-2xl font-bold py-3 border-solid border-t-0 border-x-0 border-b-2 border-gray-600">
+                    Summary Report
+                </div>
                 <div className="flex gap-2 mx-4 mb-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 w-[calc(100%-100px)]">
                         <div className="flex flex-col gap-2 w-full">
@@ -390,18 +394,46 @@ export default function SummaryReport() {
                             <label htmlFor="status">Status</label>
                             <Dropdown
                                 value={filters.status}
-                                onChange={(e: DropdownChangeEvent) => setFilters({ ...filters, status: e.target.value || "" })}
-                                options={[
-                                    { label: 'All', value: 'All' },
-                                    { label: 'Approved [QuickReport]', value: 'approved-quick-report' },
-                                    { label: 'Wait for Supplier [QuickReport]', value: 'wait-for-supplier-quick-report' },
-                                    { label: 'Rejected [QuickReport]', value: 'rejected-quick-report' },
-                                    { label: 'Approved [8D Report]', value: 'approved-8d-report' },
-                                    { label: 'Wait for Supplier [8D Report]', value: 'wait-for-supplier-8d-report' },
-                                    { label: 'Rejected [8D Report]', value: 'rejected-8d-report' },
-                                ]}
-                                optionLabel="label"
+                                onChange={(e: DropdownChangeEvent) =>
+                                    setFilters({ ...filters, status: e.value || "" })
+                                }
                                 className="w-full"
+                                optionLabel="label"
+                                optionGroupLabel="label"
+                                optionGroupChildren="items"
+                                optionGroupTemplate={(option) => {
+                                    return (
+                                        <div className="flex align-items-center">
+                                            <div className="font-bold">{option.label}</div>
+                                        </div>
+                                    );
+                                }}
+                                options={[
+                                    {
+                                        label: undefined,
+                                        items: [
+                                            { label: 'All', value: 'All', className: 'font-bold' },
+                                        ]
+                                    },
+                                    {
+                                        label: 'QuickReport',
+                                        items: [
+                                            { label: 'Pending [QuickReport]', value: 'wait-for-supplier-quick-report', className: 'ml-2' },
+                                            { label: 'Submitted [QuickReport]', value: 'submitted-quick-report', className: 'ml-2' },
+                                            { label: 'Approved [QuickReport]', value: 'approved-quick-report', className: 'ml-2' },
+                                            { label: 'Rejected [QuickReport]', value: 'rejected-quick-report', className: 'ml-2' },
+                                        ]
+                                    },
+                                    {
+                                        label: '8D Report',
+                                        items: [
+                                            { label: 'Pending [8D Report]', value: 'wait-for-supplier-8d-report', className: 'ml-2' },
+                                            { label: 'Submitted [8D Report]', value: 'submitted-8d-report', className: 'ml-2' },
+                                            { label: 'Approved [8D Report]', value: 'approved-8d-report', className: 'ml-2' },
+                                            { label: 'Rejected [8D Report]', value: 'rejected-8d-report', className: 'ml-2' },
+                                        ]
+                                    },
+                                ]}
                             />
                         </div>
                     </div>

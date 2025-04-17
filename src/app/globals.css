@@ -109,7 +109,7 @@ body {
 .table-header-center .p-datatable-wrapper {
   scrollbar-width: thin; 
   -ms-overflow-style: scrollbar; 
-  height: 60vh;
+  height: 55vh;
   border: 1px solid #e9ecef;
 }
 

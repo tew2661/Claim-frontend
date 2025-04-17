@@ -1,5 +1,4 @@
-// import axios from 'axios';
-
+import Swal from 'sweetalert2'
 /**
  * Interface for response data
  */
@@ -43,6 +42,107 @@ const IsTokenEmpty = (token: string | null): boolean => {
     return !token;
 }
 
+const ModalLogin = async (): Promise<boolean> => {
+    const userString = localStorage.getItem('user')!;
+    const userJson = JSON.parse(userString) ?? {};
+    const { value: formValues } = await Swal.fire({
+        title: ``,
+        html: `
+                <h1 class="text-center font-extrabold duration-300 text-slate-800 tracking-widest" style="text-shadow: rgb(182 182 182) 4px 1px; margin: 0px 0px;">
+                        LOGIN
+                    </h1>
+                    <h4 class="text-center font-extrabold text-slate-800 tracking-widest pb-4 mt-0" style="text-shadow: rgb(182 182 182) 2px 0.5px; font-size: 20px">
+                        Supplier Claim Management
+                    </h4>
+              <form id="swal-login-form" class="space-y-4 text-left">
+                <div>
+                  <label for="swal-username" class="font-bold block mb-2">Username</label>
+                  <div class="relative">
+                    <i class="pi pi-user absolute top-2.5 left-3 text-gray-500"></i>
+                    <input id="swal-username" type="text" placeholder="Username" value="${userJson.code || ''}" disabled
+                      class="w-full pl-10 py-2 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+                  </div>
+                </div>
+                <div>
+                  <label for="swal-password" class="font-bold block mb-2">Password</label>
+                  <div class="relative">
+                    <i class="pi pi-key absolute top-2.5 left-3 text-gray-500"></i>
+                    <input id="swal-password" type="password" placeholder="Password"
+                      class="w-full pl-10 py-2 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+                  </div>
+                </div>
+              </form>
+            `,
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: 'SIGN IN',
+        cancelButtonText: 'CANCEL',
+        customClass: {
+            confirmButton: 'bg-slate-800 text-white px-6 py-2 rounded hover:bg-slate-700',
+            cancelButton: 'bg-gray-200 text-black px-6 py-2 rounded ml-2',
+            popup: 'p-8 rounded-xl max-w-[500px]'
+        },
+        preConfirm: () => {
+            const username = (document.getElementById('swal-username') as HTMLInputElement)?.value;
+            const password = (document.getElementById('swal-password') as HTMLInputElement)?.value;
+
+            if (!username || !password) {
+                Swal.showValidationMessage('กรุณากรอก Username และ Password');
+                return;
+            }
+
+            return { username, password };
+        }
+    });
+
+
+    if (formValues) {
+        const response = await fetch(`${domainURL}/auth/login${process.env.NEXT_MODE == 'jtekt' ? '' : '-supplier'}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                username: userJson.code || '',
+                password: formValues.password
+            })
+        });
+
+        if (response.ok) {
+            const result: any = await response.json();
+            localStorage.setItem('access_token', result.access_token);
+            localStorage.setItem('refresh_token', result.refresh_token);
+            localStorage.setItem('user', JSON.stringify(result.user));
+            localStorage.setItem('role', result.user.role);
+            return true;
+        } else if (response.status === 400) {
+            const { value: formValues } = await Swal.fire({
+                icon: 'error',
+                title: 'Oops...',
+                text: 'Password is incorrect!',
+                showCancelButton: true,
+                confirmButtonText: 'AGAIN',
+                cancelButtonText: 'CANCEL',
+            })
+            if (formValues) {
+                return await ModalLogin();
+            } else {
+                localStorage.clear();
+                window.location.href = '/login';
+                return false
+            }
+            
+        } else {
+            return false;
+        }
+
+    } else {
+        // localStorage.clear();
+        // window.location.href = '/login';
+        return false;
+    }
+}
+
 /**
  * Refreshes the token and updates local storage
  * @returns True if token was refreshed successfully, false otherwise
@@ -64,9 +164,8 @@ const RefreshToken = async (): Promise<boolean> => {
         localStorage.setItem('refresh_token', result.refresh_token);
         return true;
     } else {
-        localStorage.clear();
-        window.location.href = '/login';
-        return false;
+        HideSpinner();
+        return await ModalLogin()
     }
 }
 
@@ -161,6 +260,7 @@ const Post = async ({ url, body, headers }: PropsPost): Promise<Response> => {
  * @returns Response from the API
  */
 const Login = async ({ url, body }: PropsPost): Promise<any> => {
+    ShowSpinner();
     const response = await fetch(`${domainURL}${url}`, {
         method: 'POST',
         headers: {
@@ -170,6 +270,8 @@ const Login = async ({ url, body }: PropsPost): Promise<any> => {
     });
 
     const result: any = await response.json();
+
+    HideSpinner();
     return result;
 }
 

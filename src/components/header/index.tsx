@@ -82,12 +82,7 @@ const Header = (props: { IsJtekt: boolean }) => {
                 icon: undefined,
                 url: "/pages/delay",
             }] : [],
-            ...IsJtekt ? [{
-                label: 'History',
-                items: [],
-                icon: undefined,
-                url: "/pages/history",
-            }] : [],
+            
             ...!IsJtekt ? [{
                 label: 'Action List',
                 items: [],

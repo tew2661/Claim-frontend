@@ -85,7 +85,6 @@ export default function SummaryReport() {
     }
 
     useEffect(() => {
-        GetDatas()
         GetUser();
     }, [])
 
@@ -98,6 +97,9 @@ export default function SummaryReport() {
             {/* Search Fields */}
             <Toast ref={toast} />
             <div className="container">
+                <div className="mx-4 mb-4 text-2xl font-bold py-3 border-solid border-t-0 border-x-0 border-b-2 border-gray-600">
+                    History
+                </div>
                 <div className="flex gap-2 mx-4 mb-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 w-[calc(100%-100px)]">
                         
@@ -126,23 +128,25 @@ export default function SummaryReport() {
                             />
                         </div>
                         
-                        <div className="flex flex-col gap-2 w-full">
-                            <label htmlFor="user">Action By</label>
-                            {/* <InputText
-                                id="user"
-                                value={filters.user}
-                                onChange={(e) => handleInputChange(e, "user")}
-                                className="w-full"
-                            /> */}
-                            <Dropdown
-                                value={filters.user || ""}
-                                onChange={(e: DropdownChangeEvent) => handleInputChange({ target: { value: e.value } } as React.ChangeEvent<HTMLInputElement>, "user")}
-                                options={[{ label: 'All', value: 'All' }, ...user]}
-                                optionLabel="label"
-                                // placeholder="Select Supplier" 
-                                className="w-full"
-                            />
-                        </div>
+                        {
+                            (process.env.NEXT_MODE == 'jtekt') ? <div className="flex flex-col gap-2 w-full">
+                                <label htmlFor="user">Action By</label>
+                                {/* <InputText
+                                    id="user"
+                                    value={filters.user}
+                                    onChange={(e) => handleInputChange(e, "user")}
+                                    className="w-full"
+                                /> */}
+                                <Dropdown
+                                    value={filters.user || ""}
+                                    onChange={(e: DropdownChangeEvent) => handleInputChange({ target: { value: e.value } } as React.ChangeEvent<HTMLInputElement>, "user")}
+                                    options={[{ label: 'All', value: 'All' }, ...user]}
+                                    optionLabel="label"
+                                    // placeholder="Select Supplier" 
+                                    className="w-full"
+                                />
+                            </div> : <></>
+                        }
                         <div className="flex flex-col gap-2 w-full">
                             <label htmlFor="qprNo">Action Date</label>
                             <Calendar
@@ -164,10 +168,11 @@ export default function SummaryReport() {
                                 onChange={(e: DropdownChangeEvent) => setFilters({ ...filters, action: e.target.value || "" })}
                                 options={[
                                     { label: 'All', value: 'All' },
-                                    { label: 'Created', value: 'created' },
-                                    { label: 'Updated', value: 'updated' },
-                                    { label: 'Approved', value: 'approved' },
-                                    { label: 'Rejected', value: 'rejected' },
+                                    { label: 'Created', value: 'Created' },
+                                    { label: 'Updated', value: 'Updated' },
+                                    { label: 'Approved', value: 'Approved' },
+                                    { label: 'Submited', value: 'Submited'},
+                                    { label: 'Rejected', value: 'Rejected' },
                                 ]}
                                 optionLabel="label"
                                 className="w-full"
@@ -227,8 +232,8 @@ export default function SummaryReport() {
                     <Column field="action" header="Action" body={(data) => {
                         return <>{data.action} {data.IsDocumentOther == 'Y' ? "(Doc Other)" : ""}</>
                     }}  bodyStyle={{ width: '10%' }}></Column>
-                    <Column field="roleType" header="Action Role" bodyStyle={{ width: '10%' }}></Column>
-                    <Column field="performedBy.name" header="Action By" bodyStyle={{ width: '10%' }}></Column>
+                    { (process.env.NEXT_MODE == 'jtekt') ? <Column field="roleType" header="Action Role" bodyStyle={{ width: '10%' }}></Column> : undefined } 
+                    { (process.env.NEXT_MODE == 'jtekt') ? <Column field="performedBy.name" header="Action By" bodyStyle={{ width: '10%' }}></Column> : undefined }
                     <Column field="performedAt" header="Action Date" bodyStyle={{ width: '10%' }}></Column>
                     <Column field="remark" header="Remark" bodyStyle={{ width: '25%' }}></Column>
                 </DataTable>

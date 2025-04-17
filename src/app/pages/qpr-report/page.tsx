@@ -65,7 +65,8 @@ export default function ProblemReportTable() {
 
     function replaceStatusName(checker: string): string {
         const replacements: Record<string, string> = {
-            "Approved": "Submited",
+            "Approved": "Approved",
+            "Save" : "Pending",
         };
         return replacements[checker] ? `${replacements[checker]}` : checker
     }
@@ -150,7 +151,10 @@ export default function ProblemReportTable() {
         <div className="flex justify-center pt-6 px-6">
             <Toast ref={toast} />
             <div className="container">
-                <div className="p-4 rounded-lg">
+                <div className="rounded-lg">
+                    <div className="mx-4 mb-4 text-2xl font-bold py-3 border-solid border-t-0 border-x-0 border-b-2 border-gray-600">
+                        QPR Reports
+                    </div>
                     {/* Filters */}
                     <div className="flex gap-2 mx-4 mb-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 w-[calc(100%-100px)]">
@@ -208,8 +212,8 @@ export default function ProblemReportTable() {
                                     onChange={(e: DropdownChangeEvent) => setFilters({ ...filters, status: e.target.value || "" })} 
                                     options={[
                                         { label: 'All' , value: 'All'}, 
-                                        { label: 'Submitted' , value: 'approved-quick-report'}, 
-                                        { label: 'Wait for Supplier' , value: 'wait-for-supplier-quick-report' } ,
+                                        { label: 'Pending', value: 'wait-for-supplier-quick-report' },
+                                        { label: 'Approved', value: 'submitted-quick-report' },
                                         { label: 'Rejected' , value: 'rejected-quick-report' },
                                     ]} 
                                     optionLabel="label" 

@@ -287,8 +287,7 @@ export default function UserManagement() {
             <Toast ref={toast} />
             <ConfirmDialog />
             <div className="container">
-                <h1 className="text-2xl font-bold mb-4 mx-4">User Management</h1>
-
+                <div className="mx-4 mb-4 text-2xl font-bold py-3 border-solid border-t-0 border-x-0 border-b-2 border-gray-600">User Management</div>
                 <div className="flex gap-2 mx-4 mb-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 w-[calc(100%-100px)]">
                         <div className="flex flex-col gap-2 w-full">
