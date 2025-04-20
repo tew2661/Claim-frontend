@@ -416,12 +416,12 @@ export default function SummaryReport() {
                                         ]
                                     },
                                     {
-                                        label: 'QuickReport',
+                                        label: 'Quick Report',
                                         items: [
-                                            { label: 'Pending [QuickReport]', value: 'wait-for-supplier-quick-report', className: 'ml-2' },
-                                            { label: 'Submitted [QuickReport]', value: 'submitted-quick-report', className: 'ml-2' },
-                                            { label: 'Approved [QuickReport]', value: 'approved-quick-report', className: 'ml-2' },
-                                            { label: 'Rejected [QuickReport]', value: 'rejected-quick-report', className: 'ml-2' },
+                                            { label: 'Pending [Quick Report]', value: 'wait-for-supplier-quick-report', className: 'ml-2' },
+                                            { label: 'Submitted [Quick Report]', value: 'submitted-quick-report', className: 'ml-2' },
+                                            { label: 'Approved [Quick Report]', value: 'approved-quick-report', className: 'ml-2' },
+                                            { label: 'Rejected [Quick Report]', value: 'rejected-quick-report', className: 'ml-2' },
                                         ]
                                     },
                                     {
