@@ -63,12 +63,18 @@ export default function ProblemReportTable() {
         );
     };
 
-    function replaceStatusName(checker: string): string {
+    function replaceStatusName(quickReportSupplierStatus?: string, quickReportStatus?: string, delayDocument?: string): string {
+        console.log(quickReportSupplierStatus, quickReportStatus)
         const replacements: Record<string, string> = {
-            "Approved": "Approved",
-            "Save" : "Pending",
+            "Approved-Quick Report-Approved": "Submitted",
+            "Approved-Quick Report-Pending": "Submitted",
+            "Approved-Quick Report-Completed": "Approved"
         };
-        return replacements[checker] ? `${replacements[checker]}` : checker
+        const result = replacements[`${quickReportSupplierStatus}-${delayDocument}-${quickReportStatus || ''}`] ? `${replacements[`${quickReportSupplierStatus}-${delayDocument}-${quickReportStatus || ''}`]}` : (quickReportSupplierStatus || '')
+        const replacements2: Record<string, string> = {
+            "Save": "Pending",
+        };
+        return replacements2[result] ? `${replacements2[result]}` : result;
     }
 
     const GetDatas = async () => {
@@ -82,14 +88,15 @@ export default function ProblemReportTable() {
             const res_data = await res.json();
             setTotalRows(res_data.total || 0)
             setQprList((res_data.data || []).map((x: FormDataQpr) => {
+                const status = replaceStatusName(x.quickReportSupplierStatus, x.quickReportStatus, x.delayDocument)
                 return {
                     id: x.id,
                     date: x.dateReported ? moment(x.dateReported).format('DD/MM/YYYY HH:mm:ss') : '',
                     qprNo: x.qprIssueNo || '',
                     problem: x.defectiveContents.problemCase || '',
                     severity: (x.importanceLevel || '') + (x.urgent ? ` (Urgent)` : ''),
-                    quickReport: `${x.quickReportSupplierDate ? `${moment(x.quickReportSupplierDate).format('DD/MM/YYYY HH:mm:ss')}` : ""} ${x.quickReportSupplierStatus ? ` (${replaceStatusName(x.quickReportSupplierStatus)})`: ''}`,
-                    quickReportClass: x.quickReportSupplierStatus == "Approved" ? "text-green-600" : (x.quickReportSupplierStatus == "Pending" || x.quickReportSupplierStatus == "Save" ? "text-yellow-600" : "text-red-600"),
+                    quickReport: `${x.quickReportSupplierDate ? `${moment(x.quickReportSupplierDate).format('DD/MM/YYYY HH:mm:ss')}` : ""} ${x.quickReportSupplierStatus ? ` (${status})` : ''}`,
+                    quickReportClass: status == "Approved" ? "text-green-600" : ((status == "Rejected" || status == "Pending") ? "text-red-600" : "text-yellow-600"),
                     success: x.quickReportSupplierStatus == "Approved" 
                 }
             }))
@@ -213,7 +220,8 @@ export default function ProblemReportTable() {
                                     options={[
                                         { label: 'All' , value: 'All'}, 
                                         { label: 'Pending', value: 'wait-for-supplier-quick-report' },
-                                        { label: 'Approved', value: 'submitted-quick-report' },
+                                        { label: 'Submitted', value: 'submitted-quick-report' },
+                                        { label: 'Approved', value: 'approved-quick-report' },
                                         { label: 'Rejected' , value: 'rejected-quick-report' },
                                     ]} 
                                     optionLabel="label" 

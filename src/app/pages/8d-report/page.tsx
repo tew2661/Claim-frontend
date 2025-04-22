@@ -67,6 +67,20 @@ export default function ProblemReportTable() {
         return statusMap[status ?? ''] || (status || '');
     }
 
+    function replaceStatusName2(quickReportSupplierStatus?: string, quickReportStatus?: string, delayDocument?: string): string {
+        console.log(quickReportSupplierStatus, quickReportStatus)
+        const replacements: Record<string, string> = {
+            "Approved-8D Report-Approved": "Submitted",
+            "Approved-8D Report-Pending": "Submitted",
+            "Approved-8D Report-Completed": "Approved"
+        };
+        const result = replacements[`${quickReportSupplierStatus}-${delayDocument}-${quickReportStatus || ''}`] ? `${replacements[`${quickReportSupplierStatus}-${delayDocument}-${quickReportStatus || ''}`]}` : (quickReportSupplierStatus || '')
+        const replacements2: Record<string, string> = {
+            "Save": "Pending",
+        };
+        return replacements2[result] ? `${replacements2[result]}` : result;
+    }
+
     // Fetch data from the server
     const fetchData = async () => {
         const queryString = CreateQueryString({
@@ -86,14 +100,15 @@ export default function ProblemReportTable() {
 
     // Map API response to DataActionList
     function mapToDataActionList(item: FormDataQpr): DataActionList {
+        const status2 = replaceStatusName2(item.eightDReportSupplierStatus, item.eightDReportStatus, item.delayDocument)
         return {
             id: item.id,
             date: item.dateReported ? moment(item.dateReported).format('DD/MM/YYYY HH:mm:ss') : '',
             qprNo: item.qprIssueNo || '',
             problem: item.defectiveContents.problemCase || '',
             severity: `${item.importanceLevel || ''}${item.urgent ? ' (Urgent)' : ''}`,
-            eightDReport: `${item.eightDReportSupplierDate ? moment(item.eightDReportSupplierDate).format('DD/MM/YYYY HH:mm:ss') : ''} ${item.eightDReportSupplierStatus ? `(${getFriendlyStatusName(item.eightDReportSupplierStatus)})` : ''}`,
-            eightDReportClass: getEightDReportClass(item.eightDReportSupplierStatus),
+            eightDReport: `${item.eightDReportSupplierDate ? moment(item.eightDReportSupplierDate).format('DD/MM/YYYY HH:mm:ss') : ''}${item.eightDReportSupplierStatus ? ` (${status2})` : '-'}`,
+            eightDReportClass: status2 == "Approved" ? "text-green-600" : ((status2 == "Rejected" || status2 == "Pending") ? "text-red-600" : "text-yellow-500"),
             success: getFriendlyStatusName(item.eightDReportSupplierStatus) === "Approved" ,
             action: getFriendlyStatusName(item.eightDReportSupplierStatus) == 'Pending' || item.eightDReportSupplierStatus == 'Rejected'
         };
@@ -213,7 +228,8 @@ export default function ProblemReportTable() {
                                     options={[
                                         { label: 'All', value: 'All' },
                                         { label: 'Pending', value: 'wait-for-supplier-8d-report' },
-                                        { label: 'Approved', value: 'submitted-8d-report' },
+                                        { label: 'Submitted', value: 'submitted-8d-report' },
+                                        { label: 'Approved', value: 'approved-8d-report' },
                                         { label: 'Rejected', value: 'rejected-8d-report' },
                                     ]}
                                     optionLabel="label"
