@@ -250,7 +250,7 @@ export default function ApprovedTable(props: { checker: 1 | 2 | 3 }) {
                                 onChange={(e: DropdownChangeEvent) => setFilters({ ...filters, status: e.target.value || "" })}
                                 options={[
                                     { label: 'All', value: 'All' },
-                                    { label: 'Approved', value: 'approved' },
+                                    { label: props.checker == 1 ? 'Approved' : 'Approved / Completed', value: 'approved' },
                                     { label: 'Pending', value: 'pending' },
                                     // { label: 'Wait for Supplier', value: 'wait-for-supplier' },
                                     { label: 'Rejected', value: 'rejected' },

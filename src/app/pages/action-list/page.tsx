@@ -299,6 +299,17 @@ export default function ProblemReportTable() {
                                 {/* "Approved" | "Wait for Supplier" | "Rejected" */}
                                 <Dropdown
                                     value={filters.status}
+                                    onChange={(e: DropdownChangeEvent) => setFilters({ ...filters, status: e.target.value || "" })}
+                                    options={[
+                                        { label: 'All', value: 'All' },
+                                        { label: 'Inprocess', value: 'inprocess' }, 
+                                        { label: 'Complete', value: 'completed' },
+                                    ]}
+                                    optionLabel="label"
+                                    className="w-full"
+                                />
+                                {/* <Dropdown
+                                    value={filters.status}
                                     onChange={(e: DropdownChangeEvent) =>
                                         setFilters({ ...filters, status: e.value || "" })
                                     }
@@ -339,8 +350,7 @@ export default function ProblemReportTable() {
                                             ]
                                         },
                                     ]}
-                                />
-
+                                /> */}
                             </div>
 
                         </div>

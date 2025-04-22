@@ -67,7 +67,7 @@ export default function SummaryReport() {
     const [qprNo, setQprNo] = useState<string>('');
     const fetchReportHistory = async (qprNo: string, openHistory?: boolean) => {
         setQprNo(qprNo);
-        const res = await Get({ url: `/logs?limit=${rowsHistory}&offset=${firstHistory}&qprNo=${qprNo}` });
+        const res = await Get({ url: `/logs?limit=${rowsHistory}&offset=${firstHistory}` });
         if (res.ok) {
             const res_data = await res.json();
             setTotalRowsHistory(res_data.total || 0);
@@ -181,6 +181,8 @@ export default function SummaryReport() {
     const fetchSummaryReportData = async () => {
         const quertString = CreateQueryString({
             ...filters,
+            page: 'summary-report',
+            month: filters.month ? moment(filters.month).format('YYYY-MM-DD') : undefined,
         });
         const res = await Get({ url: `/qpr?limit=${rows}&offset=${first}&${quertString}` });
         if (res.ok) {
@@ -214,7 +216,7 @@ export default function SummaryReport() {
                                 : "text-yellow-500"
                             }`}
                     >
-                        <div className="w-[170px]">{x.status}</div>
+                        <div className="w-[170px]">{x.status == 'Completed' ? 'Completed' : 'Inprocess'}</div>
                     </div>,
                     quickReport: <div>
                         <div>{x.quickReportDate ? `${moment(x.quickReportDate).format('DD/MM/YYYY HH:mm:ss')}` : "-"}</div>
@@ -394,6 +396,17 @@ export default function SummaryReport() {
                             <label htmlFor="status">Status</label>
                             <Dropdown
                                 value={filters.status}
+                                onChange={(e: DropdownChangeEvent) => setFilters({ ...filters, status: e.target.value || "" })}
+                                options={[
+                                    { label: 'All', value: 'All' },
+                                    { label: 'Inprocess', value: 'inprocess' },
+                                    { label: 'Complete', value: 'completed' },
+                                ]}
+                                optionLabel="label"
+                                className="w-full"
+                            />
+                            {/* <Dropdown
+                                value={filters.status}
                                 onChange={(e: DropdownChangeEvent) =>
                                     setFilters({ ...filters, status: e.value || "" })
                                 }
@@ -434,7 +447,7 @@ export default function SummaryReport() {
                                         ]
                                     },
                                 ]}
-                            />
+                            /> */}
                         </div>
                     </div>
                     <div className="w-[100px]">
