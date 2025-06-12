@@ -269,12 +269,12 @@ export default function QPRUploadForm() {
     }, [])
 
     return (
-        <div className="flex justify-center bg-gray-100">
+        <div className="flex justify-center bg-[#00000061]">
             <Toast ref={toast} />
             <ConfirmDialog />
             <div className="container p-4 flex flex-col h-[calc(100vh-115px)]">
                 {/* Header */}
-                <div className="border border-black bg-white text-center mb-6 flex items-center justify-center h-full overflow-auto">
+                <div className="border border-black menu-css text-center mb-6 flex items-center justify-center h-full overflow-auto">
                     
                     {
                         urlFileView ? <iframe
@@ -287,8 +287,8 @@ export default function QPRUploadForm() {
                 </div>
 
                 {/* First Lot Delivery Section */}
-                <div className="border border-black bg-white p-4 h-full overflow-auto">
-                    <div className="border border-black bg-white pt-2">
+                <div className="border border-black menu-css p-4 h-full overflow-auto">
+                    <div className="border border-black menu-css pt-2">
                         <label className="block font-bold mb-2">Remark</label>
                         <textarea
                             // value={actionDetail}
@@ -301,7 +301,7 @@ export default function QPRUploadForm() {
                     </div>
 
                     {/* Action Detail Section */}
-                    <div className="border border-black bg-white py-4 pt-1">
+                    <div className="border border-black menu-css py-4 pt-1">
                         <label className="block font-bold mb-2">Action Detail</label>
                         <textarea
                             value={actionDetail}

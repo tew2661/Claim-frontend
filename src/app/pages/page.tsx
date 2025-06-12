@@ -12,6 +12,7 @@ import ImageExpired from "@/assets/icon/expired.png";
 import ImageQPR from "@/assets/icon/assignment.png"
 import Image8d from "@/assets/icon/issue.png"
 import ImageHistory from "@/assets/icon/history.png"
+import Footer from "@/components/footer";
 
 export default function Home() {
     const IsJtekt = (process.env.NEXT_MODE == 'jtekt');
@@ -116,7 +117,7 @@ export default function Home() {
                 {menuList.map((category, index) => (
                     <React.Fragment key={index}>
                         {category.items.length === 0 && (
-                            <div onClick={() => router.push(category.url!)} className="menu-item text-center p-4 border-solid border-1 border-gray-300 hover:border-gray-500 rounded shadow hover:bg-gray-100 cursor-pointer px-5">
+                            <div onClick={() => router.push(category.url!)} className="menu-item text-center p-4 border-solid border-1 border-gray-300 bg-[#ffffffc7] hover:border-gray-500 rounded shadow hover:bg-gray-100 hover:scale-110 cursor-pointer px-5">
                                 { category.icon ? <Image src={category.icon!} className="w-[150px] h-[150px] m-3 mb-5" alt={'icon-'+ index}></Image> : <></> } 
                                 <div className="font-bold text-lg">
                                     {category.label}
@@ -124,7 +125,7 @@ export default function Home() {
                             </div>
                         )}
                         {category.items.map((item, itemIndex) => (
-                            <div key={itemIndex} onClick={() => router.push(item.url!)} className="menu-item text-center p-4 border-solid border-1 border-gray-300 hover:border-gray-500 rounded shadow hover:bg-gray-100 cursor-pointer px-5">
+                            <div key={itemIndex} onClick={() => router.push(item.url!)} className="menu-item text-center p-4 border-solid border-1 border-gray-300 bg-[#ffffffc7] hover:border-gray-500 rounded shadow hover:bg-gray-100 hover:scale-110 cursor-pointer px-5">
                                 { item.icon ? <Image src={item.icon!} className="w-[150px] h-[150px] m-3 mb-5" alt={'icon-'+ itemIndex}></Image> : <></> } 
                                 <div className="font-bold text-lg">
                                     {item.label}

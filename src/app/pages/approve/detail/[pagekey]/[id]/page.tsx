@@ -307,12 +307,12 @@ export default function PDFApproval() {
     }
 
     return (
-        <div className="flex justify-center bg-gray-100">
+        <div className="flex justify-center bg-[#00000061]">
             <Toast ref={toast} />
             <ConfirmDialog />
             <div className="container p-4 flex flex-col h-[calc(100vh-115px)] overflow-auto">
                 {/* PDF Display Section */}
-                <div className="flex-1 border border-black bg-white flex items-center justify-center min-h-[500px]">
+                <div className="flex-1 border border-black menu-css flex items-center justify-center min-h-[480px]">
                     {/* <span className="text-xl font-bold">PDF Display {reportType}</span> */}
                     {
                         urlFileView ? <iframe
@@ -325,7 +325,7 @@ export default function PDFApproval() {
                 </div>
                 {
                     `${param.id}` == "8D Report" ? <>
-                        <div className="w-full flex justify-end bg-white pb-4 pr-4">
+                        <div className="w-full flex justify-end menu-css pb-4 pr-4">
                             <Button
                                 label="Download Quick Report"
                                 className="bg-red-600 text-white border-red-600"
@@ -335,7 +335,7 @@ export default function PDFApproval() {
                 }
 
                 {/* Information and Actions Section */}
-                <div className="mt-4 border border-black bg-white p-4">
+                <div className="mt-4 border border-black menu-css p-4">
                     {/* Supplier Info and Problem Details */}
                     <div className="grid grid-cols-2 gap-4">
                         {/* Supplier Info */}

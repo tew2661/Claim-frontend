@@ -27,21 +27,27 @@
     /* position: relative; */
 }
 
-.class-custom-bar + .body .home {
-    align-items: center;
-    justify-content: center;
-    margin-top: 43px;
-    display: flex;
-    height: calc(100vh - 228px);
-    position: absolute;
-    width: 100%;
-    overflow: auto;
+.class-custom-bar + .body {
+    div.body .home {
+        align-items: center;
+        justify-content: center;
+        margin-top: 43px;
+        display: flex;
+        height: calc(100vh - 228px);
+        position: absolute;
+        width: 100%;
+        overflow: auto;
+    }
+    
 }
 .class-custom-bar + .body {
     margin-top: 43px;
-    height: calc(100vh - 110px);
-    width: calc(100vw);
-    overflow: auto;
+    height: calc(100vh - 43px);
+    width: 100vw;
+    div.body {
+        height: calc(100vh - 110px);
+        overflow: auto;
+    }
 }
 
 /* Style the links inside the navigation bar */
@@ -271,4 +277,9 @@
 .white-table .p-datatable.p-datatable-gridlines .p-datatable-thead > tr > th {
     background-color:  #e9ecef; 
     color: #373535;
+}
+
+.table-header-center .p-datatable-wrapper {
+    backdrop-filter: blur(2px);
+    background-color: #ffffffed;
 }

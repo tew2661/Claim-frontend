@@ -399,10 +399,10 @@ export default function QPRForm() {
 
 
     return (
-        <div className="p-6 bg-gray-100 min-h-screen">
+        <div className="p-6" >
             <Toast ref={toast} />
             <ConfirmDialog />
-            <div className="bg-white p-6 shadow-md rounded-md border">
+            <div className="menu-css p-6 shadow-md rounded-md border h-[calc(100vh-145px)] overflow-auto">
                 <h1 className="text-2xl font-bold text-center mb-3 border border-solid p-3 border-gray-300 rounded-md">
                     Quality Problem Rejection (QPR)
                 </h1>

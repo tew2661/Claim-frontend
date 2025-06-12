@@ -4,6 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import Loading from '@/components/loading/index';
 import Header from '@/components/header';
 import LoadingSpinner from '@/components/loading/index';
+import bgImage from "@/assets/icon/IMG_2932.jpg";
 
 function LayoutPages({
     children,
@@ -33,7 +34,9 @@ function LayoutPages({
 
                 setPages(<>
                     <Header IsJtekt={IsJtekt} />
-                    <div className="body">{children}</div>
+                    <div className='body' style={{ backgroundImage: `url(${bgImage.src})` }}>
+                        <div className="body">{children}</div>
+                    </div>
                 </>); // หน้าอื่น ๆ แสดง Header
             }
         }

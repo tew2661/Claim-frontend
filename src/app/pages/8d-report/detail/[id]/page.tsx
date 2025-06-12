@@ -227,12 +227,12 @@ export default function QPRUploadForm() {
 
 
     return (
-        <div className="flex justify-center bg-gray-100">
+        <div className="flex justify-center bg-[#00000061]">
             <Toast ref={toast} />
             <ConfirmDialog />
             <div className="container p-4 flex flex-col h-[calc(100vh-115px)]">
                 {/* Header */}
-                <div className="border border-black bg-white text-center mb-6 flex items-center justify-center h-full overflow-auto">
+                <div className="border border-black menu-css text-center mb-6 flex items-center justify-center h-full overflow-auto">
                     {/* <h1 className="text-2xl font-bold">Display QPR Data from JATH</h1> */}
                     {
                         urlFileView ? <iframe
@@ -245,7 +245,7 @@ export default function QPRUploadForm() {
                 </div>
 
                 {/* Upload Section */}
-                <div className="border border-black bg-white p-4 h-full overflow-auto">
+                <div className="border border-black menu-css p-4 h-full overflow-auto">
                     {/* Upload 8D Report */}
 
                     <div className="flex justify-between mb-4">

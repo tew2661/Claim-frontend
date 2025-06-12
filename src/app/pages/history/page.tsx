@@ -239,10 +239,6 @@ export default function SummaryReport() {
                 </DataTable>
 
                 {/* Export Button */}
-                <Footer>
-                    <div className='flex justify-end mt-2 w-full gap-2'>
-                    </div>
-                </Footer>
             </div>
 
         </div>
