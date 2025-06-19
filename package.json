@@ -5,7 +5,8 @@
   "scripts": {
     "build": "next build",
     "dev": "node scripts/start.dev.js",
-    "start": "node scripts/start.js",
+    "start-jtekt": "node scripts/start-jtekt.js",
+    "start-supplier": "node scripts/start-supplier.js",
     "lint": "next lint"
   },
   "dependencies": {
