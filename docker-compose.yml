@@ -14,8 +14,8 @@ services:
     environment:
       - NEXT_MODE=jtekt
       - NEXT_TEST=TEST1
-      - NEXT_PUBLIC_URL_API=http://localhost:3010/api/v1
-      - NEXT_PUBLIC_SOCKET_SERVER_URL=http://localhost:3010
+      - NEXT_PUBLIC_URL_API=http://localhost:3600/api/v1
+      - NEXT_PUBLIC_SOCKET_SERVER_URL=http://localhost:3600
     command: sh -c "yarn dev"
   nextjs-dev-supplier:
     build:
@@ -30,6 +30,6 @@ services:
     environment:
       - NEXT_MODE=supplier
       - NEXT_TEST=TEST2
-      - NEXT_PUBLIC_URL_API=http://localhost:3010/api/v1
-      - NEXT_PUBLIC_SOCKET_SERVER_URL=http://localhost:3010
+      - NEXT_PUBLIC_URL_API=http://localhost:3600/api/v1
+      - NEXT_PUBLIC_SOCKET_SERVER_URL=http://localhost:3600
     command: sh -c "yarn dev"
