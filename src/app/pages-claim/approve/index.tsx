@@ -1,0 +1,298 @@
+'use client';
+import { ChangeEvent, useEffect, useRef, useState } from "react";
+import { InputText } from "primereact/inputtext";
+import { Button } from "primereact/button";
+import { DataTable } from "primereact/datatable";
+import { Column } from "primereact/column";
+import { Paginator } from "primereact/paginator";
+import { TemplatePaginator } from "@/components/template-pagination";
+import { useRouter } from "next/navigation";
+import { CreateQueryString, Get } from "@/components/fetch";
+import moment from "moment";
+import { Toast } from "primereact/toast";
+import { FormDataQpr, Defect } from "../create-qpr/page";
+import { getSocket } from "@/components/socket/socket";
+import { Dropdown, DropdownChangeEvent } from "primereact/dropdown";
+import { Socket } from "socket.io-client";
+
+interface FilterApprove {
+    qprNo: string,
+    supplier: string;
+    reportType: string;
+    status: string;
+}
+
+interface DataQPR {
+    id: number,
+    qprNo: string,
+    date: string,
+    supplier: string,
+    reportType: string,
+    problem: string,
+    importance: string,
+    status: string,
+    action?: boolean
+}
+
+export default function ApprovedTable(props: { checker: 1 | 2 | 3 }) {
+    const toast = useRef<Toast>(null);
+    const [qprList, setQprList] = useState<DataQPR[]>([])
+    const [first, setFirst] = useState<number>(0);
+    const [rows, setRows] = useState<number>(10);
+    const [totalRows, setTotalRows] = useState<number>(10);
+    const router = useRouter()
+
+    const role: string = localStorage.getItem('role')!
+
+    const [filters, setFilters] = useState<FilterApprove>({
+        qprNo: "",
+        supplier: "All",
+        reportType: "All",
+        status: "All",
+    });
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>, field: string) => {
+        setFilters({ ...filters, [field]: e.target.value });
+    };
+
+    const actionBodyTemplate = (rowData: DataQPR) => {
+        if (rowData.action) {
+            return (
+                <Button label="View" className="p-button-primary" outlined onClick={() => router.push(`detail/checker${props.checker}/${rowData.id}`)} />
+            );
+        } else {
+            return <div className="w-[100px]">&nbsp;</div>
+        }
+
+    };
+
+    const getActionStatus = (x: FormDataQpr, checker: number): boolean => {
+        const key = `${checker}-${x.delayDocument}` as `${1 | 2 | 3}-Quick Report` | `${1 | 2 | 3}-8D Report`;
+        
+        const conditions: Record<`${1 | 2 | 3}-Quick Report` | `${1 | 2 | 3}-8D Report`, boolean> = {
+            "1-Quick Report": x.quickReportStatus !== 'Rejected' && x.quickReportSupplierStatus == "Approved" && !x.quickReportStatusChecker1,
+            "2-Quick Report": x.quickReportStatus !== 'Rejected' && x.quickReportSupplierStatus == "Approved" && x.quickReportStatusChecker1 === 'Approved' && !x.quickReportStatusChecker2,
+            "3-Quick Report": x.quickReportStatus !== 'Rejected' && x.quickReportSupplierStatus == "Approved" && x.quickReportStatusChecker2 === 'Approved' && !x.quickReportStatusChecker3,
+            "1-8D Report": x.eightDReportStatus !== 'Rejected' && x.eightDReportSupplierStatus == "Approved" && !x.eightDStatusChecker1,
+            "2-8D Report": x.eightDReportStatus !== 'Rejected' && x.eightDReportSupplierStatus == "Approved" && x.eightDStatusChecker1 === 'Approved' && !x.eightDStatusChecker2,
+            "3-8D Report": (
+                (x.eightDReportStatus !== 'Rejected' && x.eightDReportSupplierStatus == "Approved" && x.eightDStatusChecker2 === 'Approved' && !x.eightDStatusChecker3) || 
+                (x.eightDStatusChecker3 === "Approved" && x.eightDReportSupplierStatus == "Approved" && x.eightDStatusChecker2 !== 'Completed')
+            ) && x.eightDReportApprover === role,
+        };    
+        return conditions[key] ?? false;
+    };
+    
+    const getStatus = (x: FormDataQpr, checker: number): "Pending" | "Approved" | "Rejected" | "Wait for Supplier" | "Completed" => {
+        if (!x.delayDocument || (x.delayDocument !== "Quick Report" && x.delayDocument !== "8D Report")) {
+            return "Pending"; // ป้องกัน undefined หรือค่าอื่นๆ
+        }
+    
+        const key = `${checker}-${x.delayDocument}` as `${1 | 2 | 3}-Quick Report` | `${1 | 2 | 3}-8D Report`;
+    
+        const statusMap: Record<`${1 | 2 | 3}-Quick Report` | `${1 | 2 | 3}-8D Report`, "Pending" | "Approved" | "Rejected" | "Wait for Supplier"| "Completed"> = {
+            "1-Quick Report": x.quickReportStatusChecker1 || "Pending",
+            "2-Quick Report": x.quickReportStatusChecker2 || "Pending",
+            "3-Quick Report": x.quickReportStatusChecker3 || "Pending",
+            "1-8D Report": x.eightDStatusChecker1 || "Pending",
+            "2-8D Report": x.eightDStatusChecker2 || "Pending",
+            "3-8D Report": x.eightDStatusChecker3 || "Pending",
+        };
+    
+        return statusMap[key] ?? "Pending"; // ใช้ key อย่างปลอดภัย
+    };
+    
+    
+    const GetDatas = async () => {
+        const queryString = CreateQueryString({ 
+            ...filters,
+            page: `checker${props.checker}`
+        });
+        const res = await Get({ url: `/qpr?limit=${rows}&offset=${first}&${queryString}` });
+    
+        if (res.ok) {
+            const res_data = await res.json();
+            setTotalRows(res_data.total || 0);
+            setQprList(
+                (res_data.data || []).map((x: FormDataQpr) => ({
+                    id: x.id,
+                    date: x.dateReported ? moment(x.dateReported).format('DD/MM/YYYY HH:mm:ss') : '',
+                    qprNo: x.qprIssueNo || '',
+                    supplier: x.supplier?.supplierName || '',
+                    problem: x.defectiveContents.problemCase || '',
+                    importance: (x.importanceLevel || '') + (x.urgent ? ` (Urgent)` : ''),
+                    reportType: x.delayDocument,
+                    status: getStatus(x, props.checker),
+                    action: getActionStatus(x, props.checker),
+                }))
+            );
+        } else {
+            toast.current?.show({
+                severity: 'error',
+                summary: 'Error',
+                detail: `${JSON.stringify((await res.json()).message)}`,
+                life: 3000
+            });
+        }
+    };
+    
+    const socketRef = useRef<Socket | null>(null);
+    const SocketConnect = () => {
+        if (!socketRef.current) {
+            socketRef.current = getSocket();
+        }
+
+        const socket = socketRef.current;
+    
+        socket.on("create-qpr", () => GetDatas());
+    
+        socket.on("reload-status", (x: FormDataQpr) => {
+            setQprList((old: DataQPR[]) =>
+                old.map((arr: DataQPR) =>
+                    arr.id === x.id
+                        ? {
+                              ...arr,
+                              status: getStatus(x, props.checker),
+                              action: getActionStatus(x, props.checker),
+                          }
+                        : arr
+                )
+            );
+        });
+    
+        return () => {
+            socket.off("create-qpr");
+            socket.off("reload-status");
+        };
+    };    
+
+    const [supplier, setSupplier] = useState<{ label: string, value: string }[]>([]);
+    const GetSupplier = async () => {
+        const res = await Get({ url: `/supplier/dropdown` });
+        if (res.ok) {
+            const res_data = await res.json();
+            setSupplier((res_data || []))
+        } else {
+            toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await res!.json()).message)}`, life: 3000 });
+        }
+    }
+
+    useEffect(() => {
+        GetDatas();
+        SocketConnect();
+        GetSupplier();
+    }, [])
+
+    useEffect(() => {
+        GetDatas()
+    },[first , rows])
+
+    return (
+        <div className="flex justify-center pt-6 px-6">
+            <Toast ref={toast} />
+            <div className="container">
+                <div className="step-indicator px-6 mb-3">
+                    <div className={"step create " + (props.checker == 1 || props.checker == 2 || props.checker == 3 ? 'active' : 'disabled')} onClick={() => router.push('/pages-claim/approve/checker1')}>Checker 1</div>
+                    <div className={"step confirm " + (props.checker == 2 || props.checker == 3 ? 'active' : 'disabled')} onClick={() => router.push('/pages-claim/approve/checker2')}>Checker 2</div>
+                    <div className={"step delivery " + (props.checker == 3 ? 'active' : 'disabled')} onClick={() => router.push('/pages-claim/approve/checker3')}>Approver</div>
+                    {/* <div className={"step approve " + (props.checker == 1 ? 'active' : 'disabled')}>Approve</div> */}
+                </div>
+                <div className="mx-4 mb-4 text-2xl font-bold py-3 border-solid border-t-0 border-x-0 border-b-2 border-gray-600">
+                    {props.checker == 1 ? 'Checker 1' : props.checker == 2 ? 'Checker 2' : 'Approver'}
+                </div>
+                <div className="flex gap-2 mx-4 mb-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 w-[calc(100%-100px)]">
+                        <div className="flex flex-col gap-2 w-full">
+                            <label htmlFor="qprNo">QPR No.</label>
+                            <InputText
+                                id="qprNo"
+                                value={filters.qprNo}
+                                onChange={(e) => handleInputChange(e, "qprNo")}
+                                className="w-full"
+                            />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <label htmlFor="supplier">Supplier</label>
+                            <Dropdown
+                                value={filters.supplier || ""}
+                                onChange={(e: DropdownChangeEvent) => handleInputChange({ target: { value: e.value } } as React.ChangeEvent<HTMLInputElement>, "supplier")}
+                                options={[{ label: 'All', value: 'All' }, ...supplier]}
+                                optionLabel="label"
+                                // placeholder="Select Supplier" 
+                                className="w-full"
+                            />
+
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <label htmlFor="reportType">Report Type</label>
+                            {/* <InputText
+                                id="reportType"
+                                value={filters.reportType}
+                                onChange={(e) => handleInputChange(e, "reportType")}
+                                className="w-full"
+                            /> */}
+                            <Dropdown
+                                value={filters.reportType}
+                                onChange={(e: DropdownChangeEvent) => handleInputChange(e as any as ChangeEvent<HTMLInputElement>, "reportType")}
+                                options={[
+                                    { label: 'All', value: 'All' },
+                                    { label: 'Quick Report', value: 'quick-report' },
+                                    { label: '8D Report', value: '8d-report' },
+                                ]}
+                                optionLabel="label"
+                                className="w-full"
+                            />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <label htmlFor="status">Status</label>
+                            <Dropdown
+                                value={filters.status}
+                                onChange={(e: DropdownChangeEvent) => setFilters({ ...filters, status: e.target.value || "" })}
+                                options={[
+                                    { label: 'All', value: 'All' },
+                                    { label: props.checker == 1 ? 'Approved' : 'Approved / Completed', value: 'approved' },
+                                    { label: 'Pending', value: 'pending' },
+                                    // { label: 'Wait for Supplier', value: 'wait-for-supplier' },
+                                    { label: 'Rejected', value: 'rejected' },
+                                ]}
+                                optionLabel="label"
+                                className="w-full"
+                            />
+                        </div>
+                    </div>
+                    <div className="w-[100px]">
+                        <div className="flex flex-col gap-2">
+                            <label>&nbsp;</label>
+                            <Button label="Search" icon="pi pi-search" onClick={() => GetDatas()} />
+                        </div>
+                    </div>
+                </div>
+
+                <DataTable
+                    value={qprList}
+                    showGridlines
+                    className='table-header-center mt-4'
+                    footer={<Paginator
+                        first={first}
+                        rows={rows}
+                        totalRecords={totalRows}
+                        template={TemplatePaginator}
+                        rowsPerPageOptions={[10, 20, 50, 100]}
+                        onPageChange={(event) => {
+                            setFirst(event.first);
+                            setRows(event.rows);
+                        }} />}
+                >
+                    <Column field="qprNo" header="QPR No."></Column>
+                    <Column field="supplier" header="Supplier"></Column>
+                    <Column field="reportType" header="Report Type"></Column>
+                    <Column field="problem" header="Problem" bodyStyle={{ width: '30%' }}></Column>
+                    <Column field="importance" header="Importance Level"></Column>
+                    <Column field="status" header="Status" bodyStyle={{ textAlign: 'center', width: '15%' }}></Column>
+                    <Column body={actionBodyTemplate} header="Action" bodyStyle={{ textAlign: 'center' }}></Column>
+                </DataTable>
+            </div>
+
+        </div>
+    );
+}

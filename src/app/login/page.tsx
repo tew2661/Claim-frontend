@@ -54,7 +54,12 @@ export default function PresetsDemo() {
                 localStorage.setItem('refresh_token' , res.refresh_token);
                 localStorage.setItem('user', JSON.stringify(res.user));
                 localStorage.setItem('role', res.user.role);
-                router.push('/pages')
+                // ถ้าเป็น JTEKT ให้ไปหน้าเลือกระบบ แต่ถ้าไม่ใช่ให้ไปหน้า claim โดยตรง
+                if(process.env.NEXT_MODE == 'jtekt') {
+                    router.push('/system-select')
+                } else {
+                    router.push('/pages-claim')
+                }
             } else {
                 toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((res).message)}` , life: 3000 });
             }

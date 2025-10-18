@@ -18,7 +18,7 @@ function LayoutPages({
             localStorage.clear()
             setPages(<>{children}</>);
         } else {
-            router.push('/pages/main')
+            router.push('/pages-claim/main')
         }
         
     }, [pathname]);

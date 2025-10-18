@@ -12,8 +12,10 @@ import { Socket } from 'socket.io-client';
 import IconDot from '@/assets/icon/dot.png'
 import ImageHistory from "@/assets/icon/history.png"
 
-const Header = (props: { IsJtekt: boolean }) => {
+const Header = (props: { IsJtekt: boolean, menu: 'claim' | 'sample' }) => {
     const IsJtekt = props.IsJtekt;
+    const claim = props.menu == 'claim';
+    const sample = props.menu == 'sample';
     const [menuList, setMenuList] = useState<MenuCategory[]>([])
     const router = useRouter();
     const [name, setName] = useState('')
@@ -25,87 +27,130 @@ const Header = (props: { IsJtekt: boolean }) => {
         const NEXT_TEST = !!(process.env.NEXT_TEST);
         const role = jsonUser.role;
         const menuList: MenuCategory[] = [
-            ...IsJtekt ? [{
+            ...IsJtekt && claim ? [{
                 label: 'Create Claim',
                 items: [],
                 icon: undefined,
-                url: "/pages/create-qpr",
+                url: "/pages-claim/create-qpr",
             }] : [],
-            ...IsJtekt ? [{
+            ...IsJtekt && claim ? [{
                 label: 'Approve',
                 items: [
                     ...role == 'Leader / Engineer' || NEXT_TEST ? [{
                         label: 'Checker 1',
                         icon: IconDot,
-                        url: "/pages/approve/checker1",
+                        url: "/pages-claim/approve/checker1",
                     }] : [],
                     ...role == 'Supervision / Asistant Manager' || NEXT_TEST ? [{
                         label: 'Checker 2',
                         icon: IconDot,
-                        url: "/pages/approve/checker2",
+                        url: "/pages-claim/approve/checker2",
                     }] : [],
                     ...(role == 'Manager' || role == 'GM / DGM' || role == 'Plant Manager' || NEXT_TEST) ? [{
                         label: 'Approver',
                         icon: IconDot,
-                        url: "/pages/approve/checker3",
+                        url: "/pages-claim/approve/checker3",
                     }] : [],
                 ],
                 icon: undefined,
-                // url: "/pages/approve",
+                // url: "/pages-claim/approve",
             }] : [],
-
-            ...IsJtekt ? [{
+            ...IsJtekt && claim ? [{
                 label: 'Summary Report',
                 items: [],
                 icon: undefined,
-                url: "/pages/summary-report",
+                url: "/pages-claim/summary-report",
             }] : [],
-            ...IsJtekt && jsonUser.accessMasterManagement == 'Y' ? [{
+            ...IsJtekt && claim && jsonUser.accessMasterManagement == 'Y' ? [{
                 label: 'Master Management',
                 items: [
                     {
                         label: 'User Management',
                         icon: IconDot,
-                        url: "/pages/master-user",
+                        url: "/pages-claim/master-user",
                     },
                     {
                         label: 'Supplier Management',
                         icon: IconDot,
-                        url: "/pages/master-supplier",
+                        url: "/pages-claim/master-supplier",
                     },
                 ],
                 icon: undefined,
             }] : [],
-            ...IsJtekt ? [{
+            ...IsJtekt && claim ? [{
                 label: 'Delay',
                 items: [],
                 icon: undefined,
-                url: "/pages/delay",
+                url: "/pages-claim/delay",
+            }] : [],
+            
+            // Sample Menu สำหรับ JTEKT
+            ...IsJtekt && sample ? [{
+                label: 'Dashboard',
+                items: [],
+                icon: undefined,
+                url: "/pages-sample/dashboard",
+            }] : [],
+            ...IsJtekt && sample ? [{
+                label: 'Summary Report',
+                items: [],
+                icon: undefined,
+                url: "/pages-sample/summary-report",
+            }] : [],
+            ...IsJtekt && sample ? [{
+                label: 'SDS Approval',
+                items: [],
+                icon: undefined,
+                url: "/pages-sample/sds-approval",
+            }] : [],
+            ...IsJtekt && sample ? [{
+                label: 'Inspection Detail',
+                items: [],
+                icon: undefined,
+                url: "/pages-sample/inspection-detail",
+            }] : [],
+            ...IsJtekt && sample ? [{
+                label: 'User Management',
+                items: [],
+                icon: undefined,
+                url: "/pages-sample/user-management",
+            }] : [],
+            ...IsJtekt && sample ? [{
+                label: 'Supplier Management',
+                items: [],
+                icon: undefined,
+                url: "/pages-sample/supplier-management",
+            }] : [],
+            ...IsJtekt && sample ? [{
+                label: 'Delay',
+                items: [],
+                icon: undefined,
+                url: "/pages-sample/delay",
             }] : [],
             
             ...!IsJtekt ? [{
                 label: 'Action List',
                 items: [],
                 icon: undefined,
-                url: "/pages/action-list",
+                url: "/pages-claim/action-list",
             }] : [],
             ...!IsJtekt ? [{
                 label: 'Create QPR Report',
                 items: [],
                 icon: undefined,
-                url: "/pages/qpr-report",
+                url: "/pages-claim/qpr-report",
             }] : [],
             ...!IsJtekt ? [{
                 label: 'Create 8D Report',
                 items: [],
                 icon: undefined,
-                url: "/pages/8d-report",
+                url: "/pages-claim/8d-report",
             }] : [],
             {
                 label: 'History',
                 items: [],
                 icon: undefined,
-                url: "/pages/history",
+                url: sample ? "/pages-sample/history" : "/pages-claim/history",
             },
         ];
         setMenuList(menuList);
@@ -155,7 +200,13 @@ const Header = (props: { IsJtekt: boolean }) => {
             <div className="p-bar">
                 <div
                     className="class-custom-bar-item class-custom-logo"
-                    onClick={() => { router.push('/pages') }}
+                    onClick={() => { 
+                        if (sample) {
+                            router.push('/pages-sample')
+                        } else {
+                            router.push('/pages-claim')
+                        }
+                    }}
                 >
                     <Image src={Icon} alt="Logo" />
                 </div>
@@ -206,6 +257,26 @@ const Header = (props: { IsJtekt: boolean }) => {
             </div>
             <div className="s-bar">
                 <div className="class-custom-dropdown-hover">
+                    <button className="class-custom-button">
+                        <i className="pi pi-desktop mr-2" style={{ fontSize: '14px' }}></i>
+                        <label>เลือกระบบ <i className="pi pi-angle-down ml-2" style={{ fontSize: '10px' }}></i></label>
+                    </button>
+                    <div className="class-custom-dropdown-content class-custom-bar-block class-custom-card-4 right-auto right-auto-custom">
+                        <a className="class-custom-bar-item class-custom-button class-custom-menu" onClick={() => {
+                            router.push('/pages-claim')
+                        }}>
+                            <i className="pi pi-building mr-2" style={{ fontSize: '12px' }}></i>
+                            System Claim Management
+                        </a>
+                        <a className="class-custom-bar-item class-custom-button class-custom-menu" onClick={() => {
+                            router.push('/pages-sample')
+                        }}>
+                            <i className="pi pi-file mr-2" style={{ fontSize: '12px' }}></i>
+                            System Sample Data Sheet
+                        </a>
+                    </div>
+                </div>
+                <div className="class-custom-dropdown-hover">
                     <button className="class-custom-button class-custom-avatar">
                         <div className='mr-2 user'>
                             <div>{name}</div>
@@ -215,7 +286,7 @@ const Header = (props: { IsJtekt: boolean }) => {
                     </button>
                     <div className="class-custom-dropdown-content class-custom-bar-block class-custom-card-4">
                         <a className="class-custom-bar-item class-custom-button class-custom-menu" onClick={() => {
-                            router.push('/pages/reset-password')
+                            router.push('/pages-claim/reset-password')
                         }}>
                             <div className='mr-2'>
                                 <i className='pi pi-sync'></i>

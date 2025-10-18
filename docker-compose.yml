@@ -6,9 +6,7 @@ services:
       context: .
       dockerfile: dockerfile.dev.jtekt
     volumes:
-      - .:/app
-      - /app/node_modules
-      - /app/.next
+      - ./src:/app/src
     ports:
       - "3300:3000"
     environment:
@@ -22,9 +20,7 @@ services:
       context: .
       dockerfile: dockerfile.dev.supplier
     volumes:
-      - .:/app
-      - /app/node_modules
-      - /app/.next
+      - ./src:/app/src
     ports:
       - "3301:3000"
     environment:
