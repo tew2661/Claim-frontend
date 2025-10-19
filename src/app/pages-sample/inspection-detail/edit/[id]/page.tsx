@@ -9,6 +9,9 @@ export default function EditInspectionDetailPage() {
     const id = params?.id;
 
     // In real app fetch data by id. Here mock a record
+    // Mock different data based on ID - ID 1 is Locked, others are Unlocked for testing
+    const isLocked = id === '1';
+    
     const mockData = {
         supplierCode: 'AAA',
         supplierName: 'AAA CO., LTD.',
@@ -17,9 +20,19 @@ export default function EditInspectionDetailPage() {
         model: 'XXX',
         aisFile: { name: 'ais.pdf' },
         sdrFile: { name: 'sdr.pdf' },
-        inspectionItems: [{ no: 1, measuringItem: 'Length', spec: '10', tolerancePlus: '0.2', toleranceMinus: '0.2', instrument: 'Caliper', rank: 'A' }],
+        inspectionItems: [
+            { 
+                no: 1, 
+                measuringItem: 'Length', 
+                specification: '10.0000',
+                tolerancePlus: '0.2000', 
+                toleranceMinus: '0.2000', 
+                inspectionInstrument: 'Caliper', 
+                rank: 'A' 
+            }
+        ],
         partStatus: 'Active',
-        supplierEditStatus: 'Locked'
+        supplierEditStatus: isLocked ? 'Locked' : 'Unlocked'
     }
 
     return (

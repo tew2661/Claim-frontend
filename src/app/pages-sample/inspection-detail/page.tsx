@@ -9,6 +9,8 @@ import { Button } from "primereact/button";
 import { InputText } from "primereact/inputtext";
 import { Dropdown } from "primereact/dropdown";
 import { Toast } from "primereact/toast";
+import { Dialog } from "primereact/dialog";
+import { Calendar } from "primereact/calendar";
 import { useRouter } from "next/navigation";
 import moment from "moment";
 import Footer from "@/components/footer";
@@ -45,6 +47,15 @@ export default function InspectionDetail() {
     const [first, setFirst] = useState<number>(0);
     const [rows, setRows] = useState<number>(10);
     const [totalRows, setTotalRows] = useState<number>(0);
+
+    const [showSpecialRequestModal, setShowSpecialRequestModal] = useState(false);
+    const [selectedPart, setSelectedPart] = useState<InspectionData | null>(null);
+    const [specialRequestForm, setSpecialRequestForm] = useState({
+        selectedItems: [] as string[],
+        qty: 30,
+        cpCpk: 'Yes',
+        dueDate: new Date('2025-09-13')
+    });
 
     const supplierOptions = [
         { label: 'All', value: 'All' },
@@ -102,8 +113,52 @@ export default function InspectionDetail() {
     );
 
     const specialRequestBody = (row: InspectionData) => (
-        <a className="text-blue-600">{row.specialRequest}</a>
+        <Button 
+            label="Special Request" 
+            className="p-button-text p-button-sm text-blue-600"
+            onClick={() => {
+                setSelectedPart(row);
+                setSpecialRequestForm({
+                    selectedItems: ['Height', 'Thickness', 'Outer Diameter (OD)'],
+                    qty: 30,
+                    cpCpk: 'Yes',
+                    dueDate: new Date('2025-09-13')
+                });
+                setShowSpecialRequestModal(true);
+            }}
+        />
     );
+
+    const handleSpecialRequest = () => {
+        console.log('Special Request Data:', {
+            part: selectedPart,
+            form: specialRequestForm
+        });
+        toast.current?.show({ 
+            severity: 'success', 
+            summary: 'Success', 
+            detail: 'Special request submitted successfully' 
+        });
+        setShowSpecialRequestModal(false);
+    };
+
+    const measuringItems = [
+        { label: 'Height', value: 'Height' },
+        { label: 'Thickness', value: 'Thickness' },
+        { label: 'Outer Diameter (OD)', value: 'Outer Diameter (OD)' },
+        { label: 'Inner Diameter (ID)', value: 'Inner Diameter (ID)' }
+    ];
+
+    const qtyOptions = [
+        { label: '30', value: 30 },
+        { label: '50', value: 50 },
+        { label: '100', value: 100 }
+    ];
+
+    const cpCpkOptions = [
+        { label: 'Yes', value: 'Yes' },
+        { label: 'No', value: 'No' }
+    ];
 
     const exportToCSV = () => {
         if (!data || data.length === 0) {
@@ -129,6 +184,121 @@ export default function InspectionDetail() {
     return (
         <div className="flex justify-center pt-6 px-6">
             <Toast ref={toast} />
+            
+            <Dialog
+                header="Confirmation !!!!"
+                visible={showSpecialRequestModal}
+                onHide={() => setShowSpecialRequestModal(false)}
+                style={{ width: '600px' }}
+                className="p-fluid"
+            >
+                <div className="space-y-4">
+                    <div className="text-center mb-4">
+                        <h3 className="text-xl font-bold text-blue-700 mb-4">Sample Data Sheet Special Request</h3>
+                        <div className="text-left space-y-1 bg-gray-50 p-4 rounded">
+                            <div className="flex">
+                                <span className="font-semibold w-32">Supplier Name</span>
+                                <span className="mr-2">:</span>
+                                <span>{selectedPart?.supplierName}</span>
+                            </div>
+                            <div className="flex">
+                                <span className="font-semibold w-32">Part No.</span>
+                                <span className="mr-2">:</span>
+                                <span>{selectedPart?.partNo}</span>
+                            </div>
+                            <div className="flex">
+                                <span className="font-semibold w-32">Part Name</span>
+                                <span className="mr-2">:</span>
+                                <span>{selectedPart?.partName}</span>
+                            </div>
+                            <div className="flex">
+                                <span className="font-semibold w-32">Model</span>
+                                <span className="mr-2">:</span>
+                                <span>{selectedPart?.model}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="font-semibold text-blue-700 mb-3 block">Select Item Measuring</label>
+                        <div className="space-y-3">
+                            {measuringItems.map((item) => (
+                                <div key={item.value} className="flex items-center gap-3">
+                                    <input
+                                        type="checkbox"
+                                        id={item.value}
+                                        name={item.value}
+                                        className="w-5 h-5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer"
+                                        onChange={(e) => {
+                                            const isChecked = e.target.checked;
+                                            if (isChecked) {
+                                                setSpecialRequestForm(prev => ({
+                                                    ...prev,
+                                                    selectedItems: [...prev.selectedItems, item.value]
+                                                }));
+                                            } else {
+                                                setSpecialRequestForm(prev => ({
+                                                    ...prev,
+                                                    selectedItems: prev.selectedItems.filter(i => i !== item.value)
+                                                }));
+                                            }
+                                        }}
+                                        checked={specialRequestForm.selectedItems.includes(item.value)}
+                                    />
+                                    <label htmlFor={item.value} className="cursor-pointer text-gray-700">{item.label}</label>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4">
+                        <div>
+                            <label className="font-semibold block mb-2">Qty</label>
+                            <Dropdown
+                                value={specialRequestForm.qty}
+                                options={qtyOptions}
+                                onChange={(e) => setSpecialRequestForm(prev => ({ ...prev, qty: e.value }))}
+                                className="w-full"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="font-semibold block mb-2">Cp / Cpk</label>
+                            <Dropdown
+                                value={specialRequestForm.cpCpk}
+                                options={cpCpkOptions}
+                                onChange={(e) => setSpecialRequestForm(prev => ({ ...prev, cpCpk: e.value }))}
+                                className="w-full"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="font-semibold block mb-2">Due Date</label>
+                            <Calendar
+                                value={specialRequestForm.dueDate}
+                                onChange={(e) => setSpecialRequestForm(prev => ({ ...prev, dueDate: e.value as Date }))}
+                                dateFormat="dd-mm-yy"
+                                showIcon
+                                className="w-full"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="flex gap-3 justify-center pt-4">
+                        <Button
+                            label="Cancel"
+                            className="p-button-outlined p-button-secondary min-w-[120px]"
+                            onClick={() => setShowSpecialRequestModal(false)}
+                        />
+                        <Button
+                            label="Request"
+                            className="p-button-primary min-w-[120px]"
+                            onClick={handleSpecialRequest}
+                        />
+                    </div>
+                </div>
+            </Dialog>
+
             <div className="container">
                 <div className="mx-4 mb-4 text-2xl font-bold py-3 border-solid border-t-0 border-x-0 border-b-2 border-gray-600">Master : Inspection Details</div>
 

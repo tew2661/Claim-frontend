@@ -11,7 +11,7 @@ import { Toast } from "primereact/toast";
 import { useRouter } from "next/navigation";
 import moment from "moment";
 
-interface DelayData {
+interface CreateSDSData {
     id: number;
     no: number;
     monthYear: string;
@@ -20,50 +20,49 @@ interface DelayData {
     partName: string;
     model: string;
     sdsType: string;
+    supplierStatus: string;
     dueDate: string;
-    delayDate: number;
+    hasDelay: boolean;
 }
 
-export default function Delay() {
+export default function CreateSDS() {
     const toast = useRef<Toast>(null);
     const router = useRouter();
 
     const [filters, setFilters] = useState({
-        monthYear: 'All',
-        supplierCode: 'All',
+        monthYear: '08-2025',
         partNo: 'All',
         partName: 'All',
+        model: 'All',
         sdsType: 'All'
     });
 
-    const [data, setData] = useState<DelayData[]>([]);
+    const [data, setData] = useState<CreateSDSData[]>([]);
     const [first, setFirst] = useState<number>(0);
     const [rows, setRows] = useState<number>(10);
     const [totalRows, setTotalRows] = useState<number>(0);
 
     const monthYearOptions = [
-        { label: 'All', value: 'All' },
-        { label: '07-2025', value: '07-2025' },
         { label: '08-2025', value: '08-2025' },
-    ];
-
-    const supplierOptions = [
-        { label: 'All', value: 'All' },
-        { label: 'AAA CO., LTD.', value: 'AAA CO., LTD.' },
-        { label: 'BBB CO., LTD.', value: 'BBB CO., LTD.' },
-        { label: 'CCC CO., LTD.', value: 'CCC CO., LTD.' },
-        { label: 'DDD CO., LTD.', value: 'DDD CO., LTD.' },
-        { label: 'EEE CO., LTD.', value: 'EEE CO., LTD.' },
+        { label: '07-2025', value: '07-2025' },
+        { label: '06-2025', value: '06-2025' },
     ];
 
     const partNoOptions = [
         { label: 'All', value: 'All' },
         { label: '90151-06811', value: '90151-06811' },
+        { label: '90151-06812', value: '90151-06812' },
+        { label: '90151-06813', value: '90151-06813' },
     ];
 
     const partNameOptions = [
         { label: 'All', value: 'All' },
         { label: 'SCREW,FLATHEAD', value: 'SCREW,FLATHEAD' },
+    ];
+
+    const modelOptions = [
+        { label: 'All', value: 'All' },
+        { label: 'XXX', value: 'XXX' },
     ];
 
     const sdsTypeOptions = [
@@ -73,17 +72,17 @@ export default function Delay() {
     ];
 
     // mock dataset
-    const allMockData: DelayData[] = [
-        { id: 1, no: 1, monthYear: '07-2025', supplierName: 'AAA CO., LTD.', partNo: '90151-06811', partName: 'SCREW,FLATHEAD', model: 'XXX', sdsType: 'Normal', dueDate: '31-07-2025', delayDate: 20 },
-        { id: 2, no: 2, monthYear: '08-2025 Special', supplierName: 'BBB CO., LTD.', partNo: '90151-06811', partName: 'SCREW,FLATHEAD', model: 'XXX', sdsType: 'Special', dueDate: '04-08-2025', delayDate: 16 },
-        { id: 3, no: 3, monthYear: '08-2025 Special', supplierName: 'CCC CO., LTD.', partNo: '90151-06811', partName: 'SCREW,FLATHEAD', model: 'XXX', sdsType: 'Special', dueDate: '10-08-2025', delayDate: 10 },
-        { id: 4, no: 4, monthYear: '08-2025 Special', supplierName: 'DDD CO., LTD.', partNo: '90151-06811', partName: 'SCREW,FLATHEAD', model: 'XXX', sdsType: 'Special', dueDate: '15-08-2025', delayDate: 5 },
-        { id: 5, no: 5, monthYear: '08-2025 Special', supplierName: 'EEE CO., LTD.', partNo: '90151-06811', partName: 'SCREW,FLATHEAD', model: 'XXX', sdsType: 'Special', dueDate: '15-08-2025', delayDate: 5 },
-        { id: 6, no: 6, monthYear: '08-2025', supplierName: 'FFF CO., LTD.', partNo: '90151-06811', partName: 'SCREW,FLATHEAD', model: 'XXX', sdsType: 'Normal', dueDate: '15-08-2025', delayDate: 5 },
-        { id: 7, no: 7, monthYear: '08-2025', supplierName: 'FFF CO., LTD.', partNo: '90151-06811', partName: 'SCREW,FLATHEAD', model: 'XXX', sdsType: 'Normal', dueDate: '15-08-2025', delayDate: 5 },
-        { id: 8, no: 8, monthYear: '08-2025', supplierName: 'HHH CO., LTD.', partNo: '90151-06811', partName: 'SCREW,FLATHEAD', model: 'XXX', sdsType: 'Normal', dueDate: '15-08-2025', delayDate: 5 },
-        { id: 9, no: 9, monthYear: '08-2025', supplierName: 'JJJ CO., LTD.', partNo: '90151-06811', partName: 'SCREW,FLATHEAD', model: 'XXX', sdsType: 'Normal', dueDate: '15-08-2025', delayDate: 5 },
-        { id: 10, no: 10, monthYear: '08-2025', supplierName: 'KKK CO., LTD.', partNo: '90151-06811', partName: 'SCREW,FLATHEAD', model: 'XXX', sdsType: 'Normal', dueDate: '15-08-2025', delayDate: 5 },
+    const allMockData: CreateSDSData[] = [
+        { id: 1, no: 1, monthYear: '08-2025 Special', supplierName: 'AAA CO., LTD.', partNo: '90151-06811', partName: 'SCREW,FLATHEAD', model: 'XXX', sdsType: 'Special', supplierStatus: 'Pending', dueDate: '17-08-2025', hasDelay: true },
+        { id: 2, no: 2, monthYear: '08-2025 Special', supplierName: 'AAA CO., LTD.', partNo: '90151-06812', partName: 'SCREW,FLATHEAD', model: 'XXX', sdsType: 'Special', supplierStatus: 'Pending', dueDate: '21-08-2025', hasDelay: false },
+        { id: 3, no: 3, monthYear: '08-2025', supplierName: 'AAA CO., LTD.', partNo: '90151-06813', partName: 'SCREW,FLATHEAD', model: 'XXX', sdsType: 'Normal', supplierStatus: 'Pending', dueDate: '31-08-2025', hasDelay: false },
+        { id: 4, no: 4, monthYear: '08-2025', supplierName: 'AAA CO., LTD.', partNo: '90151-06814', partName: 'SCREW,FLATHEAD', model: 'XXX', sdsType: 'Normal', supplierStatus: 'Pending', dueDate: '31-08-2025', hasDelay: false },
+        { id: 5, no: 5, monthYear: '08-2025', supplierName: 'AAA CO., LTD.', partNo: '90151-06815', partName: 'SCREW,FLATHEAD', model: 'XXX', sdsType: 'Normal', supplierStatus: 'Pending', dueDate: '31-08-2025', hasDelay: false },
+        { id: 6, no: 6, monthYear: '08-2025', supplierName: 'AAA CO., LTD.', partNo: '90151-06816', partName: 'SCREW,FLATHEAD', model: 'XXX', sdsType: 'Normal', supplierStatus: 'Pending', dueDate: '31-08-2025', hasDelay: false },
+        { id: 7, no: 7, monthYear: '08-2025', supplierName: 'AAA CO., LTD.', partNo: '90151-06817', partName: 'SCREW,FLATHEAD', model: 'XXX', sdsType: 'Normal', supplierStatus: 'Pending', dueDate: '31-08-2025', hasDelay: false },
+        { id: 8, no: 8, monthYear: '08-2025', supplierName: 'AAA CO., LTD.', partNo: '90151-06818', partName: 'SCREW,FLATHEAD', model: 'XXX', sdsType: 'Normal', supplierStatus: 'Pending', dueDate: '31-08-2025', hasDelay: false },
+        { id: 9, no: 9, monthYear: '08-2025', supplierName: 'AAA CO., LTD.', partNo: '90151-06819', partName: 'SCREW,FLATHEAD', model: 'XXX', sdsType: 'Normal', supplierStatus: 'Pending', dueDate: '31-08-2025', hasDelay: false },
+        { id: 10, no: 10, monthYear: '08-2025', supplierName: 'AAA CO., LTD.', partNo: '90151-06820', partName: 'SCREW,FLATHEAD', model: 'XXX', sdsType: 'Normal', supplierStatus: 'Pending', dueDate: '31-08-2025', hasDelay: false },
     ];
 
     const GetDatas = async () => {
@@ -92,14 +91,14 @@ export default function Delay() {
         if (filters.monthYear && filters.monthYear !== 'All') {
             filtered = filtered.filter(x => x.monthYear.includes(filters.monthYear));
         }
-        if (filters.supplierCode && filters.supplierCode !== 'All') {
-            filtered = filtered.filter(x => x.supplierName === filters.supplierCode);
-        }
         if (filters.partNo && filters.partNo !== 'All') {
             filtered = filtered.filter(x => x.partNo === filters.partNo);
         }
         if (filters.partName && filters.partName !== 'All') {
             filtered = filtered.filter(x => x.partName === filters.partName);
+        }
+        if (filters.model && filters.model !== 'All') {
+            filtered = filtered.filter(x => x.model === filters.model);
         }
         if (filters.sdsType && filters.sdsType !== 'All') {
             filtered = filtered.filter(x => x.sdsType === filters.sdsType);
@@ -118,7 +117,7 @@ export default function Delay() {
         setFilters(old => ({ ...old, [field]: value || 'All' }));
     };
 
-    const monthYearBody = (row: DelayData) => {
+    const monthYearBody = (row: CreateSDSData) => {
         const isSpecial = row.monthYear.includes('Special');
         return (
             <div>
@@ -128,7 +127,7 @@ export default function Delay() {
         );
     };
 
-    const sdsTypeBody = (row: DelayData) => {
+    const sdsTypeBody = (row: CreateSDSData) => {
         return (
             <span className={row.sdsType === 'Special' ? 'text-red-500 font-semibold' : ''}>
                 {row.sdsType}
@@ -136,30 +135,47 @@ export default function Delay() {
         );
     };
 
+    const dueDateBody = (row: CreateSDSData) => {
+        return (
+            <div>
+                <div>{row.dueDate}</div>
+                {row.hasDelay && <div className="text-red-500 font-semibold">Delay</div>}
+            </div>
+        );
+    };
+
+    const createSDSBody = (row: CreateSDSData) => {
+        // ถ้า row มี id 3 หรือ 4 จะแสดงเป็น Edit, อื่นๆแสดง Create
+        const isEdit = row.id === 3 || row.id === 4;
+        return (
+            <Button 
+                label={isEdit ? "Edit" : "Create"} 
+                className="p-button-text p-button-sm text-blue-600"
+                onClick={() => {
+                    if (isEdit) {
+                        router.push(`/pages-sample/create-sds/edit/${row.id}`);
+                    } else {
+                        router.push(`/pages-sample/create-sds/create/${row.id}`);
+                    }
+                }}
+            />
+        );
+    };
+
     return (
         <div className="flex justify-center pt-6 px-6">
             <Toast ref={toast} />
             <div className="container">
-                <div className="mx-4 mb-4 text-2xl font-bold py-3 border-solid border-t-0 border-x-0 border-b-2 border-gray-600">Delay</div>
+                <div className="mx-4 mb-4 text-2xl font-bold py-3 border-solid border-t-0 border-x-0 border-b-2 border-gray-600">Create SDS</div>
 
                 <div className="flex gap-2 mx-4 mb-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2 w-[calc(100%-100px)]">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2 w-full">
                         <div className="flex flex-col gap-2 w-full">
-                            <label>Month-Year : All</label>
+                            <label>Month-Year : 08-2025</label>
                             <Dropdown 
                                 value={filters.monthYear} 
                                 onChange={(e) => handleFilterChange(e.value, 'monthYear')} 
                                 options={monthYearOptions} 
-                                optionLabel="label" 
-                                className="w-full" 
-                            />
-                        </div>
-                        <div className="flex flex-col gap-2 w-full">
-                            <label>Supplier Code : All</label>
-                            <Dropdown 
-                                value={filters.supplierCode} 
-                                onChange={(e) => handleFilterChange(e.value, 'supplierCode')} 
-                                options={supplierOptions} 
                                 optionLabel="label" 
                                 className="w-full" 
                             />
@@ -175,11 +191,21 @@ export default function Delay() {
                             />
                         </div>
                         <div className="flex flex-col gap-2 w-full">
-                            <label>Part Name : All</label>
+                            <label>Part Name</label>
                             <Dropdown 
                                 value={filters.partName} 
                                 onChange={(e) => handleFilterChange(e.value, 'partName')} 
                                 options={partNameOptions} 
+                                optionLabel="label" 
+                                className="w-full" 
+                            />
+                        </div>
+                        <div className="flex flex-col gap-2 w-full">
+                            <label>Model</label>
+                            <Dropdown 
+                                value={filters.model} 
+                                onChange={(e) => handleFilterChange(e.value, 'model')} 
+                                options={modelOptions} 
                                 optionLabel="label" 
                                 className="w-full" 
                             />
@@ -193,12 +219,6 @@ export default function Delay() {
                                 optionLabel="label" 
                                 className="w-full" 
                             />
-                        </div>
-                    </div>
-                    <div className="w-[100px]">
-                        <div className="flex flex-col gap-2">
-                            <label>&nbsp;</label>
-                            <Button label="Search" icon="pi pi-search" onClick={() => GetDatas()} />
                         </div>
                     </div>
                 </div>
@@ -221,15 +241,16 @@ export default function Delay() {
                         />
                     }
                 >
-                    <Column field="no" header="No." bodyStyle={{ width: '5%', textAlign: 'center' }}></Column>
-                    <Column header="Month-Year" body={monthYearBody} bodyStyle={{ width: '10%', textAlign: 'center' }}></Column>
+                    <Column field="no" header="No" bodyStyle={{ width: '4%', textAlign: 'center' }}></Column>
+                    <Column header="Month-Year" body={monthYearBody} bodyStyle={{ width: '8%', textAlign: 'center' }}></Column>
                     <Column field="supplierName" header="Supplier Name" bodyStyle={{ width: '15%' }}></Column>
-                    <Column field="partNo" header="Part No." bodyStyle={{ width: '12%', textAlign: 'center' }}></Column>
+                    <Column field="partNo" header="Part No." bodyStyle={{ width: '10%', textAlign: 'center' }}></Column>
                     <Column field="partName" header="Part Name" bodyStyle={{ width: '15%' }}></Column>
                     <Column field="model" header="Model" bodyStyle={{ width: '8%', textAlign: 'center' }}></Column>
-                    <Column header="SDS Type" body={sdsTypeBody} bodyStyle={{ width: '10%', textAlign: 'center' }}></Column>
-                    <Column field="dueDate" header="Due Date" bodyStyle={{ width: '12%', textAlign: 'center' }}></Column>
-                    <Column field="delayDate" header="Delay(Date)" bodyStyle={{ width: '10%', textAlign: 'center' }}></Column>
+                    <Column header="SDS Type" body={sdsTypeBody} bodyStyle={{ width: '8%', textAlign: 'center' }}></Column>
+                    <Column field="supplierStatus" header="Supplier Status" bodyStyle={{ width: '10%', textAlign: 'center' }}></Column>
+                    <Column header="Due Date" body={dueDateBody} bodyStyle={{ width: '10%', textAlign: 'center' }}></Column>
+                    <Column header="Create SDS" body={createSDSBody} bodyStyle={{ width: '8%', textAlign: 'center' }}></Column>
                 </DataTable>
             </div>
         </div>

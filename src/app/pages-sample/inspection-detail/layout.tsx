@@ -15,8 +15,9 @@ function LayoutPages({
 
     useEffect(() => {
         const IsJtekt = (process.env.NEXT_MODE == 'jtekt');
+        const IsSupplier = (process.env.NEXT_MODE == 'supplier');
         const user = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')!) : undefined
-        if (!IsJtekt || !user || user.accessMasterManagement !== 'Y') {
+        if ((!IsJtekt || !user || user.accessMasterManagement !== 'Y') && (!IsSupplier)) {
             router.push('/pages-sample'); 
         } else {
             setPages(<>{children}</>)

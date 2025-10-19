@@ -16,8 +16,9 @@ function LayoutPages({
 
     useEffect(() => {
         const IsJtekt = (process.env.NEXT_MODE == 'jtekt');
+        const IsSupplier = (process.env.NEXT_MODE == 'supplier');
         
-        if (!IsJtekt) {
+        if (!IsJtekt && !IsSupplier) {
             router.push('/pages-sample'); 
         } else {
             setPages(<>{children}</>)

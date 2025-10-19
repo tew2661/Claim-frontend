@@ -91,7 +91,7 @@ const Header = (props: { IsJtekt: boolean, menu: 'claim' | 'sample' }) => {
                 icon: undefined,
                 url: "/pages-sample/dashboard",
             }] : [],
-            ...IsJtekt && sample ? [{
+            ...sample ? [{
                 label: 'Summary Report',
                 items: [],
                 icon: undefined,
@@ -131,23 +131,35 @@ const Header = (props: { IsJtekt: boolean, menu: 'claim' | 'sample' }) => {
                 url: "/pages-sample/delay",
             }] : [],
             
-            ...!IsJtekt ? [{
+            ...!IsJtekt && claim ? [{
                 label: 'Action List',
                 items: [],
                 icon: undefined,
                 url: "/pages-claim/action-list",
             }] : [],
-            ...!IsJtekt ? [{
+            ...!IsJtekt && claim ? [{
                 label: 'Create QPR Report',
                 items: [],
                 icon: undefined,
                 url: "/pages-claim/qpr-report",
             }] : [],
-            ...!IsJtekt ? [{
+            ...!IsJtekt && claim ? [{
                 label: 'Create 8D Report',
                 items: [],
                 icon: undefined,
                 url: "/pages-claim/8d-report",
+            }] : [],
+            ...!IsJtekt && sample ? [{
+                label: 'Create SDS',
+                items: [],
+                icon: undefined,
+                url: "/pages-sample/create-sds",
+            }] : [],
+            ...!IsJtekt && sample ? [{
+                label: 'Inspection Detail',
+                items: [],
+                icon: undefined,
+                url: "/pages-sample/inspection-detail",
             }] : [],
             {
                 label: 'History',
