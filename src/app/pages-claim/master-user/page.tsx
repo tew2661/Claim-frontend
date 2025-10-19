@@ -36,7 +36,7 @@ const roleOptions = [
     { label: "Plant Manager", value: "Plant Manager" },
 ];
 
-export default function UserManagement() {
+export function UserManagement() {
     const defaultUser: UserData = {
         id: -1,
         code: '',
@@ -471,3 +471,6 @@ export default function UserManagement() {
     );
 }
 
+export default function MasterFunction() {
+    return <UserManagement />
+}

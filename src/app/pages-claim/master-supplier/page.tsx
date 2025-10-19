@@ -24,7 +24,7 @@ export interface DataSupplierTable {
     confirmPassword?: string;
 }
 
-export default function UserManagement() {
+export function SupplierManagement() {
     const toast = useRef<Toast>(null);
     const defaultNewData: DataSupplierTable = {
         id: -1,
@@ -460,4 +460,8 @@ export default function UserManagement() {
             </Footer>
         </div>
     );
+}
+
+export default function MasterFunction() {
+    return <SupplierManagement />
 }

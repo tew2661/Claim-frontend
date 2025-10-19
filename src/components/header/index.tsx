@@ -103,23 +103,26 @@ const Header = (props: { IsJtekt: boolean, menu: 'claim' | 'sample' }) => {
                 icon: undefined,
                 url: "/pages-sample/sds-approval",
             }] : [],
-            ...IsJtekt && sample ? [{
-                label: 'Inspection Detail',
-                items: [],
+            ...IsJtekt && sample && jsonUser.accessMasterManagement == 'Y' ? [{
+                label: 'Master Management',
+                items: [
+                    {
+                        label: 'Inspection Detail',
+                        icon: IconDot,
+                        url: "/pages-sample/inspection-detail",
+                    },
+                    {
+                        label: 'User Management',
+                        icon: IconDot,
+                        url: "/pages-sample/master-user",
+                    },
+                    {
+                        label: 'Supplier Management',
+                        icon: IconDot,
+                        url: "/pages-sample/master-supplier",
+                    },
+                ],
                 icon: undefined,
-                url: "/pages-sample/inspection-detail",
-            }] : [],
-            ...IsJtekt && sample ? [{
-                label: 'User Management',
-                items: [],
-                icon: undefined,
-                url: "/pages-sample/user-management",
-            }] : [],
-            ...IsJtekt && sample ? [{
-                label: 'Supplier Management',
-                items: [],
-                icon: undefined,
-                url: "/pages-sample/supplier-management",
             }] : [],
             ...IsJtekt && sample ? [{
                 label: 'Delay',
