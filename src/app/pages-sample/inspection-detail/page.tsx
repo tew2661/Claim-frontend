@@ -13,6 +13,7 @@ import { Dialog } from "primereact/dialog";
 import { Calendar } from "primereact/calendar";
 import { useRouter } from "next/navigation";
 import moment from "moment";
+import * as XLSX from "xlsx";
 import Footer from "@/components/footer";
 import { Get, Post } from "@/components/fetch";
 
@@ -419,25 +420,60 @@ export default function InspectionDetail() {
         { label: 'No', value: 'No' }
     ];
 
-    const exportToCSV = () => {
-        if (!data || data.length === 0) {
-            toast.current?.show({ severity: 'warn', summary: 'No data', detail: 'No records to export' });
-            return;
-        }
-        const headers = ['No', 'Supplier Name', 'Part No', 'Part Name', 'Model', 'Inspection Points', 'Part Status', 'Supplier Edit Status'];
-        const rowsCsv = data.map(r => [r.no, r.supplierName, r.partNo, r.partName, r.model, r.inspectionPoints, r.partStatus, r.supplierEditStatus]);
+    const exportToExcel = async () => {
+        const params = new URLSearchParams();
+        if (filters.supplierCode && filters.supplierCode !== 'All') params.set('supplierCode', filters.supplierCode);
+        if (filters.partNo && filters.partNo.trim()) params.set('partNo', filters.partNo.trim());
+        if (filters.partName && filters.partName.trim()) params.set('partName', filters.partName.trim());
+        if (filters.model && filters.model.trim()) params.set('model', filters.model.trim());
+        if (filters.partStatus && filters.partStatus !== 'All') params.set('partStatus', filters.partStatus);
+        if (filters.supplierEditStatus && filters.supplierEditStatus !== 'All') params.set('supplierEditStatus', filters.supplierEditStatus);
 
-        const escapeCsv = (value: any) => `"${String(value ?? '').replace(/"/g, '""')}"`;
-        const csvContent = [headers.map(escapeCsv).join(',')].concat(rowsCsv.map(row => row.map(escapeCsv).join(','))).join('\n');
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `inspection_detail_${moment().format('YYYYMMDD_HHmmss')}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
+        try {
+            const res = await Get({ url: `/inspection-detail/export?${params.toString()}` });
+            if (!res.ok) {
+                const errorText = await res.text().catch(() => 'Failed to export data');
+                throw new Error(errorText || 'Failed to export data');
+            }
+
+            const json: any = await res.json();
+            const rows = json.data || [];
+
+            if (!rows.length) {
+                toast.current?.show({ severity: 'warn', summary: 'No data', detail: 'No records to export' });
+                return;
+            }
+
+            const excelData = rows.map((r: any, idx: number) => ({
+                No: idx + 1,
+                'Supplier Name': r.supplierName,
+                'Part No.': r.partNo,
+                'Part Name': r.partName,
+                Model: r.model,
+                'Inspection Points': r.inspectionPoints,
+                'Part Status': r.partStatus,
+                'Supplier Edit Status': r.supplierEditStatus,
+            }));
+
+            const workbook = XLSX.utils.book_new();
+            const worksheet = XLSX.utils.json_to_sheet(excelData);
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Inspection Detail');
+            const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+            const blob = new Blob([excelBuffer], {
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `inspection_detail_${moment().format('YYYYMMDD_HHmmss')}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        } catch (error: any) {
+            console.error('Export error:', error);
+            toast.current?.show({ severity: 'error', summary: 'Error', detail: error.message || 'Cannot export data' });
+        }
     };
 
     return (
@@ -662,7 +698,7 @@ export default function InspectionDetail() {
                 <Footer>
                     <div className='flex justify-end mt-2 w-full gap-2'>
                         {/* <Button label="Back" className="p-button-danger min-w-[150px]" onClick={() => router.back()} /> */}
-                        <Button label="Export" className="p-button-secondary min-w-[150px]" onClick={() => exportToCSV()} />
+                        <Button label="Export" className="p-button-secondary min-w-[150px]" onClick={() => exportToExcel()} />
                         <Button label="Create" className="p-button-primary min-w-[150px]" onClick={() => router.push('/pages-sample/inspection-detail/create')} />
                     </div>
                 </Footer>
