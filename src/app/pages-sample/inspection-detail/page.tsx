@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
 import { Paginator } from "primereact/paginator";
@@ -14,6 +14,7 @@ import { Calendar } from "primereact/calendar";
 import { useRouter } from "next/navigation";
 import moment from "moment";
 import Footer from "@/components/footer";
+import { Get } from "@/components/fetch";
 
 interface InspectionData {
     id: number;
@@ -30,18 +31,40 @@ interface InspectionData {
     specialRequest?: string;
 }
 
+interface SupplierDropdownOption {
+    label: string;
+    value: string;
+    supplierName?: string;
+}
+
+type FilterState = {
+    supplierCode: string;
+    partNo: string;
+    partName: string;
+    model: string;
+    partStatus: string;
+    supplierEditStatus: string;
+};
+
+type TextFilterField = 'partNo' | 'partName' | 'model';
+type DropdownFilterField = 'supplierCode' | 'partStatus' | 'supplierEditStatus';
+
+const initialFilters: FilterState = {
+    supplierCode: 'All',
+    partNo: '',
+    partName: '',
+    model: '',
+    partStatus: 'All',
+    supplierEditStatus: 'All'
+};
+
 export default function InspectionDetail() {
     const toast = useRef<Toast>(null);
     const router = useRouter();
+    const debounceTimerRef = useRef<number | null>(null);
 
-    const [filters, setFilters] = useState({
-        supplierName: 'All',
-        partNo: 'All',
-        partName: 'All',
-        model: 'All',
-        partStatus: 'All',
-        supplierEditStatus: 'All'
-    });
+    const [filters, setFilters] = useState<FilterState>(initialFilters);
+    const [appliedFilters, setAppliedFilters] = useState<FilterState>(initialFilters);
 
     const [data, setData] = useState<InspectionData[]>([]);
     const [first, setFirst] = useState<number>(0);
@@ -57,59 +80,195 @@ export default function InspectionDetail() {
         dueDate: new Date('2025-09-13')
     });
 
-    const supplierOptions = [
-        { label: 'All', value: 'All' },
-        { label: 'AAA CO., LTD.', value: 'AAA CO., LTD.' },
-        { label: 'BBB CO., LTD.', value: 'BBB CO., LTD.' },
-        { label: 'CCC CO., LTD.', value: 'CCC CO., LTD.' },
-    ];
+    const [supplierOptions, setSupplierOptions] = useState<SupplierDropdownOption[]>([]);
 
-    // mock dataset
-    const allMockData: InspectionData[] = Array.from({ length: 20 }).map((_, idx) => ({
-        id: idx + 1,
-        no: idx + 1,
-        supplierName: ['AAA CO., LTD.', 'BBB CO., LTD.', 'CCC CO., LTD.', 'DDD CO., LTD.'][idx % 4],
-        partNo: '90151-06811',
-        partName: 'SCREW,FLATHEAD',
-        model: 'XXX',
-        docAisUrl: '#',
-        docSdrUrl: '#',
-        inspectionPoints: 20,
-        partStatus: 'Active',
-        supplierEditStatus: 'Locked',
-        specialRequest: 'Special Request'
-    }));
+    const sanitizeFilters = (rawFilters: FilterState) => ({
+        ...rawFilters,
+        partNo: rawFilters.partNo.trim(),
+        partName: rawFilters.partName.trim(),
+        model: rawFilters.model.trim(),
+    });
 
-    const GetDatas = async () => {
-        // simulate server-side filter and pagination
-        let filtered = allMockData;
-        if (filters.supplierName && filters.supplierName !== 'All') {
-            filtered = filtered.filter(x => x.supplierName === filters.supplierName);
+    const cancelPendingFilterApply = () => {
+        if (debounceTimerRef.current) {
+            window.clearTimeout(debounceTimerRef.current);
+            debounceTimerRef.current = null;
         }
-        if (filters.partNo && filters.partNo !== 'All') {
-            filtered = filtered.filter(x => x.partNo === filters.partNo);
-        }
-        // other filters can be applied similarly
-
-        setTotalRows(filtered.length);
-        const pageData = filtered.slice(first, first + rows);
-        setData(pageData.map((d, i) => ({ ...d, no: first + i + 1 })));
     };
+
+    const applyFilters = (nextFilters: FilterState) => {
+        cancelPendingFilterApply();
+        setAppliedFilters(sanitizeFilters(nextFilters));
+        setFirst(0);
+    };
+
+    const scheduleFilterApply = (nextFilters: FilterState) => {
+        cancelPendingFilterApply();
+        debounceTimerRef.current = window.setTimeout(() => {
+            applyFilters(nextFilters);
+        }, 1000);
+    };
+
+    const handleInputFilterChange = (value: string, field: TextFilterField) => {
+        const nextFilters = { ...filters, [field]: value };
+        setFilters(nextFilters);
+        scheduleFilterApply(nextFilters);
+    };
+
+    const handleDropdownFilterChange = (value: string | null, field: DropdownFilterField) => {
+        const nextFilters = { ...filters, [field]: value ?? 'All' };
+        setFilters(nextFilters);
+        applyFilters(nextFilters);
+    };
+
+    const handleSearchClick = () => {
+        applyFilters({ ...filters });
+    };
+
+    const loadSupplierOptions = async () => {
+        try {
+            const res = await Get({ url: '/inspection-detail/suppliers' });
+            if (!res.ok) {
+                const err: any = await res.json().catch(() => ({}));
+                throw new Error(err.message || 'Failed to load suppliers');
+            }
+
+            const payload = await res.json();
+            const data: any[] = payload?.data || [];
+            setSupplierOptions([
+                { label: 'All', value: 'All' },
+                ...data.map((item) => ({
+                    label: `${item.supplierCode} - ${item.supplierName}`,
+                    value: item.supplierCode,
+                    supplierName: item.supplierName,
+                })),
+            ]);
+        } catch (error: any) {
+            console.error('Load supplier list failed', error);
+            toast.current?.show({
+                severity: 'error',
+                summary: 'Error',
+                detail: error.message || 'Cannot load supplier codes',
+            });
+        }
+    };
+
+    const GetDatas = useCallback(async () => {
+        const params = new URLSearchParams();
+        const page = Math.floor(first / rows) + 1;
+        params.set('page', String(page));
+        params.set('limit', String(rows));
+
+        if (appliedFilters.supplierCode && appliedFilters.supplierCode !== 'All') {
+            params.set('supplierCode', appliedFilters.supplierCode);
+        }
+        if (appliedFilters.partNo && appliedFilters.partNo !== 'All') {
+            params.set('partNo', appliedFilters.partNo);
+        }
+        if (appliedFilters.partName && appliedFilters.partName !== 'All') {
+            params.set('partName', appliedFilters.partName);
+        }
+        if (appliedFilters.model && appliedFilters.model !== 'All') {
+            params.set('model', appliedFilters.model);
+        }
+        if (appliedFilters.partStatus && appliedFilters.partStatus !== 'All') {
+            params.set('partStatus', appliedFilters.partStatus);
+        }
+        if (appliedFilters.supplierEditStatus && appliedFilters.supplierEditStatus !== 'All') {
+            params.set('supplierEditStatus', appliedFilters.supplierEditStatus);
+        }
+
+        try {
+            const res = await Get({ url: `/inspection-detail?${params.toString()}` });
+            if (!res.ok) {
+                const err: any = await res.json().catch(() => ({}));
+                throw new Error(err.message || 'Failed to load inspection details');
+            }
+            const json: any = await res.json();
+            const items: any[] = json.data || [];
+            const total: number = json.total ?? items.length;
+
+            const pageData: InspectionData[] = items.map((d, idx) => ({
+                id: d.id,
+                no: first + idx + 1,
+                supplierName: d.supplierName,
+                partNo: d.partNo,
+                partName: d.partName,
+                model: d.model,
+                docAisUrl: d.docAisUrl,
+                docSdrUrl: d.docSdrUrl,
+                inspectionPoints: d.inspectionPoints,
+                partStatus: d.partStatus,
+                supplierEditStatus: d.supplierEditStatus,
+                specialRequest: d.specialRequest,
+            }));
+
+            setTotalRows(total);
+            setData(pageData);
+        } catch (error: any) {
+            console.error('Load inspection details error:', error);
+            toast.current?.show({
+                severity: 'error',
+                summary: 'Error',
+                detail: error.message || 'Cannot load inspection details',
+            });
+        }
+    }, [appliedFilters, first, rows]);
+
+    useEffect(() => {
+        loadSupplierOptions();
+    }, []);
 
     useEffect(() => {
         GetDatas();
-    }, [first, rows, filters]);
+    }, [GetDatas]);
 
-    const handleFilterChange = (value: string | null, field: string) => {
-        setFilters(old => ({ ...old, [field]: value || 'All' }));
-    };
+    useEffect(() => {
+        return () => cancelPendingFilterApply();
+    }, []);
 
     const editBody = (row: InspectionData) => (
         <Button icon="pi pi-pen-to-square" outlined onClick={() => router.push(`/pages-sample/inspection-detail/edit/${row.id}`)} />
     );
 
+    const downloadDocument = async (fileName?: string) => {
+        if (!fileName) {
+            toast.current?.show({ severity: 'warn', summary: 'Missing file', detail: 'No document available' });
+            return;
+        }
+        try {
+            const res = await Get({ url: `/inspection-detail/files/${fileName}` });
+            if (!res.ok) {
+                const errText = await res.text().catch(() => 'Failed to download file');
+                throw new Error(errText || 'Failed to download file');
+            }
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            a.target = '_blank';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (error: any) {
+            console.error('Download error:', error);
+            toast.current?.show({
+                severity: 'error',
+                summary: 'Error',
+                detail: error.message || 'Cannot download document',
+            });
+        }
+    };
+
     const docBody = (row: InspectionData, field: 'docAisUrl' | 'docSdrUrl') => (
-        <a href={row[field] || '#'} target="_blank" rel="noreferrer" className="text-blue-600">DOWNLOAD</a>
+        <Button
+            label="Download"
+            className="p-button-text text-blue-600"
+            onClick={() => downloadDocument(row[field])}
+            disabled={!row[field]}
+        />
     );
 
     const specialRequestBody = (row: InspectionData) => (
@@ -306,32 +465,32 @@ export default function InspectionDetail() {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-2 w-[calc(100%-100px)]">
                         <div className="flex flex-col gap-2 w-full">
                             <label>Supplier Name</label>
-                            <Dropdown value={filters.supplierName} onChange={(e) => handleFilterChange(e.value, 'supplierName')} options={supplierOptions} optionLabel="label" className="w-full" />
+                            <Dropdown value={filters.supplierCode} onChange={(e) => handleDropdownFilterChange(e.value, 'supplierCode')} options={supplierOptions} optionLabel="label" className="w-full" />
                         </div>
                         <div className="flex flex-col gap-2 w-full">
                             <label>Part No.</label>
-                            <Dropdown value={filters.partNo} onChange={(e) => handleFilterChange(e.value, 'partNo')} options={[{ label: 'All', value: 'All' }, { label: '90151-06811', value: '90151-06811' }]} optionLabel="label" className="w-full" />
+                            <InputText value={filters.partNo} onChange={(e) => handleInputFilterChange(e.target.value, 'partNo')} placeholder="Enter Part No." className="w-full" />
                         </div>
                         <div className="flex flex-col gap-2 w-full">
                             <label>Part Name</label>
-                            <Dropdown value={filters.partName} onChange={(e) => handleFilterChange(e.value, 'partName')} options={[{ label: 'All', value: 'All' }, { label: 'SCREW,FLATHEAD', value: 'SCREW,FLATHEAD' }]} optionLabel="label" className="w-full" />
+                            <InputText value={filters.partName} onChange={(e) => handleInputFilterChange(e.target.value, 'partName')} placeholder="Enter Part Name" className="w-full" />
                         </div>
                         <div className="flex flex-col gap-2 w-full">
                             <label>Model</label>
-                            <Dropdown value={filters.model} onChange={(e) => handleFilterChange(e.value, 'model')} options={[{ label: 'All', value: 'All' }, { label: 'XXX', value: 'XXX' }]} optionLabel="label" className="w-full" />
+                            <InputText value={filters.model} onChange={(e) => handleInputFilterChange(e.target.value, 'model')} placeholder="Enter Model" className="w-full" />
                         </div>
                         <div className="flex flex-col gap-2 w-full">
                             <label>Part Status</label>
-                            <Dropdown value={filters.partStatus} onChange={(e) => handleFilterChange(e.value, 'partStatus')} options={[{ label: 'All', value: 'All' }, { label: 'Active', value: 'Active' }]} optionLabel="label" className="w-full" />
+                            <Dropdown value={filters.partStatus} onChange={(e) => handleDropdownFilterChange(e.value, 'partStatus')} options={[{ label: 'All', value: 'All' }, { label: 'Active', value: 'Active' }, { label: 'Inactive', value: 'Inactive' }]} optionLabel="label" className="w-full" />
                         </div>
                         <div className="flex flex-col gap-2 w-full">
                             <label>Supplier Edit Status</label>
-                            <Dropdown value={filters.supplierEditStatus} onChange={(e) => handleFilterChange(e.value, 'supplierEditStatus')} options={[{ label: 'All', value: 'All' }, { label: 'Locked', value: 'Locked' }]} optionLabel="label" className="w-full" />
+                            <Dropdown value={filters.supplierEditStatus} onChange={(e) => handleDropdownFilterChange(e.value, 'supplierEditStatus')} options={[{ label: 'All', value: 'All' }, { label: 'Locked', value: 'Locked' }, { label: 'Unlocked', value: 'Unlocked' }]} optionLabel="label" className="w-full" />
                         </div>
                     </div>
                     <div className="w-[100px] flex flex-col gap-2 justify-end">
                         <div className="flex gap-2">
-                            <Button label="Search" icon="pi pi-search" onClick={() => { setFirst(0); GetDatas(); }} />
+                            <Button label="Search" icon="pi pi-search" onClick={handleSearchClick} />
                         </div>
                     </div>
                 </div>

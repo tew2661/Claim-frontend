@@ -221,29 +221,27 @@ const Post = async ({ url, body, headers }: PropsPost): Promise<Response> => {
     if (IsTokenEmpty(token)) {
         window.location.href = '/login';
     }
-    const response = await fetch(`${domainURL}${url}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            ...headers,
-            'Authorization': `Bearer ${token ?? ''}`,
-        },
-        body: body
+    const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
+
+    const buildHeaders = (authToken: string) => ({
+        ...(!isFormData ? { 'Content-Type': 'application/json' } : {}),
+        ...headers,
+        'Authorization': `Bearer ${authToken ?? ''}`,
     });
+
+    const buildRequestInit = (authToken: string): RequestInit => ({
+        method: 'POST',
+        headers: buildHeaders(authToken),
+        body: body,
+    });
+
+    const response = await fetch(`${domainURL}${url}`, buildRequestInit(token));
 
     let result: Response = response;
     if (response.status === 401) {
         if (await RefreshToken()) {
             const newToken = localStorage.getItem('access_token')!;
-            const retryResponse = await fetch(`${domainURL}${url}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...headers,
-                    'Authorization': `Bearer ${newToken ?? ''}`,
-                },
-                body: body
-            });
+            const retryResponse = await fetch(`${domainURL}${url}`, buildRequestInit(newToken));
             if (retryResponse.status === 401) {
                 window.location.href = '/login';
             }

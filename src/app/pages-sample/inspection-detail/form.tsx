@@ -8,6 +8,13 @@ import { Toast } from 'primereact/toast';
 import { Dialog } from 'primereact/dialog';
 import { useRouter } from 'next/navigation';
 import Footer from '@/components/footer';
+import { Get, Post } from '@/components/fetch';
+
+interface SupplierDropdownOption {
+    label: string;
+    value: string;
+    supplierName: string;
+}
 
 interface Props {
     mode: 'create' | 'edit';
@@ -60,10 +67,38 @@ export default function InspectionDetailForm({ mode, data }: Props) {
         
     };
 
-    const supplierOptions = [
-        { label: 'AAA', value: 'AAA' },
-        { label: 'BBB', value: 'BBB' },
-    ];
+    const [supplierOptions, setSupplierOptions] = useState<SupplierDropdownOption[]>([]);
+
+    const loadSupplierOptions = async () => {
+        try {
+            const res = await Get({ url: '/inspection-detail/suppliers' });
+            if (!res.ok) {
+                const err: any = await res.json().catch(() => ({}));
+                throw new Error(err.message || 'Failed to load suppliers');
+            }
+
+            const payload = await res.json();
+            const data: any[] = payload?.data || [];
+            setSupplierOptions(
+                data.map((item) => ({
+                    label: `${item.supplierCode} - ${item.supplierName}`,
+                    value: item.supplierCode,
+                    supplierName: item.supplierName,
+                })),
+            );
+        } catch (error: any) {
+            console.error('Load supplier list failed', error);
+            toast.current?.show({
+                severity: 'error',
+                summary: 'Error',
+                detail: error.message || 'Cannot load supplier codes',
+            });
+        }
+    };
+
+    useEffect(() => {
+        loadSupplierOptions();
+    }, []);
 
     const addInspectionItem = () => {
         setForm((old: any) => ({ 
@@ -155,7 +190,40 @@ export default function InspectionDetailForm({ mode, data }: Props) {
         return true;
     };
 
-    const handleSave = () => {
+    const buildPayload = () => {
+        return {
+            supplierCode: form.supplierCode,
+            supplierName: form.supplierName,
+            partNo: form.partNo,
+            partName: form.partName,
+            model: form.model,
+            inspectionItems: form.inspectionItems.map((it: any, idx: number) => ({
+                no: it.no ?? idx + 1,
+                measuringItem: it.measuringItem,
+                specification: it.specification,
+                tolerancePlus: it.tolerancePlus,
+                toleranceMinus: it.toleranceMinus,
+                inspectionInstrument: it.inspectionInstrument,
+                rank: it.rank,
+            })),
+            partStatus: form.partStatus,
+            supplierEditStatus: form.supplierEditStatus,
+        };
+    };
+
+    const buildFormData = (payload: any) => {
+        const formData = new FormData();
+        formData.append('payload', JSON.stringify(payload));
+        if (uploadAisFile) {
+            formData.append('aisFile', uploadAisFile);
+        }
+        if (uploadSdrFile) {
+            formData.append('sdrFile', uploadSdrFile);
+        }
+        return formData;
+    };
+
+    const handleSave = async () => {
         // ถ้า form ถูก lock ให้ return ทันที
         if (isLocked) {
             toast.current?.show({ 
@@ -171,10 +239,42 @@ export default function InspectionDetailForm({ mode, data }: Props) {
             return;
         }
 
-        // mock save
-        console.log('Saving form data:', form);
-        console.log('AIS File:', uploadAisFile);
-        console.log('SDR File:', uploadSdrFile);
+        if (IsSupplier && mode === 'edit') {
+            setShowEditConfirmation(true);
+            return;
+        }
+        
+        try {
+            const payload = buildPayload();
+            const formData = buildFormData(payload);
+
+            const res = await Post({
+                url: '/inspection-detail',
+                body: formData,
+            });
+
+            if (!res.ok) {
+                const err: any = await res.json().catch(() => ({}));
+                throw new Error(err.message || 'Failed to save inspection detail');
+            }
+
+            toast.current?.show({ 
+                severity: 'success', 
+                summary: 'Success', 
+                detail: 'Data saved successfully' 
+            });
+
+            setTimeout(() => {
+                router.push('/pages-sample/inspection-detail');
+            }, 1000);
+        } catch (error: any) {
+            console.error('Save error:', error);
+            toast.current?.show({
+                severity: 'error',
+                summary: 'Error',
+                detail: error.message || 'Cannot save inspection detail',
+            });
+        }
 
         if (IsSupplier && mode === 'edit') {
             setShowEditConfirmation(true);
@@ -291,7 +391,14 @@ export default function InspectionDetailForm({ mode, data }: Props) {
                         <label>Supplier Code <span className="text-red-500">*</span></label>
                         <Dropdown 
                             value={form.supplierCode} 
-                            onChange={(e) => setForm((old: any) => ({ ...old, supplierCode: e.value }))} 
+                            onChange={(e) => {
+                                const selected = supplierOptions.find((option) => option.value === e.value);
+                                setForm((old: any) => ({
+                                    ...old,
+                                    supplierCode: e.value,
+                                    supplierName: selected?.supplierName ?? old.supplierName,
+                                }));
+                            }} 
                             options={supplierOptions} 
                             className="w-full" 
                             placeholder="Select Supplier Code"
