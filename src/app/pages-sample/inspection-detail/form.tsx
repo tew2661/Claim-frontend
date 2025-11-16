@@ -8,7 +8,7 @@ import { Toast } from 'primereact/toast';
 import { Dialog } from 'primereact/dialog';
 import { useRouter } from 'next/navigation';
 import Footer from '@/components/footer';
-import { Get, Post } from '@/components/fetch';
+import { Get, Post, Put } from '@/components/fetch';
 
 interface SupplierDropdownOption {
     label: string;
@@ -38,8 +38,8 @@ export default function InspectionDetailForm({ mode, data }: Props) {
         partNo: data?.partNo || '',
         partName: data?.partName || '',
         model: data?.model || '',
-        aisFile: data?.aisFile || null,
-        sdrFile: data?.sdrFile || null,
+        aisFileName: data?.aisFile || '',
+        sdrFileName: data?.sdrFile || '',
         inspectionItems: data?.inspectionItems || [{ 
             no: 1, 
             measuringItem: '', 
@@ -68,6 +68,30 @@ export default function InspectionDetailForm({ mode, data }: Props) {
     };
 
     const [supplierOptions, setSupplierOptions] = useState<SupplierDropdownOption[]>([]);
+
+    const openServerFile = async (fileName?: string) => {
+        if (!fileName) return;
+
+        try {
+            const response = await Get({ url: `/inspection-detail/files/${fileName}` });
+            if (!response.ok) {
+                const message = await response.text().catch(() => 'Failed to load file');
+                throw new Error(message || 'Failed to load file');
+            }
+
+            const blob = await response.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            window.open(blobUrl, '_blank');
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+        } catch (error: any) {
+            console.error('Open server file failed', error);
+            toast.current?.show({
+                severity: 'error',
+                summary: 'Error',
+                detail: error?.message || 'Unable to download file',
+            });
+        }
+    };
 
     const loadSupplierOptions = async () => {
         try {
@@ -99,6 +123,33 @@ export default function InspectionDetailForm({ mode, data }: Props) {
     useEffect(() => {
         loadSupplierOptions();
     }, []);
+
+    useEffect(() => {
+        if (data) {
+            setForm({
+                supplierCode: data.supplierCode || '',
+                supplierName: data.supplierName || '',
+                partNo: data.partNo || '',
+                partName: data.partName || '',
+                model: data.model || '',
+                aisFileName: data.aisFile || '',
+                sdrFileName: data.sdrFile || '',
+                inspectionItems: data.inspectionItems || [{
+                    no: 1,
+                    measuringItem: '',
+                    specification: '',
+                    tolerancePlus: '',
+                    toleranceMinus: '',
+                    inspectionInstrument: '',
+                    rank: ''
+                }],
+                partStatus: data.partStatus || 'Inactive',
+                supplierEditStatus: data.supplierEditStatus || 'Unlocked'
+            });
+            setUploadAisFile(null);
+            setUploadSdrFile(null);
+        }
+    }, [data]);
 
     const addInspectionItem = () => {
         setForm((old: any) => ({ 
@@ -139,11 +190,17 @@ export default function InspectionDetailForm({ mode, data }: Props) {
         }
 
         // ตรวจสอบไฟล์
-        if (!uploadAisFile) {
+        const needsAisFile = mode === 'create'
+            ? !uploadAisFile
+            : !uploadAisFile && !form.aisFileName;
+        if (needsAisFile) {
             toast.current?.show({ severity: 'warn', summary: 'Warning', detail: 'Please upload AIS file' });
             return false;
         }
-        if (!uploadSdrFile) {
+        const needsSdrFile = mode === 'create'
+            ? !uploadSdrFile
+            : !uploadSdrFile && !form.sdrFileName;
+        if (needsSdrFile) {
             toast.current?.show({ severity: 'warn', summary: 'Warning', detail: 'Please upload SDR file' });
             return false;
         }
@@ -226,10 +283,10 @@ export default function InspectionDetailForm({ mode, data }: Props) {
     const handleSave = async () => {
         // ถ้า form ถูก lock ให้ return ทันที
         if (isLocked) {
-            toast.current?.show({ 
-                severity: 'warn', 
-                summary: 'Warning', 
-                detail: 'Cannot save. This Part No. is locked.' 
+            toast.current?.show({
+                severity: 'warn',
+                summary: 'Warning',
+                detail: 'Cannot save. This Part No. is locked.',
             });
             return;
         }
@@ -243,13 +300,17 @@ export default function InspectionDetailForm({ mode, data }: Props) {
             setShowEditConfirmation(true);
             return;
         }
-        
-        try {
-            const payload = buildPayload();
-            const formData = buildFormData(payload);
 
-            const res = await Post({
-                url: '/inspection-detail',
+        const payload = buildPayload();
+        const formData = buildFormData(payload);
+        const recordId = typeof data?.id === 'number' ? data.id : Number(data?.id ?? NaN);
+        const isUpdate = mode === 'edit' && !Number.isNaN(recordId) && recordId > 0;
+        const requestUrl = isUpdate ? `/inspection-detail/${recordId}` : '/inspection-detail';
+        const requestFn = isUpdate ? Put : Post;
+
+        try {
+            const res = await requestFn({
+                url: requestUrl,
                 body: formData,
             });
 
@@ -258,10 +319,10 @@ export default function InspectionDetailForm({ mode, data }: Props) {
                 throw new Error(err.message || 'Failed to save inspection detail');
             }
 
-            toast.current?.show({ 
-                severity: 'success', 
-                summary: 'Success', 
-                detail: 'Data saved successfully' 
+            toast.current?.show({
+                severity: 'success',
+                summary: 'Success',
+                detail: 'Data saved successfully',
             });
 
             setTimeout(() => {
@@ -275,23 +336,6 @@ export default function InspectionDetailForm({ mode, data }: Props) {
                 detail: error.message || 'Cannot save inspection detail',
             });
         }
-
-        if (IsSupplier && mode === 'edit') {
-            setShowEditConfirmation(true);
-            return;
-        }
-            
-
-        toast.current?.show({ 
-            severity: 'success', 
-            summary: 'Success', 
-            detail: 'Data saved successfully' 
-        });
-
-        // เดี๋ยวค่อยไปหน้าต่อไป
-        setTimeout(() => {
-            router.push('/pages-sample/inspection-detail');
-        }, 1000);
     }
 
     return (
@@ -449,89 +493,99 @@ export default function InspectionDetailForm({ mode, data }: Props) {
 
                 <div className="mt-4">
                     <h3 className="font-medium">Upload File <span className="text-red-500">*</span></h3>
-                    <div className="grid grid-cols-2 gap-4 items-center">
+                        <div className="grid grid-cols-2 gap-4 items-center">
                         <div>
                             <div className="mb-2">AIS <span className="text-red-500">*</span></div>
-                            <div className="flex gap-2 items-center">
-                                <InputText 
-                                    placeholder="File Name" 
-                                    value={uploadAisFile?.name || ''} 
-                                    readOnly 
-                                    className="w-2/3" 
-                                />
-                                <Button 
-                                    label="Download" 
-                                    className="p-button-primary" 
-                                    disabled={!uploadAisFile}
-                                    onClick={() => {
-                                        if (uploadAisFile) {
-                                            const fileUrl = URL.createObjectURL(uploadAisFile);
-                                            window.open(fileUrl, '_blank');
-                                        }
-                                    }}
-                                />
-                                <Button 
-                                    label="Upload PDF File" 
-                                    className="p-button-secondary" 
-                                    onClick={() => document.getElementById('upload-ais-file-id')?.click()}
-                                    disabled={isLocked}
-                                />
-                                <input
-                                    id="upload-ais-file-id"
-                                    type="file"
-                                    accept="application/pdf"
-                                    className="hidden"
-                                    disabled={isLocked}
-                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                                        const file = e.target.files?.[0];
-                                        if (file) {
-                                            console.log('AIS file selected:', file);
-                                            setUploadAisFile(file);
-                                        }
-                                    }}
-                                />
+                            <div className="flex flex-col gap-1">
+                                <div className="flex gap-2 items-center">
+                                    <InputText 
+                                        placeholder="File Name" 
+                                        value={uploadAisFile?.name || form.aisFileName} 
+                                        readOnly 
+                                        className="w-2/3" 
+                                    />
+                                    <Button 
+                                        label="Download" 
+                                        className="p-button-primary" 
+                                        disabled={!uploadAisFile && !form.aisFileName}
+                                        onClick={() => {
+                                            if (uploadAisFile) {
+                                                const fileUrl = URL.createObjectURL(uploadAisFile);
+                                                window.open(fileUrl, '_blank');
+                                            } else {
+                                                void openServerFile(form.aisFileName);
+                                            }
+                                        }}
+                                    />
+                                    <Button 
+                                        label="Upload PDF File" 
+                                        className="p-button-secondary" 
+                                        onClick={() => document.getElementById('upload-ais-file-id')?.click()}
+                                        disabled={isLocked}
+                                    />
+                                    <input
+                                        id="upload-ais-file-id"
+                                        type="file"
+                                        accept="application/pdf"
+                                        className="hidden"
+                                        disabled={isLocked}
+                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                            const file = e.target.files?.[0];
+                                            if (file) {
+                                                console.log('AIS file selected:', file);
+                                                setUploadAisFile(file);
+                                            }
+                                        }}
+                                    />
+                                </div>
+                                
                             </div>
                         </div>
                         <div>
                             <div className="mb-2">SDR : Cover Page <span className="text-red-500">*</span></div>
-                            <div className="flex gap-2 items-center">
-                                <InputText 
-                                    placeholder="File Name" 
-                                    value={uploadSdrFile?.name || ''} 
-                                    readOnly 
-                                    className="w-2/3" 
-                                />
-                                <Button 
-                                    label="Download" 
-                                    className="p-button-primary"
-                                    disabled={!uploadSdrFile}
-                                    onClick={() => {
-                                        if (uploadSdrFile) {
-                                            const fileUrl = URL.createObjectURL(uploadSdrFile);
-                                            window.open(fileUrl, '_blank');
-                                        }
-                                    }}
-                                />
-                                <Button 
-                                    label="Upload PDF File" 
-                                    className="p-button-secondary"
-                                    onClick={() => document.getElementById('upload-sdr-file-id')?.click()}
-                                    disabled={isLocked}
-                                />
-                                <input
-                                    id="upload-sdr-file-id"
-                                    type="file"
-                                    accept="application/pdf"
-                                    className="hidden"
-                                    disabled={isLocked}
-                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                                        const file = e.target.files?.[0];
-                                        if (file) {
-                                            console.log('SDR file selected:', file);
-                                            setUploadSdrFile(file);
-                                        }
-                                    }}
-                                />
+                            <div className="flex flex-col gap-1">
+                                <div className="flex gap-2 items-center">
+                                    <InputText 
+                                        placeholder="File Name" 
+                                        value={uploadSdrFile?.name || form.sdrFileName} 
+                                        readOnly 
+                                        className="w-2/3" 
+                                    />
+                                    <Button 
+                                        label="Download" 
+                                        className="p-button-primary"
+                                        disabled={!uploadSdrFile && !form.sdrFileName}
+                                        onClick={() => {
+                                            if (uploadSdrFile) {
+                                                const fileUrl = URL.createObjectURL(uploadSdrFile);
+                                                window.open(fileUrl, '_blank');
+                                            } else {
+                                                void openServerFile(form.sdrFileName);
+                                            }
+                                        }}
+                                    />
+                                    <Button 
+                                        label="Upload PDF File" 
+                                        className="p-button-secondary"
+                                        onClick={() => document.getElementById('upload-sdr-file-id')?.click()}
+                                        disabled={isLocked}
+                                    />
+                                    <input
+                                        id="upload-sdr-file-id"
+                                        type="file"
+                                        accept="application/pdf"
+                                        className="hidden"
+                                        disabled={isLocked}
+                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                            const file = e.target.files?.[0];
+                                            if (file) {
+                                                console.log('SDR file selected:', file);
+                                                setUploadSdrFile(file);
+                                            }
+                                        }}
+                                    />
+                                </div>
+                                
                             </div>
                         </div>
                     </div>

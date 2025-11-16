@@ -14,7 +14,7 @@ import { Calendar } from "primereact/calendar";
 import { useRouter } from "next/navigation";
 import moment from "moment";
 import Footer from "@/components/footer";
-import { Get } from "@/components/fetch";
+import { Get, Post } from "@/components/fetch";
 
 interface InspectionData {
     id: number;
@@ -36,6 +36,25 @@ interface SupplierDropdownOption {
     value: string;
     supplierName?: string;
 }
+
+interface SpecialRequestRecord {
+    id: number;
+    inspectionDetailId: number;
+    specialRequestItems: string[];
+    qty: number | 'All';
+    cpCpk: string;
+    dueDate: string;
+    status: string;
+    comments?: string;
+    createdAt: string;
+}
+
+const createDefaultSpecialRequestForm = () => ({
+    selectedItems: ['Height', 'Thickness', 'Outer Diameter (OD)'] as string[],
+    qty: 'All' as number | 'All',
+    cpCpk: 'All',
+    dueDate: new Date(),
+});
 
 type FilterState = {
     supplierCode: string;
@@ -73,12 +92,9 @@ export default function InspectionDetail() {
 
     const [showSpecialRequestModal, setShowSpecialRequestModal] = useState(false);
     const [selectedPart, setSelectedPart] = useState<InspectionData | null>(null);
-    const [specialRequestForm, setSpecialRequestForm] = useState({
-        selectedItems: [] as string[],
-        qty: 30,
-        cpCpk: 'Yes',
-        dueDate: new Date('2025-09-13')
-    });
+    const [specialRequestForm, setSpecialRequestForm] = useState(createDefaultSpecialRequestForm());
+    const [specialRequests, setSpecialRequests] = useState<SpecialRequestRecord[]>([]);
+    const [loadingRequests, setLoadingRequests] = useState(false);
 
     const [supplierOptions, setSupplierOptions] = useState<SupplierDropdownOption[]>([]);
 
@@ -227,6 +243,48 @@ export default function InspectionDetail() {
         return () => cancelPendingFilterApply();
     }, []);
 
+    const applyRecordToForm = (record: SpecialRequestRecord) => {
+        setSpecialRequestForm({
+            selectedItems: record.specialRequestItems || [],
+            qty: record.qty ?? undefined,
+            cpCpk: record.cpCpk,
+            dueDate: new Date(record.dueDate),
+        });
+    };
+
+    const fetchSpecialRequests = async (inspectionDetailId: number) => {
+        setLoadingRequests(true);
+        try {
+            const res = await Get({ url: `/inspection-detail/special-request/${inspectionDetailId}` });
+            if (!res.ok) {
+                const err: any = await res.json().catch(() => ({}));
+                throw new Error(err.message || 'Failed to load special requests');
+            }
+            const json: any = await res.json();
+            const payload: any[] = json.data || [];
+            const records = payload.map((item) => ({
+                ...item,
+                specialRequestItems: item.specialRequestItems || [],
+                dueDate: item.dueDate,
+                createdAt: item.createdAt,
+            }));
+            setSpecialRequests(records);
+            if (records.length) {
+                applyRecordToForm(records[0]);
+            }
+        } catch (error: any) {
+            console.error('Fetch special requests failed', error);
+            toast.current?.show({
+                severity: 'error',
+                summary: 'Error',
+                detail: error.message || 'Cannot load special requests',
+            });
+            setSpecialRequests([]);
+        } finally {
+            setLoadingRequests(false);
+        }
+    };
+
     const editBody = (row: InspectionData) => (
         <Button icon="pi pi-pen-to-square" outlined onClick={() => router.push(`/pages-sample/inspection-detail/edit/${row.id}`)} />
     );
@@ -271,34 +329,74 @@ export default function InspectionDetail() {
         />
     );
 
+    const openSpecialRequestModal = (row: InspectionData) => {
+        setSelectedPart(row);
+        setSpecialRequestForm(createDefaultSpecialRequestForm());
+        fetchSpecialRequests(row.id);
+        setShowSpecialRequestModal(true);
+    };
+
     const specialRequestBody = (row: InspectionData) => (
         <Button 
             label="Special Request" 
             className="p-button-text p-button-sm text-blue-600"
-            onClick={() => {
-                setSelectedPart(row);
-                setSpecialRequestForm({
-                    selectedItems: ['Height', 'Thickness', 'Outer Diameter (OD)'],
-                    qty: 30,
-                    cpCpk: 'Yes',
-                    dueDate: new Date('2025-09-13')
-                });
-                setShowSpecialRequestModal(true);
-            }}
+            onClick={() => openSpecialRequestModal(row)}
         />
     );
 
-    const handleSpecialRequest = () => {
-        console.log('Special Request Data:', {
-            part: selectedPart,
-            form: specialRequestForm
-        });
-        toast.current?.show({ 
-            severity: 'success', 
-            summary: 'Success', 
-            detail: 'Special request submitted successfully' 
-        });
-        setShowSpecialRequestModal(false);
+    const handleSpecialRequest = async () => {
+
+        if (!specialRequestForm.qty || specialRequestForm.qty === 'All') {
+            toast.current?.show({ severity: 'warn', summary: 'Missing quantity', detail: 'Please select quantity' });
+            return;
+        }
+
+        if (!specialRequestForm.cpCpk || specialRequestForm.cpCpk === 'All') {
+            toast.current?.show({ severity: 'warn', summary: 'Missing CP/CPK', detail: 'Please select CP/CPK option' });
+            return;
+        }
+
+        if (!selectedPart) {
+            toast.current?.show({ severity: 'warn', summary: 'No selection', detail: 'Please choose a part first' });
+            return;
+        }
+
+        if (!specialRequestForm.selectedItems.length) {
+            toast.current?.show({ severity: 'warn', summary: 'No items', detail: 'Please select at least one measuring item' });
+            return;
+        }
+
+        if (!specialRequestForm.dueDate) {
+            toast.current?.show({ severity: 'warn', summary: 'Missing due date', detail: 'Please select a due date' });
+        }
+
+        const payload = {
+            inspectionDetailId: selectedPart.id,
+            specialRequestItems: specialRequestForm.selectedItems,
+            qty: specialRequestForm.qty,
+            cpCpk: specialRequestForm.cpCpk,
+            dueDate: specialRequestForm.dueDate.toISOString(),
+        };
+
+        try {
+            const res = await Post({
+                url: '/inspection-detail/special-request',
+                body: JSON.stringify(payload),
+            });
+
+            if (!res.ok) {
+                const err: any = await res.json().catch(() => ({}));
+                throw new Error(err.message || 'Failed to record special request');
+            }
+
+            toast.current?.show({ severity: 'success', summary: 'Success', detail: 'Special request submitted successfully' });
+            setShowSpecialRequestModal(false);
+            setSpecialRequests([]);
+            GetDatas();
+        } catch (error: any) {
+            console.error('Special request failed', error);
+            toast.current?.show({ severity: 'error', summary: 'Error', detail: error.message || 'Cannot submit special request' });
+        }
     };
 
     const measuringItems = [
@@ -309,12 +407,14 @@ export default function InspectionDetail() {
     ];
 
     const qtyOptions = [
+        { label: 'All', value: 'All' },
         { label: '30', value: 30 },
         { label: '50', value: 50 },
         { label: '100', value: 100 }
     ];
 
     const cpCpkOptions = [
+        { label: 'All', value: 'All' },
         { label: 'Yes', value: 'Yes' },
         { label: 'No', value: 'No' }
     ];
@@ -347,7 +447,10 @@ export default function InspectionDetail() {
             <Dialog
                 header="Confirmation !!!!"
                 visible={showSpecialRequestModal}
-                onHide={() => setShowSpecialRequestModal(false)}
+                onHide={() => {
+                    setShowSpecialRequestModal(false);
+                    setSpecialRequests([]);
+                }}
                 style={{ width: '600px' }}
                 className="p-fluid"
             >
@@ -377,6 +480,28 @@ export default function InspectionDetail() {
                             </div>
                         </div>
                     </div>
+
+                    {/* <div className="space-y-2">
+                        <h4 className="text-lg font-semibold text-blue-700">Previous Requests</h4>
+                        {loadingRequests ? (
+                            <p className="text-sm text-gray-500">Loading...</p>
+                        ) : specialRequests.length ? (
+                            <div className="space-y-3 max-h-48 overflow-y-auto">
+                                {specialRequests.map((request) => (
+                                    <div key={request.id} className="border border-gray-200 rounded p-3 bg-white shadow-sm">
+                                        <div className="text-sm font-semibold text-gray-700">Status: {request.status}</div>
+                                        <div className="text-xs text-gray-500 mb-1">Requested on {moment(request.createdAt).format('DD-MM-YYYY HH:mm')}</div>
+                                        <div className="text-sm text-gray-600">Items: {request.specialRequestItems.join(', ') || '—'}</div>
+                                        <div className="text-sm text-gray-600">Qty: {request.qty}, Cp / Cpk: {request.cpCpk}</div>
+                                        <div className="text-sm text-gray-600">Due Date: {moment(request.dueDate).format('DD-MM-YYYY')}</div>
+                                        {request.comments && <div className="text-sm text-gray-500 mt-1">Note: {request.comments}</div>}
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-sm text-gray-500">No previous requests yet.</p>
+                        )}
+                    </div> */}
 
                     <div>
                         <label className="font-semibold text-blue-700 mb-3 block">Select Item Measuring</label>
@@ -447,7 +572,10 @@ export default function InspectionDetail() {
                         <Button
                             label="Cancel"
                             className="p-button-outlined p-button-secondary min-w-[120px]"
-                            onClick={() => setShowSpecialRequestModal(false)}
+                            onClick={() => {
+                                setShowSpecialRequestModal(false);
+                                setSpecialRequests([]);
+                            }}
                         />
                         <Button
                             label="Request"
