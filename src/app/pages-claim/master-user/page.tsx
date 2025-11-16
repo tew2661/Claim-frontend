@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "primereact/button";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
@@ -26,6 +26,7 @@ interface UserData {
     active?: "Y" | "N";
     password?: string;
     confirmPassword?: string;
+    sampleDataSheetRole?: string;
 }
 
 const roleOptions = [
@@ -35,6 +36,8 @@ const roleOptions = [
     { label: "GM / DGM", value: "GM / DGM" },
     { label: "Plant Manager", value: "Plant Manager" },
 ];
+
+const systemRoleOptions = roleOptions;
 
 export function UserManagement() {
     const defaultUser: UserData = {
@@ -46,7 +49,8 @@ export function UserManagement() {
         email: '',
         accessMasterManagement: 'N',
         password: '',
-        confirmPassword: ''
+        confirmPassword: '',
+        sampleDataSheetRole: ''
     }
 
     const defaultErrorUser = {
@@ -57,7 +61,8 @@ export function UserManagement() {
         email: false,
         accessMasterManagement: false,
         password: false,
-        confirmPassword: false
+        confirmPassword: false,
+        sampleDataSheetRole: false,
     }
 
     const toast = useRef<Toast>(null);
@@ -94,6 +99,10 @@ export function UserManagement() {
         setNewUser((old) => ({ ...old, [field]: e.target.value }))
     }
 
+    const handleDropdownChangeAdd = (field: string, value: string) => {
+        setNewUser((old) => ({ ...old, [field]: value }))
+    }
+
     const chechInvalid = async () => {
         const inInvalid: any = {
             code: false,
@@ -103,7 +112,8 @@ export function UserManagement() {
             email: false,
             password: false,
             accessMasterManagement: false,
-            confirmPassword: false
+            confirmPassword: false,
+            sampleDataSheetRole: false
         }
         if (!newUser.code) {
             inInvalid.id = true
@@ -122,6 +132,9 @@ export function UserManagement() {
         }
         if (!newUser.accessMasterManagement) {
             inInvalid.accessMasterManagement = true
+        }
+        if (!newUser.sampleDataSheetRole) {
+            inInvalid.sampleDataSheetRole = true
         }
         // if (addOrEdit == 'A' && !newUser.password) {
         //     inInvalid.password = true
@@ -151,6 +164,7 @@ export function UserManagement() {
                     role: newUser.role,
                     email: newUser.email,
                     accessMasterManagement: newUser.accessMasterManagement,
+                    sampleDataSheetRole: newUser.sampleDataSheetRole || '',
                     // password: newUser.password,
                 }),
                 headers: {
@@ -166,6 +180,7 @@ export function UserManagement() {
                     department: newUser.department,
                     role: newUser.role,
                     accessMasterManagement: newUser.accessMasterManagement,
+                    sampleDataSheetRole: newUser.sampleDataSheetRole || '',
                     email: newUser.email,
                 }),
                 headers: {
@@ -184,7 +199,7 @@ export function UserManagement() {
         setVisibleAdd(false);
     }
 
-    const GetDatas = async () => {
+    const GetDatas = useCallback(async () => {
         const quertString = CreateQueryString({
             ...filters,
         });
@@ -200,6 +215,7 @@ export function UserManagement() {
                     department: x.department,
                     accessMasterManagement: x.accessMasterManagement || 'N',
                     role: x.role,
+                    sampleDataSheetRole: x.sampleDataSheetRole || '',
                     email: x.email,
                     active: x.active || 'N'
                 }
@@ -207,7 +223,7 @@ export function UserManagement() {
         } else {
             toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await res!.json()).message)}`, life: 3000 });
         }
-    }
+    }, [filters, rows, first]);
 
     const DeleteData = async (id: number) => {
         
@@ -280,7 +296,7 @@ export function UserManagement() {
 
     useEffect(() => {
         GetDatas()
-    }, [])
+    }, [GetDatas])
 
     return (
         <div className="flex justify-center pt-6 px-6">
@@ -335,7 +351,8 @@ export function UserManagement() {
                     <Column field="code" header="Employee ID" style={{ width: '10%', textAlign: 'center' }}></Column>
                     <Column field="name" header="Name" style={{ width: '35%' }}></Column>
                     <Column field="department" header="Department" style={{ width: '20%' }}></Column>
-                    <Column field="role" header="Role" style={{ width: '15%', textAlign: 'center' }}></Column>
+                    <Column field="role" header="System Role : Claim Management" style={{ width: '15%', textAlign: 'center' }}></Column>
+                    <Column field="sampleDataSheetRole" header="System Role : Sample Data Sheet" style={{ width: '15%', textAlign: 'center' }}></Column>
                     <Column field="email" header="Email" style={{ width: '20%' }}></Column>
                     <Column field="active" header="Active" body={(arr: UserData) => {
                         return <InputSwitch inputId="input-metakey" checked={arr.active == 'Y'} onChange={(e) => ActiveUser(arr.id, arr.active == 'Y' ? "N" : "Y")} />
@@ -416,14 +433,27 @@ export function UserManagement() {
                                 />
                             </div>
                             <div className="flex flex-col gap-2 w-full">
-                                <label htmlFor="role">Role</label>
+                                <label htmlFor="role">System Role : Claim Management</label>
                                 <Dropdown
                                     id="role"
                                     value={newUser.role}
                                     options={roleOptions}
-                                    onChange={(e) => handleInputChangeAdd(e as any as React.ChangeEvent<HTMLInputElement>, "role")}
+                                    onChange={(e) => handleDropdownChangeAdd("role", e.value)}
                                     invalid={iInvalid.role && !newUser.role}
                                     optionLabel="label"
+                                    className="w-full"
+                                />
+                            </div>
+                            <div className="flex flex-col gap-2 w-full">
+                                <label htmlFor="sampleRole">System Role : Sample Data Sheet</label>
+                                <Dropdown
+                                    id="sampleRole"
+                                    value={newUser.sampleDataSheetRole}
+                                    options={systemRoleOptions}
+                                    onChange={(e) => handleDropdownChangeAdd("sampleDataSheetRole", e.value)}
+                                    invalid={iInvalid.sampleDataSheetRole && !newUser.sampleDataSheetRole}
+                                    optionLabel="label"
+                                    className="w-full"
                                 />
                             </div>
                             <div className="flex flex-col gap-2 w-full">
@@ -445,7 +475,7 @@ export function UserManagement() {
                                 <Dropdown 
                                     value={newUser.accessMasterManagement} 
                                     invalid={iInvalid.accessMasterManagement && !newUser.accessMasterManagement}
-                                    onChange={(e) => setNewUser((old) => ({ ...old, accessMasterManagement: e.target.value }))} 
+                                    onChange={(e) => handleDropdownChangeAdd("accessMasterManagement", e.value)} 
                                     options={[
                                         { label: 'Yes' , value: 'Y' }, 
                                         { label: 'No' , value: 'N' }, 
