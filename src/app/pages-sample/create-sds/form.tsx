@@ -6,7 +6,7 @@ import { InputText } from 'primereact/inputtext';
 import { Dropdown } from 'primereact/dropdown';
 import { Calendar } from 'primereact/calendar';
 import { Toast } from 'primereact/toast';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Footer from '@/components/footer';
 import { Get, Post, Put } from '@/components/fetch';
 import { InputTextarea } from 'primereact/inputtextarea';
@@ -30,6 +30,11 @@ interface SdrRow {
     r: string;
     cp: string;
     cpk: string;
+}
+
+interface SampleDataSheetFormProps {
+    mode: 'create' | 'edit';
+    inspectionId?: string;
 }
 
 const createBlankSamples = (): SdrSample[] => (
@@ -77,11 +82,9 @@ const normalizeSdrRows = (rows: any[]): SdrRow[] => (
     }))
 );
 
-export default function CreateSDSForm() {
+export default function SampleDataSheetForm({ mode, inspectionId }: SampleDataSheetFormProps) {
     const router = useRouter();
-    const params = useParams();
     const toast = useRef<Toast>(null);
-    const inspectionId = params?.id;
 
     const [form, setForm] = useState({
         supplier: '',
@@ -100,10 +103,11 @@ export default function CreateSDSForm() {
     const [uploadSdrReport, setUploadSdrReport] = useState<File | null>(null);
     const [aisFileName, setAisFileName] = useState('');
     const [sdrFileName, setSdrFileName] = useState('');
-    const [uploadSdrReportName, setUploadSdrReportName] = useState<string>('');
     const [isLoadingDetail, setIsLoadingDetail] = useState(false);
     const [sheetId, setSheetId] = useState<number | null>(null);
-    const isEditMode = Boolean(sheetId);
+    const [hasExistingSdrReport, setHasExistingSdrReport] = useState(false);
+
+    const isEditMode = mode === 'edit';
 
     const productionOptions = [
         { label: 'Yes', value: 'Yes' },
@@ -129,59 +133,63 @@ export default function CreateSDSForm() {
         { label: 'O', value: 'O' },
     ];
 
+    const fetchInspectionDetail = async () => {
+        const response = await Get({ url: `/inspection-detail/detail/${inspectionId}` });
+        if (!response.ok) {
+            const errorBody = await response.json().catch(() => ({}));
+            throw new Error(errorBody?.message || 'Failed to load inspection detail');
+        }
+        const payload = await response.json();
+        const detail = payload?.data;
+        if (!detail) {
+            throw new Error('Inspection detail not found');
+        }
+        return detail;
+    };
+
+    const fetchExistingSheet = async () => {
+        const response = await Get({ url: `/sample-data-sheet/by-inspection/${inspectionId}` });
+        if (!response.ok) {
+            const errorBody = await response.json().catch(() => ({}));
+            throw new Error(errorBody?.message || 'Failed to load Sample Data Sheet');
+        }
+        const payload = await response.json();
+        const sheet = payload?.data;
+        if (!sheet) {
+            throw new Error('Sample Data Sheet not found');
+        }
+        return sheet;
+    };
+
     useEffect(() => {
         if (!inspectionId) {
             return;
         }
 
-        const fetchInspectionDetail = async () => {
-            const response = await Get({ url: `/inspection-detail/detail/${inspectionId}` });
-            if (!response.ok) {
-                const errorBody = await response.json().catch(() => ({}));
-                throw new Error(errorBody?.message || 'Failed to load inspection detail');
-            }
-
-            const payload = await response.json();
-            const detail = payload?.data;
-            if (!detail) {
-                throw new Error('Inspection detail not found');
-            }
-
-            setSheetId(null);
-            setForm((prev) => ({
-                ...prev,
-                supplier: detail.supplierName || prev.supplier,
-                partNo: detail.partNo || prev.partNo,
-                partName: detail.partName || prev.partName,
-                model: detail.model || prev.model,
-                inspectionDetailId: detail.id?.toString() || prev.inspectionDetailId,
-                sdrData: detail.inspectionItems && detail.inspectionItems.length
-                    ? mapInspectionItemsToSdrRows(detail.inspectionItems)
-                    : prev.sdrData,
-            }));
-            setAisFileName(detail.aisFile || '');
-            setSdrFileName(detail.sdrFile || '');
-            setUploadSdrReportName('');
-        };
-
-        const loadInspectionDetail = async () => {
+        const loadData = async () => {
             setIsLoadingDetail(true);
             setUploadSdrReport(null);
-            setUploadSdrReportName('');
             try {
-                const sheetResponse = await Get({ url: `/sample-data-sheet/by-inspection/${inspectionId}` });
-                if (sheetResponse.status === 404) {
-                    await fetchInspectionDetail();
-                    return;
-                }
-                if (!sheetResponse.ok) {
-                    const errorBody = await sheetResponse.json().catch(() => ({}));
-                    throw new Error(errorBody?.message || 'Failed to load Sample Data Sheet');
-                }
+                const detail = await fetchInspectionDetail();
 
-                const sheetPayload = await sheetResponse.json();
-                const sheet = sheetPayload?.data;
-                if (sheet) {
+                setForm((prev) => ({
+                    ...prev,
+                    supplier: detail.supplierName || prev.supplier,
+                    partNo: detail.partNo || prev.partNo,
+                    partName: detail.partName || prev.partName,
+                    model: detail.model || prev.model,
+                    inspectionDetailId: detail.id?.toString() || prev.inspectionDetailId,
+                    sdrData: detail.inspectionItems && detail.inspectionItems.length
+                        ? mapInspectionItemsToSdrRows(detail.inspectionItems)
+                        : prev.sdrData,
+                }));
+                setAisFileName(detail.aisFile || '');
+                setSdrFileName(detail.sdrFile || '');
+                setSheetId(null);
+                setHasExistingSdrReport(false);
+
+                if (isEditMode) {
+                    const sheet = await fetchExistingSheet();
                     setSheetId(sheet.id);
                     setForm((prev) => ({
                         ...prev,
@@ -195,17 +203,14 @@ export default function CreateSDSForm() {
                         sdrData: sheet.sdrData && sheet.sdrData.length
                             ? normalizeSdrRows(sheet.sdrData)
                             : prev.sdrData,
-                        remark: sheet.remark || prev.remark,
+                        remark: sheet.remark ?? prev.remark,
                     }));
-                    setAisFileName(sheet.aisFile || '');
-                    setSdrFileName(sheet.sdrFile || '');
-                    setUploadSdrReportName(sheet.sdrReportFile || '');
-                    return;
+                    setAisFileName(sheet.aisFile || detail.aisFile || '');
+                    setSdrFileName(sheet.sdrFile || detail.sdrFile || '');
+                    setHasExistingSdrReport(Boolean(sheet.sdrReportFile));
                 }
-
-                await fetchInspectionDetail();
             } catch (error: any) {
-                console.error('Load inspection detail for SDS create failed', error);
+                console.error('Load inspection detail for SDS form failed', error);
                 toast.current?.show({
                     severity: 'error',
                     summary: 'Error',
@@ -216,8 +221,8 @@ export default function CreateSDSForm() {
             }
         };
 
-        loadInspectionDetail();
-    }, [inspectionId]);
+        loadData();
+    }, [inspectionId, isEditMode]);
 
     const downloadServerFile = async (fileName?: string) => {
         if (!fileName) {
@@ -293,25 +298,26 @@ export default function CreateSDSForm() {
         setForm(prev => ({ ...prev, sdrData: newData }));
     };
 
-    // ฟังก์ชันตรวจสอบว่าค่าอยู่ในช่วง tolerance หรือไม่
+    const hasUploadRequirement = () => {
+        if (form.production08_2025 !== 'Yes') return false;
+        if (uploadSdrReport) return true;
+        if (isEditMode && hasExistingSdrReport) return true;
+        return !isEditMode;
+    };
+
     const isOutOfTolerance = (value: string, specification: string): boolean => {
         if (!value || !specification) return false;
-        
         const numValue = parseFloat(value);
         const numSpec = parseFloat(specification);
-        
         if (isNaN(numValue) || isNaN(numSpec)) return false;
-        
-        // สมมติว่า tolerance ±0.05 (5%)
         const tolerance = 0.05;
         const upperLimit = numSpec + tolerance;
         const lowerLimit = numSpec - tolerance;
-        
         return numValue > upperLimit || numValue < lowerLimit;
     };
 
     const handleSave = async () => {
-    if (!isEditMode && form.production08_2025 === 'Yes' && !uploadSdrReport) {
+        if (form.production08_2025 === 'Yes' && !hasUploadRequirement()) {
             toast.current?.show({
                 severity: 'warn',
                 summary: 'Warning',
@@ -354,13 +360,22 @@ export default function CreateSDSForm() {
             payloadForm.append('sdrReport', uploadSdrReport);
         }
 
+        if (isEditMode && !sheetId) {
+            toast.current?.show({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'Cannot update SDS because the sheet identity is missing.',
+            });
+            return;
+        }
+
         try {
             const requestUrl = isEditMode ? `/sample-data-sheet/${sheetId}` : '/sample-data-sheet';
             const requestFn = isEditMode ? Put : Post;
             const response = await requestFn({ url: requestUrl, body: payloadForm });
             const responseBody = await response.json().catch(() => null);
             if (!response.ok) {
-                throw new Error(responseBody?.message || 'Unable to create Sample Data Sheet');
+                throw new Error(responseBody?.message || 'Unable to submit Sample Data Sheet');
             }
 
             toast.current?.show({
@@ -391,7 +406,6 @@ export default function CreateSDSForm() {
                 </div>
 
                 <div className="bg-white rounded-lg shadow-lg p-6">
-                    {/* Section 1: Basic Information */}
                     <div className="grid grid-cols-2 gap-6 mb-6">
                         <div>
                             <div className="mb-4">
@@ -415,7 +429,6 @@ export default function CreateSDSForm() {
                         </div>
                     </div>
 
-                    {/* Document Section */}
                     <div className="grid grid-cols-2 gap-6 mb-6">
                         <div>
                             <label className="font-semibold block mb-2">Document : AIS</label>
@@ -455,7 +468,6 @@ export default function CreateSDSForm() {
                         </div>
                     </div>
 
-                    {/* Section 1: 08-2025 Production */}
                     <div className="mb-6 p-4 bg-gray-50 rounded">
                         <div className="flex items-center gap-4">
                             <span className="font-semibold">1. 08-2025 Production :</span>
@@ -478,7 +490,6 @@ export default function CreateSDSForm() {
                         </div>
                     </div>
 
-                    {/* Section 2: SDR Sample Data Report */}
                     <div className="mb-6">
                         <h3 className="font-semibold text-lg mb-3">2. SDR : Sample Data Report</h3>
                         <div className={`border rounded p-4 flex flex-col items-center justify-center ${form.production08_2025 === 'No' ? 'bg-gray-200' : 'bg-gray-50'}`} style={{ minHeight: '300px' }}>
@@ -488,10 +499,10 @@ export default function CreateSDSForm() {
                                         <div className="text-6xl text-gray-400 mb-2">🚫</div>
                                         <div className="text-gray-500 font-semibold">Upload disabled (Production: No)</div>
                                     </>
-                                ) : uploadSdrReportName || uploadSdrReport ? (
+                                ) : uploadSdrReport ? (
                                     <>
                                         <div className="text-6xl text-green-500 mb-2">✓</div>
-                                        <div className="text-gray-700">{uploadSdrReportName || (uploadSdrReport?.name)}</div>
+                                        <div className="text-gray-700">{uploadSdrReport.name}</div>
                                     </>
                                 ) : (
                                     <>
@@ -504,12 +515,9 @@ export default function CreateSDSForm() {
                                 <Button 
                                     label="Download" 
                                     className="p-button-primary" 
-                                    disabled={(!uploadSdrReport || form.production08_2025 === 'No') && !uploadSdrReportName} 
+                                    disabled={!uploadSdrReport || form.production08_2025 === 'No'} 
                                     onClick={() => {
-                                        if (uploadSdrReportName) {
-                                           downloadServerFile(uploadSdrReportName);
-                                        }
-                                        else if (uploadSdrReport) {
+                                        if (uploadSdrReport) {
                                             const fileUrl = URL.createObjectURL(uploadSdrReport);
                                             window.open(fileUrl, '_blank');
                                         }
@@ -536,7 +544,6 @@ export default function CreateSDSForm() {
                         </div>
                     </div>
 
-                    {/* Section 3: SDS(2) Sample Data Sheet (2) */}
                     <div className={`mb-6 ${form.production08_2025 === 'No' ? 'opacity-50 pointer-events-none' : ''}`}>
                         <div className="flex items-center justify-between mb-3">
                             <h3 className="font-semibold text-lg">
@@ -555,7 +562,6 @@ export default function CreateSDSForm() {
                             </div>
                         </div>
 
-                        {/* Scrollable Table */}
                         <div className="overflow-x-auto border rounded">
                             <table className="w-full min-w-[2000px] border-collapse">
                                 <thead className="bg-gray-800 text-white">
@@ -707,15 +713,6 @@ export default function CreateSDSForm() {
                                 rows={5} cols={30}
                             />
                         </div>
-                        {/* <div className="mt-3">
-                            <Button
-                                label="Add Row"
-                                icon="pi pi-plus"
-                                className="p-button-secondary"
-                                onClick={addRow}
-                                disabled={form.production08_2025 === 'No'}
-                            />
-                        </div> */}
                     </div>
 
                     <Footer>

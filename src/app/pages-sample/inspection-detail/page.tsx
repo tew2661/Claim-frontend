@@ -83,8 +83,19 @@ export default function InspectionDetail() {
     const router = useRouter();
     const debounceTimerRef = useRef<number | null>(null);
 
-    const [filters, setFilters] = useState<FilterState>(initialFilters);
-    const [appliedFilters, setAppliedFilters] = useState<FilterState>(initialFilters);
+    const IsSupplier = (process.env.NEXT_MODE == 'supplier');
+    const user = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')!) : undefined
+    const userSupplier = user?.supplier || undefined;
+    const supplierCodeForFilter = IsSupplier && userSupplier ? userSupplier.supplierCode : 'All';
+
+    const [filters, setFilters] = useState<FilterState>({
+        ...initialFilters,
+        supplierCode: supplierCodeForFilter,
+    });
+    const [appliedFilters, setAppliedFilters] = useState<FilterState>({
+        ...initialFilters,
+        supplierCode: supplierCodeForFilter,
+    });
 
     const [data, setData] = useState<InspectionData[]>([]);
     const [first, setFirst] = useState<number>(0);
@@ -629,7 +640,7 @@ export default function InspectionDetail() {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-2 w-[calc(100%-100px)]">
                         <div className="flex flex-col gap-2 w-full">
                             <label>Supplier Name</label>
-                            <Dropdown value={filters.supplierCode} onChange={(e) => handleDropdownFilterChange(e.value, 'supplierCode')} options={supplierOptions} optionLabel="label" className="w-full" />
+                            <Dropdown value={filters.supplierCode} disabled={IsSupplier} onChange={(e) => handleDropdownFilterChange(e.value, 'supplierCode')} options={supplierOptions} optionLabel="label" className="w-full" />
                         </div>
                         <div className="flex flex-col gap-2 w-full">
                             <label>Part No.</label>

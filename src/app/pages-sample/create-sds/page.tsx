@@ -1,15 +1,17 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
 import { Paginator } from "primereact/paginator";
 import { TemplatePaginator } from "@/components/template-pagination";
 import { Button } from "primereact/button";
 import { Dropdown } from "primereact/dropdown";
+import { InputText } from "primereact/inputtext";
 import { Toast } from "primereact/toast";
 import { useRouter } from "next/navigation";
-import moment from "moment";
+import { Get, CreateQueryString } from "@/components/fetch";
+import { Calendar } from "primereact/calendar";
 
 interface CreateSDSData {
     id: number;
@@ -19,51 +21,56 @@ interface CreateSDSData {
     partNo: string;
     partName: string;
     model: string;
-    sdsType: string;
+    sdsType: 'Special' | 'Normal';
     supplierStatus: string;
-    dueDate: string;
+    dueDate?: string | null;
     hasDelay: boolean;
+    sdsCreated: boolean;
 }
+
+interface FilterState {
+    monthYear: Date | null;
+    partNo: string;
+    partName: string;
+    model: string;
+    sdsType: string;
+}
+
+type CalendarValueChange = {
+    value?: Date | null | undefined;
+};
+
+const formatFilterMonthYear = (value: Date | null): string | undefined => {
+    if (!value) return undefined;
+    const month = String(value.getMonth() + 1).padStart(2, '0');
+    const year = value.getFullYear();
+    return `${month}-${year}`;
+};
 
 export default function CreateSDS() {
     const toast = useRef<Toast>(null);
     const router = useRouter();
-
-    const [filters, setFilters] = useState({
-        monthYear: '08-2025',
-        partNo: 'All',
-        partName: 'All',
-        model: 'All',
-        sdsType: 'All'
-    });
 
     const [data, setData] = useState<CreateSDSData[]>([]);
     const [first, setFirst] = useState<number>(0);
     const [rows, setRows] = useState<number>(10);
     const [totalRows, setTotalRows] = useState<number>(0);
 
-    const monthYearOptions = [
-        { label: '08-2025', value: '08-2025' },
-        { label: '07-2025', value: '07-2025' },
-        { label: '06-2025', value: '06-2025' },
-    ];
+    const [filters, setFilters] = useState<FilterState>({
+        monthYear: new Date(),
+        partNo: '',
+        partName: '',
+        model: '',
+        sdsType: 'All'
+    });
 
-    const partNoOptions = [
-        { label: 'All', value: 'All' },
-        { label: '90151-06811', value: '90151-06811' },
-        { label: '90151-06812', value: '90151-06812' },
-        { label: '90151-06813', value: '90151-06813' },
-    ];
+    const filtersRef = useRef(filters);
+    const filterDebounceRef = useRef<number | null>(null);
+    const skipAutoLoadRef = useRef(false);
 
-    const partNameOptions = [
-        { label: 'All', value: 'All' },
-        { label: 'SCREW,FLATHEAD', value: 'SCREW,FLATHEAD' },
-    ];
-
-    const modelOptions = [
-        { label: 'All', value: 'All' },
-        { label: 'XXX', value: 'XXX' },
-    ];
+    useEffect(() => {
+        filtersRef.current = filters;
+    }, [filters]);
 
     const sdsTypeOptions = [
         { label: 'All', value: 'All' },
@@ -71,58 +78,113 @@ export default function CreateSDS() {
         { label: 'Special', value: 'Special' },
     ];
 
-    // mock dataset
-    const allMockData: CreateSDSData[] = [
-        { id: 1, no: 1, monthYear: '08-2025 Special', supplierName: 'AAA CO., LTD.', partNo: '90151-06811', partName: 'SCREW,FLATHEAD', model: 'XXX', sdsType: 'Special', supplierStatus: 'Pending', dueDate: '17-08-2025', hasDelay: true },
-        { id: 2, no: 2, monthYear: '08-2025 Special', supplierName: 'AAA CO., LTD.', partNo: '90151-06812', partName: 'SCREW,FLATHEAD', model: 'XXX', sdsType: 'Special', supplierStatus: 'Pending', dueDate: '21-08-2025', hasDelay: false },
-        { id: 3, no: 3, monthYear: '08-2025', supplierName: 'AAA CO., LTD.', partNo: '90151-06813', partName: 'SCREW,FLATHEAD', model: 'XXX', sdsType: 'Normal', supplierStatus: 'Pending', dueDate: '31-08-2025', hasDelay: false },
-        { id: 4, no: 4, monthYear: '08-2025', supplierName: 'AAA CO., LTD.', partNo: '90151-06814', partName: 'SCREW,FLATHEAD', model: 'XXX', sdsType: 'Normal', supplierStatus: 'Pending', dueDate: '31-08-2025', hasDelay: false },
-        { id: 5, no: 5, monthYear: '08-2025', supplierName: 'AAA CO., LTD.', partNo: '90151-06815', partName: 'SCREW,FLATHEAD', model: 'XXX', sdsType: 'Normal', supplierStatus: 'Pending', dueDate: '31-08-2025', hasDelay: false },
-        { id: 6, no: 6, monthYear: '08-2025', supplierName: 'AAA CO., LTD.', partNo: '90151-06816', partName: 'SCREW,FLATHEAD', model: 'XXX', sdsType: 'Normal', supplierStatus: 'Pending', dueDate: '31-08-2025', hasDelay: false },
-        { id: 7, no: 7, monthYear: '08-2025', supplierName: 'AAA CO., LTD.', partNo: '90151-06817', partName: 'SCREW,FLATHEAD', model: 'XXX', sdsType: 'Normal', supplierStatus: 'Pending', dueDate: '31-08-2025', hasDelay: false },
-        { id: 8, no: 8, monthYear: '08-2025', supplierName: 'AAA CO., LTD.', partNo: '90151-06818', partName: 'SCREW,FLATHEAD', model: 'XXX', sdsType: 'Normal', supplierStatus: 'Pending', dueDate: '31-08-2025', hasDelay: false },
-        { id: 9, no: 9, monthYear: '08-2025', supplierName: 'AAA CO., LTD.', partNo: '90151-06819', partName: 'SCREW,FLATHEAD', model: 'XXX', sdsType: 'Normal', supplierStatus: 'Pending', dueDate: '31-08-2025', hasDelay: false },
-        { id: 10, no: 10, monthYear: '08-2025', supplierName: 'AAA CO., LTD.', partNo: '90151-06820', partName: 'SCREW,FLATHEAD', model: 'XXX', sdsType: 'Normal', supplierStatus: 'Pending', dueDate: '31-08-2025', hasDelay: false },
-    ];
-
-    const GetDatas = async () => {
-        // simulate server-side filter and pagination
-        let filtered = allMockData;
-        if (filters.monthYear && filters.monthYear !== 'All') {
-            filtered = filtered.filter(x => x.monthYear.includes(filters.monthYear));
+    const loadInspectionList = useCallback(async () => {
+        try {
+            const currentFilters = filtersRef.current;
+            const monthYearString = formatFilterMonthYear(currentFilters.monthYear);
+            const params: Record<string, any> = {
+                skip: first,
+                limit: rows,
+            };
+            const trimmedPartNo = currentFilters.partNo?.trim();
+            if (trimmedPartNo) {
+                params.partNo = trimmedPartNo;
+            }
+            const trimmedPartName = currentFilters.partName?.trim();
+            if (trimmedPartName) {
+                params.partName = trimmedPartName;
+            }
+            const trimmedModel = currentFilters.model?.trim();
+            if (trimmedModel) {
+                params.model = trimmedModel;
+            }
+            if (currentFilters.sdsType && currentFilters.sdsType !== 'All') {
+                params.sdsType = currentFilters.sdsType;
+            }
+            if (monthYearString) {
+                params.monthYear = monthYearString;
+            }
+            const query = CreateQueryString(params);
+            const path = `/sample-data-sheet/inspection-details${query ? `?${query}` : ''}`;
+            const response = await Get({ url: path });
+            if (!response.ok) {
+                throw new Error('ไม่สามารถโหลดข้อมูล Create SDS ได้ในขณะนี้');
+            }
+            const payload = await response.json();
+            const body = payload?.data ?? {};
+            const list = (body.items ?? []) as CreateSDSData[];
+            setData(list);
+            setTotalRows(body.total ?? list.length);
+        } catch (error) {
+            toast.current?.show({
+                severity: 'error',
+                summary: 'Error',
+                detail: (error as Error).message || 'ไม่สามารถโหลดข้อมูล Create SDS ได้',
+            });
         }
-        if (filters.partNo && filters.partNo !== 'All') {
-            filtered = filtered.filter(x => x.partNo === filters.partNo);
-        }
-        if (filters.partName && filters.partName !== 'All') {
-            filtered = filtered.filter(x => x.partName === filters.partName);
-        }
-        if (filters.model && filters.model !== 'All') {
-            filtered = filtered.filter(x => x.model === filters.model);
-        }
-        if (filters.sdsType && filters.sdsType !== 'All') {
-            filtered = filtered.filter(x => x.sdsType === filters.sdsType);
-        }
-
-        setTotalRows(filtered.length);
-        const pageData = filtered.slice(first, first + rows);
-        setData(pageData.map((d, i) => ({ ...d, no: first + i + 1 })));
-    };
+    }, [first, rows]);
 
     useEffect(() => {
-        GetDatas();
-    }, [first, rows, filters]);
+        if (skipAutoLoadRef.current) {
+            skipAutoLoadRef.current = false;
+            return;
+        }
+        loadInspectionList();
+    }, [first, rows, loadInspectionList]);
 
-    const handleFilterChange = (value: string | null, field: string) => {
-        setFilters(old => ({ ...old, [field]: value || 'All' }));
+    const clearFilterDebounce = useCallback(() => {
+        if (filterDebounceRef.current) {
+            window.clearTimeout(filterDebounceRef.current);
+            filterDebounceRef.current = null;
+        }
+    }, []);
+
+    useEffect(() => {
+        return () => {
+            clearFilterDebounce();
+        };
+    }, [clearFilterDebounce]);
+
+    const scheduleFilterLoad = useCallback(() => {
+        clearFilterDebounce();
+        filterDebounceRef.current = window.setTimeout(() => {
+            loadInspectionList();
+        }, 1000);
+    }, [clearFilterDebounce, loadInspectionList]);
+
+    const resetPaginationForFilters = () => {
+        skipAutoLoadRef.current = true;
+        setFirst(0);
+    };
+
+    const handleDropdownFilterChange = (value: string | null, field: Exclude<keyof FilterState, 'monthYear' | 'partNo' | 'partName' | 'model'>) => {
+        const nextFilters = { ...filters, [field]: value || 'All' };
+        setFilters(nextFilters);
+        filtersRef.current = nextFilters;
+        setFirst(0);
+    };
+
+    const handleTextFilterChange = (value: string, field: 'partNo' | 'partName' | 'model') => {
+        const nextFilters = { ...filters, [field]: value };
+        setFilters(nextFilters);
+        filtersRef.current = nextFilters;
+        resetPaginationForFilters();
+        scheduleFilterLoad();
+    };
+
+    const handleMonthYearChange = (value: Date | null) => {
+        const nextFilters = { ...filters, monthYear: value };
+        setFilters(nextFilters);
+        filtersRef.current = nextFilters;
+        resetPaginationForFilters();
+        scheduleFilterLoad();
     };
 
     const monthYearBody = (row: CreateSDSData) => {
-        const isSpecial = row.monthYear.includes('Special');
         return (
             <div>
-                <div>{row.monthYear.replace(' Special', '')}</div>
-                {isSpecial && <div className="text-red-500 font-semibold">Special</div>}
+                <div>{row.monthYear}</div>
+                {row.sdsType === 'Special' && <div className="text-red-500 font-semibold">Special</div>}
             </div>
         );
     };
@@ -138,15 +200,14 @@ export default function CreateSDS() {
     const dueDateBody = (row: CreateSDSData) => {
         return (
             <div>
-                <div>{row.dueDate}</div>
+                <div>{row.dueDate || '-'}</div>
                 {row.hasDelay && <div className="text-red-500 font-semibold">Delay</div>}
             </div>
         );
     };
 
     const createSDSBody = (row: CreateSDSData) => {
-        // ถ้า row มี id 3 หรือ 4 จะแสดงเป็น Edit, อื่นๆแสดง Create
-        const isEdit = row.id === 3 || row.id === 4;
+        const isEdit = row.sdsCreated;
         return (
             <Button 
                 label={isEdit ? "Edit" : "Create"} 
@@ -171,50 +232,52 @@ export default function CreateSDS() {
                 <div className="flex gap-2 mx-4 mb-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2 w-full">
                         <div className="flex flex-col gap-2 w-full">
-                            <label>Month-Year : 08-2025</label>
-                            <Dropdown 
-                                value={filters.monthYear} 
-                                onChange={(e) => handleFilterChange(e.value, 'monthYear')} 
-                                options={monthYearOptions} 
-                                optionLabel="label" 
-                                className="w-full" 
+                            <label>Month-Year</label>
+                            <Calendar
+                                value={filters.monthYear}
+                                onChange={(e: CalendarValueChange) => handleMonthYearChange(e.value ?? null)}
+                                view="month"
+                                dateFormat="mm-yy"
+                                showIcon
+                                monthNavigator
+                                yearNavigator
+                                yearRange="2020:2030"
+                                showButtonBar
+                                className="w-full"
                             />
                         </div>
                         <div className="flex flex-col gap-2 w-full">
-                            <label>Part No : All</label>
-                            <Dropdown 
-                                value={filters.partNo} 
-                                onChange={(e) => handleFilterChange(e.value, 'partNo')} 
-                                options={partNoOptions} 
-                                optionLabel="label" 
-                                className="w-full" 
+                            <label>Part No.</label>
+                            <InputText
+                                value={filters.partNo}
+                                onChange={(e) => handleTextFilterChange(e.target.value, 'partNo')}
+                                placeholder="Search Part No."
+                                className="w-full"
                             />
                         </div>
                         <div className="flex flex-col gap-2 w-full">
                             <label>Part Name</label>
-                            <Dropdown 
-                                value={filters.partName} 
-                                onChange={(e) => handleFilterChange(e.value, 'partName')} 
-                                options={partNameOptions} 
-                                optionLabel="label" 
-                                className="w-full" 
+                            <InputText
+                                value={filters.partName}
+                                onChange={(e) => handleTextFilterChange(e.target.value, 'partName')}
+                                placeholder="Search Part Name"
+                                className="w-full"
                             />
                         </div>
                         <div className="flex flex-col gap-2 w-full">
                             <label>Model</label>
-                            <Dropdown 
-                                value={filters.model} 
-                                onChange={(e) => handleFilterChange(e.value, 'model')} 
-                                options={modelOptions} 
-                                optionLabel="label" 
-                                className="w-full" 
+                            <InputText
+                                value={filters.model}
+                                onChange={(e) => handleTextFilterChange(e.target.value, 'model')}
+                                placeholder="Search Model"
+                                className="w-full"
                             />
                         </div>
                         <div className="flex flex-col gap-2 w-full">
                             <label>SDS Type : All</label>
                             <Dropdown 
                                 value={filters.sdsType} 
-                                onChange={(e) => handleFilterChange(e.value, 'sdsType')} 
+                                onChange={(e) => handleDropdownFilterChange(e.value, 'sdsType')} 
                                 options={sdsTypeOptions} 
                                 optionLabel="label" 
                                 className="w-full" 
