@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "primereact/button";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
@@ -12,14 +12,21 @@ import { getSocket } from "@/components/socket/socket";
 import { Dropdown, DropdownChangeEvent } from "primereact/dropdown";
 import { Socket } from "socket.io-client";
 import ReportHistoryModal from "./report-history-modal";
+import { CreateQueryString, Get } from "@/components/fetch";
+import { Calendar } from "primereact/calendar";
+import { InputText } from "primereact/inputtext";
 
 interface FilterSDSApprove {
-    monthYear: string;
-    supplierName: string;
+    monthYear: Date | null;
+    supplierCode: string;
     partNo: string;
     sdsType: string;
     status: string;
 }
+
+type CalendarValueChange = {
+    value?: Date | null | undefined;
+};
 
 interface DataSDS {
     id: number,
@@ -41,6 +48,7 @@ export function SDSApprovalTable(props: { checker: 1 | 2 | 3 }) {
     const [sdsList, setSdsList] = useState<DataSDS[]>([])
     const [first, setFirst] = useState<number>(0);
     const [rows, setRows] = useState<number>(10);
+    const debounceTimerRef = useRef<number | null>(null);
     const [totalRows, setTotalRows] = useState<number>(0);
     const router = useRouter()
 
@@ -48,15 +56,57 @@ export function SDSApprovalTable(props: { checker: 1 | 2 | 3 }) {
     const [currentChecker, setCurrentChecker] = useState<1 | 2 | 3>(props.checker);
 
     const [filters, setFilters] = useState<FilterSDSApprove>({
-        monthYear: "All",
-        supplierName: "All",
-        partNo: "All",
+        monthYear: new Date(),
+        supplierCode: "All",
+        partNo: "",
         sdsType: "All",
         status: "All",
     });
 
-    const handleInputChange = (value: string, field: string) => {
-        setFilters({ ...filters, [field]: value });
+    const [appliedFilters, setAppliedFilters] = useState<FilterSDSApprove>({
+        monthYear: new Date(),
+        supplierCode: "All",
+        partNo: "",
+        sdsType: "All",
+        status: "All",
+    });
+
+    const sanitizeFilters = (rawFilters: FilterSDSApprove) => ({
+        ...rawFilters,
+        partNo: rawFilters.partNo.trim(),
+    });
+
+    const cancelPendingFilterApply = () => {
+        if (debounceTimerRef.current) {
+            window.clearTimeout(debounceTimerRef.current);
+            debounceTimerRef.current = null;
+        }
+    };
+
+    const applyFilters = (nextFilters: FilterSDSApprove) => {
+        cancelPendingFilterApply();
+        setAppliedFilters(sanitizeFilters(nextFilters));
+        setFirst(0);
+    };
+
+    const scheduleFilterApply = (nextFilters: FilterSDSApprove) => {
+        cancelPendingFilterApply();
+        debounceTimerRef.current = window.setTimeout(() => {
+            applyFilters(nextFilters);
+        }, 1000);
+    };
+
+    const handleInputChange = (value: string | null, field: keyof FilterSDSApprove) => {
+        const normalized = value ?? 'All';
+        setFilters((prev) => ({ ...prev, [field]: normalized }));
+        setAppliedFilters((prev) => ({ ...prev, [field]: normalized }));
+        setFirst(0);
+    };
+
+    const handleInputFilterChange = (value: string, field: string) => {
+        const nextFilters = { ...filters, [field]: value };
+        setFilters(nextFilters);
+        scheduleFilterApply(nextFilters);
     };
 
     const actionBodyTemplate = (rowData: DataSDS) => {
@@ -66,7 +116,7 @@ export function SDSApprovalTable(props: { checker: 1 | 2 | 3 }) {
                     label="View"
                     className="p-button-primary"
                     outlined
-                    onClick={() => router.push(`sds-approval/detail/checker${currentChecker}/${rowData.id}`)}
+                    onClick={() => router.push(`/pages-sample/sds-approval/detail/checker${currentChecker}/${rowData.id}`)}
                 />
             );
         } else {
@@ -85,12 +135,10 @@ export function SDSApprovalTable(props: { checker: 1 | 2 | 3 }) {
     const statusBodyTemplate = (rowData: DataSDS) => {
         const getStatusColor = (status: string) => {
             switch (status) {
-                case 'Approved':
-                case 'Completed':
+                case 'Processed':
                     return 'text-green-600';
                 case 'Rejected':
                     return 'text-red-600';
-                case 'Wait for JATH Approve':
                 case 'Pending':
                     return 'text-orange-500';
                 default:
@@ -105,108 +153,109 @@ export function SDSApprovalTable(props: { checker: 1 | 2 | 3 }) {
         );
     };
 
-    // Mock data - ในการใช้งานจริงจะเรียก API
-    const GetDatas = async () => {
-        // Mock data based on checker level
-        const mockData = [
-            {
-                id: 1,
-                no: 1,
-                monthYear: '08-2025 Special',
-                supplierCode: 'AAA',
-                supplierName: 'AAA CO. LTD',
-                partNo: '90151-06811',
-                partName: 'SCREWFLATHEAD',
-                model: 'XXX',
-                sdsType: 'Special',
-                status: 'Wait for JATH Approve',
-                dueDate: '17-08-2025',
-                action: currentChecker === 1
-            },
-            {
-                id: 2,
-                no: 2,
-                monthYear: '08-2025 Special',
-                supplierCode: 'BBB',
-                supplierName: 'BBB CO. LTD',
-                partNo: '90151-06811',
-                partName: 'SCREWFLATHEAD',
-                model: 'XXX',
-                sdsType: 'Special',
-                status: 'Wait for JATH Approve',
-                dueDate: '21-08-2025',
-                action: currentChecker === 1
-            },
-            {
-                id: 3,
-                no: 3,
-                monthYear: '08-2025',
-                supplierCode: 'CCC',
-                supplierName: 'CCC CO. LTD',
-                partNo: '90151-06811',
-                partName: 'SCREWFLATHEAD',
-                model: 'XXX',
-                sdsType: 'Normal',
-                status: 'Wait for JATH Approve',
-                dueDate: '31-08-2025',
-                action: currentChecker === 1
-            },
-            {
-                id: 4,
-                no: 4,
-                monthYear: '08-2025',
-                supplierCode: 'DDD',
-                supplierName: 'DDD CO. LTD',
-                partNo: '90151-06811',
-                partName: 'SCREWFLATHEAD',
-                model: 'XXX',
-                sdsType: 'Normal',
-                status: 'Wait for JATH Approve',
-                dueDate: '31-08-2025',
-                action: currentChecker === 2
-            },
-            {
-                id: 5,
-                no: 5,
-                monthYear: '08-2025',
-                supplierCode: 'EEE',
-                supplierName: 'EEE CO. LTD',
-                partNo: '90151-06811',
-                partName: 'SCREWFLATHEAD',
-                model: 'XXX',
-                sdsType: 'Normal',
-                status: 'Wait for JATH Approve',
-                dueDate: '31-08-2025',
-                action: currentChecker === 2
-            },
-        ];
+    const filtersRef = useRef(filters);
+    const skipAutoLoadRef = useRef(false);
+    const filterDebounceRef = useRef<number | null>(null);
 
-        setSdsList(mockData);
-        setTotalRows(mockData.length);
+    const clearFilterDebounce = useCallback(() => {
+        if (filterDebounceRef.current) {
+            window.clearTimeout(filterDebounceRef.current);
+            filterDebounceRef.current = null;
+        }
+    }, []);
+
+    const loadInspectionDetails = useCallback(async () => {
+        try {
+            const params: Record<string, any> = {
+                skip: first,
+                limit: rows,
+            };
+
+            if (filters.monthYear) {
+                params.monthYear = filters.monthYear ? moment(filters.monthYear).format('MM-YYYY') : null;
+            }
+            if (filters.partNo && filters.partNo.toLowerCase() !== 'all') {
+                params.partNo = filters.partNo;
+            }
+            if (filters.sdsType && filters.sdsType.toLowerCase() !== 'all') {
+                params.sdsType = filters.sdsType;
+            }
+            if (filters.supplierCode && filters.supplierCode.toLowerCase() !== 'all') {
+                params.supplierCode = filters.supplierCode;
+            }
+            if (filters.status && filters.status.toLowerCase() !== 'all') {
+                params.status = filters.status;
+            }
+
+            const query = CreateQueryString(params);
+            const path = `/sample-data-sheet/inspection-details${query ? `?${query}` : ''}`;
+            const response = await Get({ url: path });
+
+            if (!response.ok) {
+                throw new Error('ไม่สามารถโหลดข้อมูล SDS Approval ได้ในขณะนี้');
+            }
+
+            const payload = await response.json();
+            const body = payload?.data ?? {};
+            const items = (body.items ?? []) as Array<{
+                id: number;
+                no: number;
+                monthYear: string;
+                supplierCode?: string;
+                supplierName: string;
+                partNo: string;
+                partName: string;
+                model: string;
+                sdsType: 'Special' | 'Normal';
+                supplierStatus: string;
+                dueDate?: string | null;
+                hasDelay: boolean;
+                sdsCreated: boolean;
+            }>;
+
+            const mapped = items.map((item) => ({
+                id: item.id,
+                no: item.no,
+                monthYear: item.monthYear,
+                supplierCode: item.supplierCode ?? '',
+                supplierName: item.supplierName,
+                partNo: item.partNo,
+                partName: item.partName,
+                model: item.model,
+                sdsType: item.sdsType,
+                status: item.supplierStatus,
+                dueDate: item.dueDate ?? '-',
+                action: item.sdsCreated,
+            }));
+
+            setSdsList(mapped);
+            setTotalRows(body.total ?? mapped.length);
+        } catch (error) {
+            toast.current?.show({
+                severity: 'error',
+                summary: 'Error',
+                detail: (error as Error).message || 'ไม่สามารถโหลดข้อมูล SDS Approval ได้',
+            });
+        }
+    }, [appliedFilters, first, rows]);
+
+    const resetPaginationForFilters = () => {
+        skipAutoLoadRef.current = true;
+        setFirst(0);
+    };
+
+    const handleMonthYearChange = (value: Date | null) => {
+        const nextFilters = { ...filters, monthYear: value };
+        setFilters(nextFilters);
+        setAppliedFilters(nextFilters);
+        filtersRef.current = nextFilters;
+        resetPaginationForFilters();
+        // scheduleFilterLoad();
     };
 
     const socketRef = useRef<Socket | null>(null);
-    const SocketConnect = () => {
-        if (!socketRef.current) {
-            socketRef.current = getSocket();
-        }
 
-        const socket = socketRef.current;
-
-        socket.on("sds-update", () => GetDatas());
-
-        return () => {
-            socket.off("sds-update");
-        };
-    };
-
-    const [supplierList] = useState([
-        { label: 'AAA CO. LTD', value: 'AAA CO. LTD' },
-        { label: 'BBB CO. LTD', value: 'BBB CO. LTD' },
-        { label: 'CCC CO. LTD', value: 'CCC CO. LTD' },
-        { label: 'DDD CO. LTD', value: 'DDD CO. LTD' },
-        { label: 'EEE CO. LTD', value: 'EEE CO. LTD' },
-    ]);
+    const [supplierList, setSupplierOptions] = useState<{ label: string; value: string; }[]>([]);
 
     // History modal states
     const [visibleHistory, setVisibleHistory] = useState<boolean>(false);
@@ -266,15 +315,58 @@ export function SDSApprovalTable(props: { checker: 1 | 2 | 3 }) {
         URL.revokeObjectURL(url);
     };
 
-    useEffect(() => {
-        setCurrentChecker(props.checker);
-        GetDatas();
-        SocketConnect();
-    }, [props.checker])
+    const loadSupplierOptions = async () => {
+        try {
+            const res = await Get({ url: '/inspection-detail/suppliers' });
+            if (!res.ok) {
+                const err: any = await res.json().catch(() => ({}));
+                throw new Error(err.message || 'Failed to load suppliers');
+            }
+
+            const payload = await res.json();
+            const data: any[] = payload?.data || [];
+            setSupplierOptions([
+                { label: 'All', value: 'All' },
+                ...data.map((item) => ({
+                    label: `${item.supplierCode} - ${item.supplierName}`,
+                    value: item.supplierCode,
+                    supplierName: item.supplierName,
+                })),
+            ]);
+        } catch (error: any) {
+            console.error('Load supplier list failed', error);
+            toast.current?.show({
+                severity: 'error',
+                summary: 'Error',
+                detail: error.message || 'Cannot load supplier codes',
+            });
+        }
+    };
 
     useEffect(() => {
-        GetDatas()
-    }, [first, rows])
+        loadSupplierOptions();
+    }, []);
+
+    useEffect(() => {
+        setCurrentChecker(props.checker);
+    }, [props.checker]);
+
+    useEffect(() => {
+        loadInspectionDetails();
+    }, [loadInspectionDetails]);
+
+    useEffect(() => {
+        if (!socketRef.current) {
+            socketRef.current = getSocket();
+        }
+
+        const socket = socketRef.current;
+        socket.on("sds-update", loadInspectionDetails);
+
+        return () => {
+            socket.off("sds-update", loadInspectionDetails);
+        };
+    }, [loadInspectionDetails]);
 
     return (
         <div className="flex justify-center pt-6 px-6">
@@ -294,39 +386,33 @@ export function SDSApprovalTable(props: { checker: 1 | 2 | 3 }) {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2 w-[calc(100%-100px)]">
                         <div className="flex flex-col gap-2 w-full">
                             <label htmlFor="monthYear">Month-Year</label>
-                            <Dropdown
+                            <Calendar
                                 value={filters.monthYear}
-                                onChange={(e: DropdownChangeEvent) => handleInputChange(e.value, "monthYear")}
-                                options={[
-                                    { label: 'All', value: 'All' },
-                                    { label: '08-2025', value: '08-2025' },
-                                ]}
-                                optionLabel="label"
+                                onChange={(e: CalendarValueChange) => handleMonthYearChange(e.value ?? null)}
+                                view="month"
+                                dateFormat="mm-yy"
+                                showIcon
+                                monthNavigator
+                                yearNavigator
+                                yearRange="2020:2030"
+                                showButtonBar
                                 className="w-full"
                             />
                         </div>
                         <div className="flex flex-col gap-2 w-full">
-                            <label htmlFor="supplierName">Supplier Name</label>
+                            <label htmlFor="supplierName">Supplier</label>
                             <Dropdown
-                                value={filters.supplierName}
-                                onChange={(e: DropdownChangeEvent) => handleInputChange(e.value, "supplierName")}
-                                options={[{ label: 'All', value: 'All' }, ...supplierList]}
+                                value={filters.supplierCode}
+                                onChange={(e: DropdownChangeEvent) => handleInputChange(e.value, "supplierCode")}
+                                options={supplierList}
                                 optionLabel="label"
                                 className="w-full"
                             />
                         </div>
+                       
                         <div className="flex flex-col gap-2 w-full">
-                            <label htmlFor="partNo">Part No.</label>
-                            <Dropdown
-                                value={filters.partNo}
-                                onChange={(e: DropdownChangeEvent) => handleInputChange(e.value, "partNo")}
-                                options={[
-                                    { label: 'All', value: 'All' },
-                                    { label: '90151-06811', value: '90151-06811' },
-                                ]}
-                                optionLabel="label"
-                                className="w-full"
-                            />
+                            <label>Part No</label>
+                            <InputText value={filters.partNo} onChange={(e) => handleInputFilterChange(e.target.value, 'partNo')} placeholder="Enter Part No" className="w-full" />
                         </div>
                         <div className="flex flex-col gap-2 w-full">
                             <label htmlFor="sdsType">SDS Type</label>
@@ -350,7 +436,7 @@ export function SDSApprovalTable(props: { checker: 1 | 2 | 3 }) {
                                 options={[
                                     { label: 'All', value: 'All' },
                                     { label: 'Pending', value: 'Pending' },
-                                    { label: 'Approved', value: 'Approved' },
+                                    { label: 'Processed', value: 'Processed' },
                                     { label: 'Rejected', value: 'Rejected' },
                                 ]}
                                 optionLabel="label"
@@ -361,7 +447,7 @@ export function SDSApprovalTable(props: { checker: 1 | 2 | 3 }) {
                     <div className="w-[100px]">
                         <div className="flex flex-col gap-2">
                             <label>&nbsp;</label>
-                            <Button label="Search" icon="pi pi-search" onClick={() => GetDatas()} />
+                            <Button label="Search" icon="pi pi-search" onClick={() => loadInspectionDetails()} />
                         </div>
                     </div>
                 </div>
