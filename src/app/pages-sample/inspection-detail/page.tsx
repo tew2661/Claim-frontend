@@ -420,10 +420,11 @@ export default function InspectionDetail() {
 
     const qtyOptions = [
         { label: 'All', value: 'All' },
-        { label: '30', value: 30 },
-        { label: '50', value: 50 },
-        { label: '100', value: 100 }
-    ];
+        ...Array.from({ length: 30 }, (_, idx) => ({
+            label: `${idx + 1}`,
+            value: idx + 1,
+        }))
+    ]
 
     const cpCpkOptions = [
         { label: 'All', value: 'All' },

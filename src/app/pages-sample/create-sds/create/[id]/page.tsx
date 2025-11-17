@@ -32,49 +32,59 @@ interface SdrRow {
     cpk: string;
 }
 
-const createBlankSamples = (): SdrSample[] => (
-    Array.from({ length: 5 }, (_, index) => ({ no: index + 1, value: '' }))
-);
+const DEFAULT_SAMPLE_QTY = 5;
+
+const createSampleArray = (qty: number, existingSamples: any[] = []): SdrSample[] => {
+    const normalizedQty = Math.max(1, qty);
+    return Array.from({ length: normalizedQty }, (_, index) => {
+        const sample = existingSamples[index];
+        return {
+            no: Number(sample?.no ?? index + 1),
+            value: sample?.value ?? '',
+        };
+    });
+};
 
 const mapInspectionItemsToSdrRows = (items: any[]): SdrRow[] => (
-    items.map((item, index) => ({
-        no: Number(item.no ?? index + 1),
-        measuringItem: item.measuringItem || '',
-        specification: item.specification || '',
-        rank: item.rank || '',
-        inspectionInstrument: item.inspectionInstrument || '',
-        remark: item.remark || '',
-        sampleQty: 3,
-        samples: createBlankSamples(),
-        judgement: '',
-        xBar: '',
-        r: '',
-        cp: '',
-        cpk: '',
-    }))
+    items.map((item, index) => {
+        const sampleQty = Number(item.sampleQty) || DEFAULT_SAMPLE_QTY;
+        return {
+            no: Number(item.no ?? index + 1),
+            measuringItem: item.measuringItem || '',
+            specification: item.specification || '',
+            rank: item.rank || '',
+            inspectionInstrument: item.inspectionInstrument || '',
+            remark: item.remark || '',
+            sampleQty,
+            samples: createSampleArray(sampleQty, item.samples),
+            judgement: '',
+            xBar: '',
+            r: '',
+            cp: '',
+            cpk: '',
+        };
+    })
 );
 
 const normalizeSdrRows = (rows: any[]): SdrRow[] => (
-    rows.map((row: any, index: number) => ({
-        no: Number(row.no ?? index + 1),
-        measuringItem: row.measuringItem || '',
-        specification: row.specification || '',
-        rank: row.rank || '',
-        inspectionInstrument: row.inspectionInstrument || '',
-        remark: row.remark || '',
-        sampleQty: Number(row.sampleQty) || 3,
-        samples: Array.isArray(row.samples) && row.samples.length
-            ? row.samples.map((sample: any, sampleIndex: number) => ({
-                no: Number(sample.no ?? sampleIndex + 1),
-                value: sample.value ?? '',
-            }))
-            : createBlankSamples(),
-        judgement: row.judgement || '',
-        xBar: row.xBar || '',
-        r: row.r || '',
-        cp: row.cp || '',
-        cpk: row.cpk || '',
-    }))
+    rows.map((row: any, index: number) => {
+        const sampleQty = Math.max(DEFAULT_SAMPLE_QTY, Number(row.sampleQty) || DEFAULT_SAMPLE_QTY);
+        return {
+            no: Number(row.no ?? index + 1),
+            measuringItem: row.measuringItem || '',
+            specification: row.specification || '',
+            rank: row.rank || '',
+            inspectionInstrument: row.inspectionInstrument || '',
+            remark: row.remark || '',
+            sampleQty,
+            samples: createSampleArray(sampleQty, row.samples),
+            judgement: row.judgement || '',
+            xBar: row.xBar || '',
+            r: row.r || '',
+            cp: row.cp || '',
+            cpk: row.cpk || '',
+        };
+    })
 );
 
 export default function CreateSDSForm() {
@@ -91,7 +101,7 @@ export default function CreateSDSForm() {
         aisDocument: null as File | null,
         sdrDocument: null as File | null,
         production08_2025: 'Yes',
-        sdrDate: null as Date | null,
+        sdrDate: new Date() as Date | null,
         remark: '',
         sdrData: [] as SdrRow[],
         inspectionDetailId: '' as string,
@@ -257,6 +267,7 @@ export default function CreateSDSForm() {
     };
 
     const addRow = () => {
+        const defaultSampleQty = DEFAULT_SAMPLE_QTY;
         const newRow = {
             no: form.sdrData.length + 1,
             measuringItem: '',
@@ -264,14 +275,8 @@ export default function CreateSDSForm() {
             rank: '',
             inspectionInstrument: '',
             remark: '',
-            sampleQty: 3,
-            samples: [
-                { no: 1, value: '' },
-                { no: 2, value: '' },
-                { no: 3, value: '' },
-                { no: 4, value: '' },
-                { no: 5, value: '' }
-            ],
+            sampleQty: defaultSampleQty,
+            samples: createSampleArray(defaultSampleQty),
             judgement: '',
             xBar: '',
             r: '',
@@ -283,7 +288,23 @@ export default function CreateSDSForm() {
 
     const updateSdrData = (index: number, field: string, value: any) => {
         const newData = [...form.sdrData];
-        (newData[index] as any)[field] = value;
+        const targetRow = newData[index];
+        if (!targetRow) return;
+
+        if (field === 'sampleQty') {
+            const qty = Math.max(1, Number(value) || DEFAULT_SAMPLE_QTY);
+            newData[index] = {
+                ...targetRow,
+                sampleQty: qty,
+                samples: createSampleArray(qty, targetRow.samples),
+            };
+        } else {
+            newData[index] = {
+                ...targetRow,
+                [field]: value,
+            };
+        }
+
         setForm(prev => ({ ...prev, sdrData: newData }));
     };
 
@@ -381,6 +402,12 @@ export default function CreateSDSForm() {
             });
         }
     };
+
+    const sampleColumnCount = Math.max(
+        DEFAULT_SAMPLE_QTY,
+        form.sdrData.reduce((max, row) => Math.max(max, row.sampleQty), DEFAULT_SAMPLE_QTY),
+    );
+    const sampleColumns = Array.from({ length: sampleColumnCount }, (_, index) => index + 1);
 
     return (
         <div className="flex justify-center pt-6 px-6 pb-6">
@@ -566,11 +593,15 @@ export default function CreateSDSForm() {
                                         <th className="border p-2 text-center" style={{ minWidth: '80px' }}>Rank</th>
                                         <th className="border p-2 text-center" style={{ minWidth: '120px' }}>Inspection Instrument</th>
                                         <th className="border p-2 text-center" style={{ minWidth: '100px' }}>Sample Qty</th>
-                                        <th className="border p-2 text-center" style={{ minWidth: '80px' }}>1</th>
-                                        <th className="border p-2 text-center" style={{ minWidth: '80px' }}>2</th>
-                                        <th className="border p-2 text-center" style={{ minWidth: '80px' }}>Sample Data No.<br/>3</th>
-                                        <th className="border p-2 text-center" style={{ minWidth: '80px' }}>4</th>
-                                        <th className="border p-2 text-center" style={{ minWidth: '80px' }}>5</th>
+                                        {sampleColumns.map((columnIndex) => (
+                                            <th
+                                                key={`sample-header-${columnIndex}`}
+                                                className="border p-2 text-center"
+                                                style={{ minWidth: '80px' }}
+                                            >
+                                                {columnIndex}
+                                            </th>
+                                        ))}
                                         <th className="border p-2 text-center" style={{ minWidth: '100px' }}>JUDGEMENT<br/>SUPP</th>
                                         <th className="border p-2 text-center" style={{ minWidth: '80px' }}>X-BAR</th>
                                         <th className="border p-2 text-center" style={{ minWidth: '80px' }}>R</th>
@@ -619,27 +650,34 @@ export default function CreateSDSForm() {
                                             <td className="border p-2 text-center">
                                                 <Dropdown
                                                     value={row.sampleQty}
-                                                    options={[
-                                                        { label: '3', value: 3 },
-                                                        { label: '5', value: 5 },
-                                                        { label: '10', value: 10 }
-                                                    ]}
+                                                    options={Array.from({ length: 30 }, (_, index) => ({
+                                                        label: `${index + 1}`,
+                                                        value: index + 1,
+                                                    }))}
                                                     onChange={(e) => updateSdrData(rowIndex, 'sampleQty', e.value)}
                                                     className="w-full"
                                                     disabled={form.production08_2025 === 'No'}
                                                 />
                                             </td>
-                                            {row.samples.map((sample: SdrSample, sampleIndex: number) => {
-                                                const isRed = isOutOfTolerance(sample.value, row.specification);
+                                            {sampleColumns.map((columnIndex) => {
+                                                const sampleIndex = columnIndex - 1;
+                                                const sample = row.samples[sampleIndex];
+                                                const showInput = columnIndex <= row.sampleQty;
+                                                const sampleValue = sample?.value ?? '';
+                                                const isRed = showInput && isOutOfTolerance(sampleValue, row.specification);
                                                 return (
-                                                    <td key={sampleIndex} className="border p-2">
-                                                        <InputText 
-                                                            value={sample.value}
-                                                            onChange={(e) => updateSampleValue(rowIndex, sampleIndex, e.target.value)}
-                                                            className="w-full"
-                                                            style={isRed ? { backgroundColor: '#fee', color: 'red', fontWeight: 'bold' } : {}}
-                                                            disabled={form.production08_2025 === 'No'}
-                                                        />
+                                                    <td key={`row-${rowIndex}-sample-${columnIndex}`} className="border p-2">
+                                                        {showInput ? (
+                                                            <InputText
+                                                                value={sampleValue}
+                                                                onChange={(e) => updateSampleValue(rowIndex, sampleIndex, e.target.value)}
+                                                                className="w-full"
+                                                                style={isRed ? { backgroundColor: '#fee', color: 'red', fontWeight: 'bold' } : undefined}
+                                                                disabled={form.production08_2025 === 'No'}
+                                                            />
+                                                        ) : (
+                                                            <div className="h-full w-full flex items-center justify-center text-gray-400 text-sm">-</div>
+                                                        )}
                                                     </td>
                                                 );
                                             })}

@@ -625,11 +625,10 @@ export default function SampleDataSheetForm({ mode, inspectionId }: SampleDataSh
                                             <td className="border p-2 text-center">
                                                 <Dropdown
                                                     value={row.sampleQty}
-                                                    options={[
-                                                        { label: '3', value: 3 },
-                                                        { label: '5', value: 5 },
-                                                        { label: '10', value: 10 }
-                                                    ]}
+                                                    options={Array.from({ length: 30 }, (_, index) => ({
+                                                        label: `${index + 1}`,
+                                                        value: index + 1,
+                                                    }))}
                                                     onChange={(e) => updateSdrData(rowIndex, 'sampleQty', e.value)}
                                                     className="w-full"
                                                     disabled={form.production08_2025 === 'No'}
