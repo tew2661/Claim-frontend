@@ -18,13 +18,77 @@ export default function Page() {
     const [sdrFileName, setSdrFileName] = useState('');
 
     const [form, setForm] = useState({
+        id: 0,
         supplier: '',
         partNo: '',
         model: '',
         partName: '',
         aisDocument: null as File | null,
         sdrDocument: null as File | null,
+        sdrReportFile: null as string | null,
+        sdsReportFile: null as string | null,
+        actionSdrApproval: '', // 'approve' | 'reject' | ''
     });
+
+    const downloadDocument = async (fileName?: string) => {
+        if (!fileName) {
+            toast.current?.show({ severity: 'warn', summary: 'Missing file', detail: 'No document available' });
+            return;
+        }
+        try {
+            const res = await Get({ url: `/inspection-detail/files/${fileName}` });
+            // const res = await Get({ url: `/sample-data-sheet/by-inspection/1` });
+            if (!res.ok) {
+                const errText = await res.text().catch(() => 'Failed to download file');
+                throw new Error(errText || 'Failed to download file');
+            }
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            return url;
+        } catch (error: any) {
+            console.error('Document download failed', error);
+            toast.current?.show({
+                severity: 'error',
+                summary: 'Error',
+                detail: error?.message || 'Unable to download document',
+            });
+            return null;
+        }
+    };
+
+    const downloadDocumentSDS = async (id?: number) => {
+        try {
+            const res = await Get({ url: `/sample-data-sheet/by-inspection/pdf/${id}` });
+            // const res = await Get({ url: `/sample-data-sheet/by-inspection/1` });
+            if (!res.ok) {
+                const errText = await res.text().catch(() => 'Failed to download file');
+                throw new Error(errText || 'Failed to download file');
+            }
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            return url;
+        } catch (error: any) {
+            console.error('Document download failed', error);
+            toast.current?.show({
+                severity: 'error',
+                summary: 'Error',
+                detail: error?.message || 'Unable to download document',
+            });
+            return null;
+        }
+    };
+
+    const appendPdfViewerParams = (url?: string | null) => {
+        if (!url) {
+            return null;
+        }
+
+        const params = 'toolbar=1&navpanes=0&scrollbar=0';
+        const [baseUrl, anchor] = url.split('#');
+
+        const mergedAnchor = anchor ? `${anchor}&${params}` : params;
+        return `${baseUrl}#${mergedAnchor}`;
+    };
 
     useEffect(() => {
         if (!inspectionId) {
@@ -71,12 +135,16 @@ export default function Page() {
                 const sheet = sheetPayload?.data;
                 if (sheet) {
                     setSheetId(sheet.id);
-                    setForm((prev) => ({
-                        ...prev,
-                        supplier: sheet.supplier || prev.supplier,
-                        partNo: sheet.partNo || prev.partNo,
-                        partName: sheet.partName || prev.partName,
-                        model: sheet.model || prev.model,
+                    const linkFile = await downloadDocument(sheet.sdrReportFile);
+                    const sdsLinkFile = await downloadDocumentSDS(sheet.inspectionDetailId);
+                    setForm((prevForm) => ({
+                        ...prevForm,
+                        supplier: sheet.supplier || prevForm.supplier,
+                        partNo: sheet.partNo || prevForm.partNo,
+                        partName: sheet.partName || prevForm.partName,
+                        model: sheet.model || prevForm.model,
+                        sdrReportFile: sheet.sdrReportFile && linkFile ? linkFile : null,
+                        sdsReportFile: sheet.sdrFile ? sdsLinkFile : null,
                     }));
                     setAisFileName(sheet.aisFile || '');
                     setSdrFileName(sheet.sdrFile || '');
@@ -203,6 +271,61 @@ export default function Page() {
 
                             </div>
                         </div>
+                    </div>
+                    <div className="w-full mt-2 border-solid border-gray-200 p-4"
+                        style={{
+                            borderRadius: '5px',
+                            backgroundColor: form.actionSdrApproval == 'approve' ? '#f0fff0' : form.actionSdrApproval == 'reject' ? '#fff0f0' : 'transparent',
+                            borderColor: form.actionSdrApproval == 'approve' ? 'green' : form.actionSdrApproval == 'reject' ? 'red' : '#e5e7eb',
+                        }}
+                    >
+                        <div className="flex justify-between items-center mb-4">
+                            <label className="font-semibold block mb-2">SDR (Sample Data Report)</label>
+                            <div className="flex items-center">
+                                <label
+                                    className="mr-2"
+                                    style={{
+                                        fontWeight: 'bold',
+                                        color: form.actionSdrApproval == 'approve' ? 'green' : form.actionSdrApproval == 'reject' ? 'red' : '#e5e7eb',
+                                    }}
+                                >{form.actionSdrApproval == 'approve' ? 'Approve' : (form.actionSdrApproval == 'reject' ? 'Reject' : '')}</label>
+                                <Button
+                                    className="p-button-success ml-2"
+                                    icon="pi pi-check"
+                                    onClick={() => {
+                                        setForm((prev) => ({ ...prev, actionSdrApproval: 'approve' }));
+                                    }}
+                                />
+                                <Button
+                                    icon="pi pi-times"
+                                    className="p-button-danger ml-2"
+                                    onClick={() => {
+                                        setForm((prev) => ({ ...prev, actionSdrApproval: 'reject' }));
+                                    }}
+                                />
+                            </div>
+                        </div>
+                        <div className="w-full">
+                            {
+                                form.sdrReportFile ? (
+                                    <iframe
+                                        src={appendPdfViewerParams(form.sdrReportFile) ?? ''}
+                                        style={{ width: '100%', height: '600px', border: 'none' }}
+                                        loading="lazy"
+                                    ></iframe>
+                                )
+                                    : (<p>No SDR document available.</p>)
+                            }
+
+                        </div>
+                    </div>
+                    <div className="w-full mt-2 border-solid border-gray-200 p-4" style={{ borderRadius: '5px' }}>
+                        <label className="font-semibold block mb-2">SDS (Sample Data Sheet)</label>
+                        <iframe
+                            src={appendPdfViewerParams(form.sdsReportFile) ?? ''}
+                            style={{ width: '100%', height: '600px', border: 'none' }}
+                            loading="lazy"
+                        ></iframe>
                     </div>
                 </div>
             </div>
