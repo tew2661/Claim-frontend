@@ -28,6 +28,7 @@ export default function Page() {
         sdrReportFile: null as string | null,
         sdsReportFile: null as string | null,
         actionSdrApproval: '', // 'approve' | 'reject' | ''
+        actionSdsApproval: '', // 'approve' | 'reject' | ''
     });
 
     const downloadDocument = async (fileName?: string) => {
@@ -202,6 +203,9 @@ export default function Page() {
         }
     };
 
+    const sdrPdfUrl = appendPdfViewerParams(form.sdrReportFile);
+    const sdsPdfUrl = appendPdfViewerParams(form.sdsReportFile);
+
     return (
         <div className="flex justify-center pt-6 px-6 pb-6">
             <Toast ref={toast} />
@@ -307,25 +311,61 @@ export default function Page() {
                         </div>
                         <div className="w-full">
                             {
-                                form.sdrReportFile ? (
+                                sdrPdfUrl ? (
                                     <iframe
-                                        src={appendPdfViewerParams(form.sdrReportFile) ?? ''}
+                                        src={sdrPdfUrl}
                                         style={{ width: '100%', height: '600px', border: 'none' }}
                                         loading="lazy"
                                     ></iframe>
-                                )
-                                    : (<p>No SDR document available.</p>)
+                                ) : (<p>No SDR document available.</p>)
                             }
 
                         </div>
                     </div>
-                    <div className="w-full mt-2 border-solid border-gray-200 p-4" style={{ borderRadius: '5px' }}>
-                        <label className="font-semibold block mb-2">SDS (Sample Data Sheet)</label>
-                        <iframe
-                            src={appendPdfViewerParams(form.sdsReportFile) ?? ''}
-                            style={{ width: '100%', height: '600px', border: 'none' }}
-                            loading="lazy"
-                        ></iframe>
+                    <div className="w-full mt-2 border-solid border-gray-200 p-4"
+                        style={{
+                            borderRadius: '5px',
+                            backgroundColor: form.actionSdsApproval == 'approve' ? '#f0fff0' : form.actionSdsApproval == 'reject' ? '#fff0f0' : 'transparent',
+                            borderColor: form.actionSdsApproval == 'approve' ? 'green' : form.actionSdsApproval == 'reject' ? 'red' : '#e5e7eb',
+                        }}
+                    >
+                        <div className="flex justify-between items-center mb-4">
+                            <label className="font-semibold block mb-2">SDS (Sample Data Sheet)</label>
+                            <div className="flex items-center">
+                                <label
+                                    className="mr-2"
+                                    style={{
+                                        fontWeight: 'bold',
+                                        color: form.actionSdsApproval == 'approve' ? 'green' : form.actionSdsApproval == 'reject' ? 'red' : '#e5e7eb',
+                                    }}
+                                >{form.actionSdsApproval == 'approve' ? 'Approve' : (form.actionSdsApproval == 'reject' ? 'Reject' : '')}</label>
+                                <Button
+                                    className="p-button-success ml-2"
+                                    icon="pi pi-check"
+                                    onClick={() => {
+                                        setForm((prev) => ({ ...prev, actionSdsApproval: 'approve' }));
+                                    }}
+                                />
+                                <Button
+                                    icon="pi pi-times"
+                                    className="p-button-danger ml-2"
+                                    onClick={() => {
+                                        setForm((prev) => ({ ...prev, actionSdsApproval: 'reject' }));
+                                    }}
+                                />
+                            </div>
+                        </div>
+                        {
+                            sdsPdfUrl ? (
+                                <iframe
+                                    src={sdsPdfUrl}
+                                    style={{ width: '100%', height: '600px', border: 'none' }}
+                                    loading="lazy"
+                                ></iframe>
+                            ) : (
+                                <p>No SDS document available.</p>
+                            )
+                        }
                     </div>
                 </div>
             </div>
