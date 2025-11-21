@@ -40,7 +40,14 @@ interface DataSDS {
     sdsType: string,
     status: string,
     dueDate: string,
-    action?: boolean
+    action?: boolean,
+    checker1Approved?: boolean,
+    checker1Rejected?: boolean,
+    checker2Approved?: boolean,
+    checker2Rejected?: boolean,
+    checker3Approved?: boolean,
+    checker3Rejected?: boolean,
+    hasAnyRejection?: boolean,
 }
 
 export function SDSApprovalTable(props: { checker: 1 | 2 | 3 }) {
@@ -110,18 +117,76 @@ export function SDSApprovalTable(props: { checker: 1 | 2 | 3 }) {
     };
 
     const actionBodyTemplate = (rowData: DataSDS) => {
-        if (rowData.action) {
+        // Determine if button should be disabled
+        let isDisabled = false;
+        let disableReason = '';
+
+        if (!rowData.action) {
+            // SDS not created yet
+            return <div className="w-[100px]">&nbsp;</div>;
+        }
+
+        // ตรวจสอบว่ามีการ reject หรือไม่ - ต้องรอ supplier แก้ไขก่อน
+        if (rowData.hasAnyRejection) {
             return (
                 <Button
                     label="View"
-                    className="p-button-primary"
+                    className="p-button-warning"
+                    disabled
                     outlined
-                    onClick={() => router.push(`/pages-sample/sds-approval/detail/checker${currentChecker}/${rowData.id}`)}
+                    tooltip="Waiting for supplier to fix rejected items"
+                    tooltipOptions={{ position: 'top' }}
                 />
             );
-        } else {
-            return <div className="w-[100px]">&nbsp;</div>
         }
+
+        if (currentChecker === 1) {
+            // Checker 1: Disable if already approved or rejected
+            if (rowData.checker1Approved || rowData.checker1Rejected) {
+                isDisabled = true;
+                disableReason = 'Already processed';
+            }
+        } else if (currentChecker === 2) {
+            // Checker 2: Disable if not yet approved by Checker 1, or already processed by Checker 2
+            if (!rowData.checker1Approved || rowData.checker1Rejected) {
+                isDisabled = true;
+                disableReason = 'Waiting for Checker 1';
+            } else if (rowData.checker2Approved || rowData.checker2Rejected) {
+                isDisabled = true;
+                disableReason = 'Already processed';
+            }
+        } else if (currentChecker === 3) {
+            // Checker 3: Disable if not yet approved by Checker 2, or already processed by Checker 3
+            if (!rowData.checker2Approved || rowData.checker2Rejected) {
+                isDisabled = true;
+                disableReason = 'Waiting for Checker 2';
+            } else if (rowData.checker3Approved || rowData.checker3Rejected) {
+                isDisabled = true;
+                disableReason = 'Already processed';
+            }
+        }
+
+        if (isDisabled) {
+            return (
+                <Button
+                    label="View"
+                    className="p-button-secondary"
+                    disabled
+                    outlined
+                    tooltip={disableReason}
+                    tooltipOptions={{ position: 'top' }}
+                />
+            );
+        }
+
+        return (
+            <Button
+                label="View"
+                className="p-button-primary"
+                outlined
+                onClick={() => router.push(`/pages-sample/sds-approval/detail/checker${currentChecker}/${rowData.id}`)}
+            />
+        );
     };
 
     const sdsTypeBodyTemplate = (rowData: DataSDS) => {
@@ -169,6 +234,7 @@ export function SDSApprovalTable(props: { checker: 1 | 2 | 3 }) {
             const params: Record<string, any> = {
                 skip: first,
                 limit: rows,
+                checkerLevel: currentChecker,
             };
 
             if (filters.monthYear) {
@@ -211,9 +277,15 @@ export function SDSApprovalTable(props: { checker: 1 | 2 | 3 }) {
                 dueDate?: string | null;
                 hasDelay: boolean;
                 sdsCreated: boolean;
+                checker1Approved?: boolean;
+                checker1Rejected?: boolean;
+                checker2Approved?: boolean;
+                checker2Rejected?: boolean;
+                checker3Approved?: boolean;
+                checker3Rejected?: boolean;
             }>;
 
-            const mapped = items.map((item) => ({
+            const mapped = items.map((item: any) => ({
                 id: item.id,
                 no: item.no,
                 monthYear: item.monthYear,
@@ -226,6 +298,12 @@ export function SDSApprovalTable(props: { checker: 1 | 2 | 3 }) {
                 status: item.supplierStatus,
                 dueDate: item.dueDate ?? '-',
                 action: item.sdsCreated,
+                checker1Approved: item.checker1Approved ?? false,
+                checker1Rejected: item.checker1Rejected ?? false,
+                checker2Approved: item.checker2Approved ?? false,
+                checker2Rejected: item.checker2Rejected ?? false,
+                checker3Approved: item.checker3Approved ?? false,
+                checker3Rejected: item.checker3Rejected ?? false,
             }));
 
             setSdsList(mapped);
@@ -237,7 +315,7 @@ export function SDSApprovalTable(props: { checker: 1 | 2 | 3 }) {
                 detail: (error as Error).message || 'ไม่สามารถโหลดข้อมูล SDS Approval ได้',
             });
         }
-    }, [appliedFilters, first, rows]);
+    }, [filters, first, rows, currentChecker]);
 
     const resetPaginationForFilters = () => {
         skipAutoLoadRef.current = true;

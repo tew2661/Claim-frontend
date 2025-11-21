@@ -1,13 +1,15 @@
 'use client';
 
-import { Get } from "@/components/fetch";
+import { Get, Post } from "@/components/fetch";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "primereact/button";
 import { InputText } from "primereact/inputtext";
 import { Toast } from "primereact/toast";
 import { useEffect, useRef, useState } from "react";
+import { Calendar } from 'primereact/calendar';
+import Footer from "@/components/footer";
 
-export default function Page() {
+export function Page({ page }: { page: number }) {
 
     const router = useRouter();
     const params = useParams();
@@ -29,6 +31,9 @@ export default function Page() {
         sdsReportFile: null as string | null,
         actionSdrApproval: '', // 'approve' | 'reject' | ''
         actionSdsApproval: '', // 'approve' | 'reject' | ''
+        approveAllAction: '', // 'approve' | 'reject' | ''
+        remark: '',
+        reSubmitDate: null as Date | null,
     });
 
     const downloadDocument = async (fileName?: string) => {
@@ -206,6 +211,62 @@ export default function Page() {
     const sdrPdfUrl = appendPdfViewerParams(form.sdrReportFile);
     const sdsPdfUrl = appendPdfViewerParams(form.sdsReportFile);
 
+    const [name, setName] = useState('');
+    const [email, setEmail] = useState('');
+
+    useEffect(() => {
+        const localUser = localStorage.getItem('user') ?? ''
+        if (localUser) {
+            const jsonUser = JSON.parse(localUser);
+            setName(jsonUser.name);
+            setEmail(jsonUser.email);
+        } else {
+            localStorage.clear();
+            window.location.href = "/login"
+        }
+    }, []);
+
+    const handleSave = async () => {
+        try {
+            const payload = {
+                id: sheetId,
+                actionSdrApproval: form.actionSdrApproval,
+                actionSdsApproval: form.actionSdsApproval,
+                remark: form.remark,
+                reSubmitDate: form.reSubmitDate ? form.reSubmitDate.toISOString() : null,
+                approveRole: page == 3 ? 'approver' : ('checker' + page),
+            };
+
+            const response = await Post({
+                url: '/sample-data-sheet/sds-approval',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ payload }),
+            });
+
+            if (!response.ok) {
+                const errorBody = await response.json().catch(() => ({}));
+                throw new Error(errorBody?.message || 'Failed to submit approval');
+            }
+
+            toast.current?.show({
+                severity: 'success',
+                summary: 'Success',
+                detail: 'Approval submitted successfully',
+            });
+
+            router.push('/pages-sample/sds-approval/checker' + page);
+        } catch (error: any) {
+            console.error('Submit approval failed', error);
+            toast.current?.show({
+                severity: 'error',
+                summary: 'Error',
+                detail: error?.message || 'Unable to submit approval',
+            });
+        }
+    }
+
     return (
         <div className="flex justify-center pt-6 px-6 pb-6">
             <Toast ref={toast} />
@@ -367,8 +428,87 @@ export default function Page() {
                             )
                         }
                     </div>
+                    <div className="w-full mt-2 border-solid border-gray-200 p-4"
+                        style={{
+                            borderRadius: '5px',
+                            backgroundColor: form.approveAllAction == 'approve' ? '#f0fff0' : form.approveAllAction == 'reject' ? '#fff0f0' : 'transparent',
+                            borderColor: form.approveAllAction == 'approve' ? 'green' : form.approveAllAction == 'reject' ? 'red' : '#e5e7eb',
+                        }}
+                    >
+                        <div className="flex justify-between items-center mb-4">
+                            <label className="font-semibold block mb-2">{name}</label>
+                            <div className="flex items-center">
+                                <label className="font-semibold block mb-2">{email}</label>
+                                <Button
+                                    label="Approve All"
+                                    className="p-button-success ml-2"
+                                    onClick={() => {
+                                        setForm((prev) => ({ 
+                                            ...prev, 
+                                            approveAllAction: 'approve',
+                                            actionSdrApproval: 'approve',
+                                            actionSdsApproval: 'approve'
+                                        }));
+                                    }}
+                                />
+                                <Button
+                                    label="Reject All"
+                                    className="p-button-danger ml-2"
+                                    onClick={() => {
+                                        setForm((prev) => ({ 
+                                            ...prev, 
+                                            approveAllAction: 'reject',
+                                            actionSdrApproval: 'reject',
+                                            actionSdsApproval: 'reject'
+                                        }));
+                                    }}
+                                />
+                            </div>
+                        </div>
+                        <div className="mb-4">
+                            <label className="font-semibold block mb-2">Remark</label>
+                            <textarea
+                                value={form.remark}
+                                onChange={(e) => setForm((prev) => ({ ...prev, remark: e.target.value }))}
+                                className="w-full p-2 border border-gray-300 rounded"
+                                rows={4}
+                                placeholder="Enter remarks here..."
+                            />
+                        </div>
+                        <div className="mb-4">
+                            <label className="font-semibold block mb-2">Re-Submit Date</label>
+                            <Calendar 
+                                value={form.reSubmitDate} 
+                                onChange={(e) => {
+                                    const dateValue = e.target.value ? new Date(e.target.value) : null;
+                                    setForm((prev) => ({ ...prev, reSubmitDate: dateValue }));
+                                }} 
+                                className="w-full"
+                                placeholder="dd/mm/yy"
+                            />
+                        </div>
+                    </div>
                 </div>
             </div>
+            <Footer>
+                <div className='flex justify-end mt-4 w-full gap-2'>
+                    <Button
+                        label="Cancel"
+                        className="p-button-danger min-w-[150px]"
+                        onClick={() => router.push('/pages-sample/sds-approval/checker' + page)}
+                    />
+                    <Button
+                        label={'Submit'}
+                        disabled={form.actionSdrApproval == 'reject' || form.actionSdsApproval == 'reject' ? !form.reSubmitDate : false || (form.actionSdrApproval == '' && form.actionSdsApproval == '')}
+                        className="p-button-primary min-w-[150px]"
+                        onClick={() => handleSave()}
+                    />
+                </div>
+            </Footer>
         </div>
     );
+}
+
+export default function PageMaster() {
+    return (<Page page={1} />);
 }

@@ -10,6 +10,7 @@ import { useRouter, useParams } from 'next/navigation';
 import Footer from '@/components/footer';
 import { Get, Post, Put } from '@/components/fetch';
 import { InputTextarea } from 'primereact/inputtextarea';
+import moment from 'moment';
 
 interface SdrSample {
     no: number;
@@ -485,7 +486,7 @@ export default function CreateSDSForm() {
                     {/* Section 1: 08-2025 Production */}
                     <div className="mb-6 p-4 bg-gray-50 rounded">
                         <div className="flex items-center gap-4">
-                            <span className="font-semibold">1. 08-2025 Production :</span>
+                            <span className="font-semibold">1. {form.sdrDate ? moment(form.sdrDate).format('MM-YYYY'): '-'} Production :</span>
                             <div className="flex gap-4">
                                 {productionOptions.map((option) => (
                                     <div key={option.value} className="flex items-center gap-2">

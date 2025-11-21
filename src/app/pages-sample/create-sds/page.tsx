@@ -161,7 +161,8 @@ export default function CreateSDS() {
         const nextFilters = { ...filters, [field]: value || 'All' };
         setFilters(nextFilters);
         filtersRef.current = nextFilters;
-        setFirst(0);
+        resetPaginationForFilters();
+        scheduleFilterLoad();
     };
 
     const handleTextFilterChange = (value: string, field: 'partNo' | 'partName' | 'model') => {
@@ -274,7 +275,7 @@ export default function CreateSDS() {
                             />
                         </div>
                         <div className="flex flex-col gap-2 w-full">
-                            <label>SDS Type : All</label>
+                            <label>SDS Type</label>
                             <Dropdown 
                                 value={filters.sdsType} 
                                 onChange={(e) => handleDropdownFilterChange(e.value, 'sdsType')} 
