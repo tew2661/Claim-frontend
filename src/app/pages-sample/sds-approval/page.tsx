@@ -295,7 +295,9 @@ export function SDSApprovalTable(props: { checker: 1 | 2 | 3 }) {
                 partName: item.partName,
                 model: item.model,
                 sdsType: item.sdsType,
-                status: item.supplierStatus,
+                status: props.checker === 1 ? item.checker1Status : (
+                    props.checker === 2 ? item.checker2Status : item.checker3Status
+                ),
                 dueDate: item.dueDate ?? '-',
                 action: item.sdsCreated,
                 checker1Approved: item.checker1Approved ?? false,
@@ -487,7 +489,7 @@ export function SDSApprovalTable(props: { checker: 1 | 2 | 3 }) {
                                 className="w-full"
                             />
                         </div>
-                       
+
                         <div className="flex flex-col gap-2 w-full">
                             <label>Part No</label>
                             <InputText value={filters.partNo} onChange={(e) => handleInputFilterChange(e.target.value, 'partNo')} placeholder="Enter Part No" className="w-full" />
