@@ -40,6 +40,8 @@ interface DataSDS {
     sdsType: string,
     status: string,
     dueDate: string,
+    hasDelay: boolean,
+    delayDays: number,
     action?: boolean,
     checker1Approved?: boolean,
     checker1Rejected?: boolean,
@@ -63,7 +65,7 @@ export function SDSApprovalTable(props: { checker: 1 | 2 | 3 }) {
     const [currentChecker, setCurrentChecker] = useState<1 | 2 | 3>(props.checker);
 
     const [filters, setFilters] = useState<FilterSDSApprove>({
-        monthYear: new Date(),
+        monthYear: null,
         supplierCode: "All",
         partNo: "",
         sdsType: "All",
@@ -71,7 +73,7 @@ export function SDSApprovalTable(props: { checker: 1 | 2 | 3 }) {
     });
 
     const [appliedFilters, setAppliedFilters] = useState<FilterSDSApprove>({
-        monthYear: new Date(),
+        monthYear: null,
         supplierCode: "All",
         partNo: "",
         sdsType: "All",
@@ -275,6 +277,7 @@ export function SDSApprovalTable(props: { checker: 1 | 2 | 3 }) {
                 sdsType: 'Special' | 'Normal';
                 supplierStatus: string;
                 dueDate?: string | null;
+                delayDays?: number;
                 hasDelay: boolean;
                 sdsCreated: boolean;
                 checker1Approved?: boolean;
@@ -299,6 +302,8 @@ export function SDSApprovalTable(props: { checker: 1 | 2 | 3 }) {
                     props.checker === 2 ? item.checker2Status : item.checker3Status
                 ),
                 dueDate: item.dueDate ?? '-',
+                hasDelay: item.hasDelay ? true : false,
+                delayDays: item.delayDays ?? 0,
                 action: item.sdsCreated,
                 checker1Approved: item.checker1Approved ?? false,
                 checker1Rejected: item.checker1Rejected ?? false,
@@ -318,6 +323,15 @@ export function SDSApprovalTable(props: { checker: 1 | 2 | 3 }) {
             });
         }
     }, [filters, first, rows, currentChecker]);
+
+    const dueDateTemplate = (rowData: DataSDS) => {
+        return (
+            <div className={rowData.hasDelay ? 'text-red-600 font-medium' : ''}>
+                {rowData.dueDate}
+                {rowData.hasDelay ? ` (Delay: ${rowData.delayDays} days)` : ''}
+            </div>
+        );
+    }
 
     const resetPaginationForFilters = () => {
         skipAutoLoadRef.current = true;
@@ -583,7 +597,7 @@ export function SDSApprovalTable(props: { checker: 1 | 2 | 3 }) {
                     <Column field="model" header="Model" bodyStyle={{ width: '8%' }}></Column>
                     <Column field="sdsType" header="SDS Type" body={sdsTypeBodyTemplate} bodyStyle={{ width: '8%' }}></Column>
                     <Column field="status" header="Status" body={statusBodyTemplate} bodyStyle={{ width: '10%' }}></Column>
-                    <Column field="dueDate" header="Due Date" bodyStyle={{ width: '10%' }}></Column>
+                    <Column field="dueDate" header="Due Date" body={dueDateTemplate} bodyStyle={{ width: '10%' }}></Column>
                     <Column field="action" header="View" body={actionBodyTemplate} bodyStyle={{ width: '7%', textAlign: 'center' }}></Column>
                 </DataTable>
                 <ReportHistoryModal

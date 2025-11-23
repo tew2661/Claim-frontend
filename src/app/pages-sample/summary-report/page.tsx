@@ -33,6 +33,7 @@ interface DataSummaryReportTable {
     submittedDate?: string,
     completedDate?: string,
     hasDelay?: boolean,
+    delayDays?: number,
 }
 
 interface FilterSummaryReport {
@@ -57,7 +58,7 @@ export default function SummaryReport() {
     const debounceTimerRef = useRef<number | null>(null);
     
     const [filters, setFilters] = useState<FilterSummaryReport>({
-        monthYear: new Date(),
+        monthYear: null,
         supplierCode: "All",
         partNo: "",
         sdsType: "All",
@@ -67,7 +68,7 @@ export default function SummaryReport() {
     });
 
     const [appliedFilters, setAppliedFilters] = useState<FilterSummaryReport>({
-        monthYear: new Date(),
+        monthYear: null,
         supplierCode: "All",
         partNo: "",
         sdsType: "All",
@@ -257,9 +258,9 @@ export default function SummaryReport() {
     const dueDateBodyTemplate = (rowData: DataSummaryReportTable) => {
         const isDelay = rowData.hasDelay;
         return (
-            <div className={isDelay ? 'text-red-600 font-medium' : ''}>
+            <div className={rowData.hasDelay ? 'text-red-600 font-medium' : ''}>
                 {rowData.dueDate}
-                {isDelay && <div className="text-xs">Delay</div>}
+                {isDelay ? ` (Delay: ${rowData.delayDays} days)` : ''}
             </div>
         );
     };
@@ -329,6 +330,7 @@ export default function SummaryReport() {
                 submittedDate: item.submittedDate ? moment(item.submittedDate).format('DD-MM-YYYY') : undefined,
                 completedDate: item.completedDate ? moment(item.completedDate).format('DD-MM-YYYY') : undefined,
                 hasDelay: item.hasDelay || false,
+                delayDays: item.delayDays || 0,
             }));
 
             setSampleDataList(mapped);
@@ -407,6 +409,7 @@ export default function SummaryReport() {
                                 onChange={(e) => handleMonthYearChange(e.value ?? null)}
                                 view="month"
                                 dateFormat="mm-yy"
+                                placeholder="MM-YYYY"
                                 showIcon
                                 monthNavigator
                                 yearNavigator

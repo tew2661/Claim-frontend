@@ -25,6 +25,7 @@ interface CreateSDSData {
     supplierStatus: string;
     dueDate?: string | null;
     hasDelay: boolean;
+    delayDays?: number;
     sdsCreated: boolean;
 }
 
@@ -57,7 +58,7 @@ export default function CreateSDS() {
     const [totalRows, setTotalRows] = useState<number>(0);
 
     const [filters, setFilters] = useState<FilterState>({
-        monthYear: new Date(),
+        monthYear: null,
         partNo: '',
         partName: '',
         model: '',
@@ -200,9 +201,9 @@ export default function CreateSDS() {
 
     const dueDateBody = (row: CreateSDSData) => {
         return (
-            <div>
-                <div>{row.dueDate || '-'}</div>
-                {row.hasDelay && <div className="text-red-500 font-semibold">Delay</div>}
+            <div className={row.hasDelay ? 'text-red-600 font-medium' : ''}>
+                {row.dueDate}
+                {row.hasDelay ? ` (Delay: ${row.delayDays} days)` : ''}
             </div>
         );
     };

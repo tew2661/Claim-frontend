@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
 import { Paginator } from "primereact/paginator";
@@ -8,13 +8,19 @@ import { TemplatePaginator } from "@/components/template-pagination";
 import { Button } from "primereact/button";
 import { Dropdown } from "primereact/dropdown";
 import { Toast } from "primereact/toast";
+import { Calendar } from "primereact/calendar";
+import { InputText } from "primereact/inputtext";
 import { useRouter } from "next/navigation";
+import { CreateQueryString, Get } from "@/components/fetch";
 import moment from "moment";
+import { Socket } from "socket.io-client";
+import { getSocket } from "@/components/socket/socket";
 
 interface DelayData {
     id: number;
     no: number;
     monthYear: string;
+    supplierCode: string;
     supplierName: string;
     partNo: string;
     partName: string;
@@ -22,49 +28,34 @@ interface DelayData {
     sdsType: string;
     dueDate: string;
     delayDate: number;
+    hasDelay: boolean;
+}
+
+interface FilterDelay {
+    monthYear: Date | null;
+    supplierCode: string;
+    partNo: string;
+    sdsType: string;
 }
 
 export default function Delay() {
     const toast = useRef<Toast>(null);
     const router = useRouter();
+    const debounceTimerRef = useRef<number | null>(null);
 
-    const [filters, setFilters] = useState({
-        monthYear: 'All',
+    const [filters, setFilters] = useState<FilterDelay>({
+        monthYear: null,
         supplierCode: 'All',
-        partNo: 'All',
-        partName: 'All',
+        partNo: '',
         sdsType: 'All'
     });
 
+    const [appliedFilters, setAppliedFilters] = useState<FilterDelay>(filters);
     const [data, setData] = useState<DelayData[]>([]);
     const [first, setFirst] = useState<number>(0);
     const [rows, setRows] = useState<number>(10);
     const [totalRows, setTotalRows] = useState<number>(0);
-
-    const monthYearOptions = [
-        { label: 'All', value: 'All' },
-        { label: '07-2025', value: '07-2025' },
-        { label: '08-2025', value: '08-2025' },
-    ];
-
-    const supplierOptions = [
-        { label: 'All', value: 'All' },
-        { label: 'AAA CO., LTD.', value: 'AAA CO., LTD.' },
-        { label: 'BBB CO., LTD.', value: 'BBB CO., LTD.' },
-        { label: 'CCC CO., LTD.', value: 'CCC CO., LTD.' },
-        { label: 'DDD CO., LTD.', value: 'DDD CO., LTD.' },
-        { label: 'EEE CO., LTD.', value: 'EEE CO., LTD.' },
-    ];
-
-    const partNoOptions = [
-        { label: 'All', value: 'All' },
-        { label: '90151-06811', value: '90151-06811' },
-    ];
-
-    const partNameOptions = [
-        { label: 'All', value: 'All' },
-        { label: 'SCREW,FLATHEAD', value: 'SCREW,FLATHEAD' },
-    ];
+    const [supplier, setSupplier] = useState<{ label: string; value: string }[]>([]);
 
     const sdsTypeOptions = [
         { label: 'All', value: 'All' },
@@ -72,57 +63,136 @@ export default function Delay() {
         { label: 'Special', value: 'Special' },
     ];
 
-    // mock dataset
-    const allMockData: DelayData[] = [
-        { id: 1, no: 1, monthYear: '07-2025', supplierName: 'AAA CO., LTD.', partNo: '90151-06811', partName: 'SCREW,FLATHEAD', model: 'XXX', sdsType: 'Normal', dueDate: '31-07-2025', delayDate: 20 },
-        { id: 2, no: 2, monthYear: '08-2025 Special', supplierName: 'BBB CO., LTD.', partNo: '90151-06811', partName: 'SCREW,FLATHEAD', model: 'XXX', sdsType: 'Special', dueDate: '04-08-2025', delayDate: 16 },
-        { id: 3, no: 3, monthYear: '08-2025 Special', supplierName: 'CCC CO., LTD.', partNo: '90151-06811', partName: 'SCREW,FLATHEAD', model: 'XXX', sdsType: 'Special', dueDate: '10-08-2025', delayDate: 10 },
-        { id: 4, no: 4, monthYear: '08-2025 Special', supplierName: 'DDD CO., LTD.', partNo: '90151-06811', partName: 'SCREW,FLATHEAD', model: 'XXX', sdsType: 'Special', dueDate: '15-08-2025', delayDate: 5 },
-        { id: 5, no: 5, monthYear: '08-2025 Special', supplierName: 'EEE CO., LTD.', partNo: '90151-06811', partName: 'SCREW,FLATHEAD', model: 'XXX', sdsType: 'Special', dueDate: '15-08-2025', delayDate: 5 },
-        { id: 6, no: 6, monthYear: '08-2025', supplierName: 'FFF CO., LTD.', partNo: '90151-06811', partName: 'SCREW,FLATHEAD', model: 'XXX', sdsType: 'Normal', dueDate: '15-08-2025', delayDate: 5 },
-        { id: 7, no: 7, monthYear: '08-2025', supplierName: 'FFF CO., LTD.', partNo: '90151-06811', partName: 'SCREW,FLATHEAD', model: 'XXX', sdsType: 'Normal', dueDate: '15-08-2025', delayDate: 5 },
-        { id: 8, no: 8, monthYear: '08-2025', supplierName: 'HHH CO., LTD.', partNo: '90151-06811', partName: 'SCREW,FLATHEAD', model: 'XXX', sdsType: 'Normal', dueDate: '15-08-2025', delayDate: 5 },
-        { id: 9, no: 9, monthYear: '08-2025', supplierName: 'JJJ CO., LTD.', partNo: '90151-06811', partName: 'SCREW,FLATHEAD', model: 'XXX', sdsType: 'Normal', dueDate: '15-08-2025', delayDate: 5 },
-        { id: 10, no: 10, monthYear: '08-2025', supplierName: 'KKK CO., LTD.', partNo: '90151-06811', partName: 'SCREW,FLATHEAD', model: 'XXX', sdsType: 'Normal', dueDate: '15-08-2025', delayDate: 5 },
-    ];
+    const cancelPendingFilterApply = () => {
+        if (debounceTimerRef.current) {
+            window.clearTimeout(debounceTimerRef.current);
+            debounceTimerRef.current = null;
+        }
+    };
 
-    const GetDatas = async () => {
-        // simulate server-side filter and pagination
-        let filtered = allMockData;
-        if (filters.monthYear && filters.monthYear !== 'All') {
-            filtered = filtered.filter(x => x.monthYear.includes(filters.monthYear));
-        }
-        if (filters.supplierCode && filters.supplierCode !== 'All') {
-            filtered = filtered.filter(x => x.supplierName === filters.supplierCode);
-        }
-        if (filters.partNo && filters.partNo !== 'All') {
-            filtered = filtered.filter(x => x.partNo === filters.partNo);
-        }
-        if (filters.partName && filters.partName !== 'All') {
-            filtered = filtered.filter(x => x.partName === filters.partName);
-        }
-        if (filters.sdsType && filters.sdsType !== 'All') {
-            filtered = filtered.filter(x => x.sdsType === filters.sdsType);
-        }
+    const applyFilters = (nextFilters: FilterDelay) => {
+        cancelPendingFilterApply();
+        setAppliedFilters(nextFilters);
+        setFirst(0);
+    };
 
-        setTotalRows(filtered.length);
-        const pageData = filtered.slice(first, first + rows);
-        setData(pageData.map((d, i) => ({ ...d, no: first + i + 1 })));
+    const scheduleFilterApply = (nextFilters: FilterDelay) => {
+        cancelPendingFilterApply();
+        debounceTimerRef.current = window.setTimeout(() => {
+            applyFilters(nextFilters);
+        }, 1000);
+    };
+
+    const updateFilterCriteria = (e: React.ChangeEvent<HTMLInputElement>, field: keyof FilterDelay) => {
+        const value = e.target.value;
+        setFilters(old => {
+            const next = { ...old, [field]: value };
+            scheduleFilterApply(next);
+            return next;
+        });
+    };
+
+    const fetchDelayData = useCallback(async () => {
+        try {
+            const params: Record<string, any> = {
+                skip: first,
+                limit: rows,
+            };
+
+            if (appliedFilters.monthYear) {
+                params.monthYear = moment(appliedFilters.monthYear).format('MM-YYYY');
+            }
+            if (appliedFilters.partNo && appliedFilters.partNo.trim()) {
+                params.partNo = appliedFilters.partNo.trim();
+            }
+            if (appliedFilters.sdsType && appliedFilters.sdsType.toLowerCase() !== 'all') {
+                params.sdsType = appliedFilters.sdsType;
+            }
+            if (appliedFilters.supplierCode && appliedFilters.supplierCode.toLowerCase() !== 'all') {
+                params.supplierCode = appliedFilters.supplierCode;
+            }
+
+            const query = CreateQueryString(params);
+            const path = `/sample-data-sheet/inspection-details-delay${query ? `?${query}` : ''}`;
+            const response = await Get({ url: path });
+
+            if (!response.ok) {
+                throw new Error('Failed to load delay data');
+            }
+
+            const payload = await response.json();
+            const body = payload?.data ?? {};
+            const items = (body.items ?? []) as Array<any>;
+
+            const mapped = items.map((item: any, index: number) => ({
+                id: item.id,
+                no: first + index + 1,
+                monthYear: item.monthYear,
+                supplierCode: item.supplierCode ?? '',
+                supplierName: item.supplierName,
+                partNo: item.partNo,
+                partName: item.partName,
+                model: item.model,
+                sdsType: item.sdsType,
+                dueDate: item.dueDate ? item.dueDate : '-',
+                delayDate: item.delayDays || 0,
+                hasDelay: item.hasDelay || false,
+            }));
+
+            setData(mapped);
+            setTotalRows(body.total ?? mapped.length);
+        } catch (error) {
+            console.error('Failed to load delay data:', error);
+            toast.current?.show({
+                severity: 'error',
+                summary: 'Error',
+                detail: (error as Error).message || 'Cannot load delay data',
+            });
+            setData([]);
+            setTotalRows(0);
+        }
+    }, [appliedFilters, first, rows]);
+
+    const loadSupplierOptions = async () => {
+        try {
+            const res = await Get({ url: '/inspection-detail/suppliers' });
+            if (!res.ok) {
+                throw new Error('Failed to load suppliers');
+            }
+            const payload = await res.json();
+            const data: any[] = payload?.data || [];
+            setSupplier(
+                data.map((item) => ({
+                    label: `${item.supplierCode} - ${item.supplierName}`,
+                    value: item.supplierCode,
+                }))
+            );
+        } catch (error: any) {
+            console.error('Load supplier list failed', error);
+        }
     };
 
     useEffect(() => {
-        GetDatas();
-    }, [first, rows, filters]);
+        loadSupplierOptions();
+    }, []);
 
-    const handleFilterChange = (value: string | null, field: string) => {
-        setFilters(old => ({ ...old, [field]: value || 'All' }));
-    };
+    useEffect(() => {
+        fetchDelayData();
+    }, [fetchDelayData]);
+
+    useEffect(() => {
+        const socket: Socket = getSocket();
+        socket.on("sds-update", fetchDelayData);
+        return () => {
+            socket.off("sds-update", fetchDelayData);
+        };
+    }, [fetchDelayData]);
 
     const monthYearBody = (row: DelayData) => {
-        const isSpecial = row.monthYear.includes('Special');
+        const isSpecial = row.sdsType === 'Special';
         return (
             <div>
-                <div>{row.monthYear.replace(' Special', '')}</div>
+                <div>{row.monthYear}</div>
                 {isSpecial && <div className="text-red-500 font-semibold">Special</div>}
             </div>
         );
@@ -143,52 +213,57 @@ export default function Delay() {
                 <div className="mx-4 mb-4 text-2xl font-bold py-3 border-solid border-t-0 border-x-0 border-b-2 border-gray-600">Delay</div>
 
                 <div className="flex gap-2 mx-4 mb-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2 w-[calc(100%-100px)]">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 w-[calc(100%-100px)]">
                         <div className="flex flex-col gap-2 w-full">
-                            <label>Month-Year : All</label>
-                            <Dropdown 
-                                value={filters.monthYear} 
-                                onChange={(e) => handleFilterChange(e.value, 'monthYear')} 
-                                options={monthYearOptions} 
-                                optionLabel="label" 
-                                className="w-full" 
+                            <label>Month-Year</label>
+                            <Calendar
+                                id="monthYear"
+                                value={filters.monthYear}
+                                onChange={(e) => {
+                                    const next = { ...filters, monthYear: e.value as Date | null };
+                                    setFilters(next);
+                                    applyFilters(next);
+                                }}
+                                view="month"
+                                dateFormat="mm-yy"
+                                placeholder="MM-YYYY"
+                                showIcon
+                                className="w-full"
+                                style={{ padding: 0 }}
                             />
                         </div>
                         <div className="flex flex-col gap-2 w-full">
-                            <label>Supplier Code : All</label>
+                            <label>Supplier</label>
                             <Dropdown 
                                 value={filters.supplierCode} 
-                                onChange={(e) => handleFilterChange(e.value, 'supplierCode')} 
-                                options={supplierOptions} 
-                                optionLabel="label" 
+                                onChange={(e) => {
+                                    const next = { ...filters, supplierCode: e.value };
+                                    setFilters(next);
+                                    applyFilters(next);
+                                }}
+                                options={[{ label: 'All', value: 'All' }, ...supplier]}
+                                optionLabel="label"
                                 className="w-full" 
                             />
                         </div>
                         <div className="flex flex-col gap-2 w-full">
-                            <label>Part No : All</label>
-                            <Dropdown 
-                                value={filters.partNo} 
-                                onChange={(e) => handleFilterChange(e.value, 'partNo')} 
-                                options={partNoOptions} 
-                                optionLabel="label" 
-                                className="w-full" 
+                            <label>Part No</label>
+                            <InputText
+                                id="partNo"
+                                value={filters.partNo}
+                                onChange={(e) => updateFilterCriteria(e, "partNo")}
+                                className="w-full"
                             />
                         </div>
                         <div className="flex flex-col gap-2 w-full">
-                            <label>Part Name : All</label>
-                            <Dropdown 
-                                value={filters.partName} 
-                                onChange={(e) => handleFilterChange(e.value, 'partName')} 
-                                options={partNameOptions} 
-                                optionLabel="label" 
-                                className="w-full" 
-                            />
-                        </div>
-                        <div className="flex flex-col gap-2 w-full">
-                            <label>SDS Type : All</label>
+                            <label>SDS Type</label>
                             <Dropdown 
                                 value={filters.sdsType} 
-                                onChange={(e) => handleFilterChange(e.value, 'sdsType')} 
+                                onChange={(e) => {
+                                    const next = { ...filters, sdsType: e.value };
+                                    setFilters(next);
+                                    applyFilters(next);
+                                }}
                                 options={sdsTypeOptions} 
                                 optionLabel="label" 
                                 className="w-full" 
@@ -198,7 +273,7 @@ export default function Delay() {
                     <div className="w-[100px]">
                         <div className="flex flex-col gap-2">
                             <label>&nbsp;</label>
-                            <Button label="Search" icon="pi pi-search" onClick={() => GetDatas()} />
+                            <Button label="Search" icon="pi pi-search" onClick={() => fetchDelayData()} />
                         </div>
                     </div>
                 </div>
