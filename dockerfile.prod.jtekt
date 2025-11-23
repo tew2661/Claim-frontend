@@ -10,6 +10,7 @@ WORKDIR /app
 
 # คัดลอก package.json และ lockfile เพื่อทำการ install dependencies ก่อน
 COPY package.json package-lock.json* yarn.lock* ./
+COPY .env.jtekt /app/.env
 
 # ติดตั้ง dependencies แบบ production เท่านั้น
 RUN yarn install --frozen-lockfile
@@ -30,9 +31,10 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/scripts ./scripts
 
 # กำหนด Port ที่ Container ใช้งาน
 EXPOSE 3000
 
 # คำสั่งเริ่มต้นเมื่อ Container รัน
-CMD ["yarn", "start"]
+CMD ["yarn", "run", "start-jtekt"]
