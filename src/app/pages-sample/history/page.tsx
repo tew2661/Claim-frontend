@@ -7,9 +7,11 @@ import { Paginator } from "primereact/paginator";
 import { TemplatePaginator } from "@/components/template-pagination";
 import { Button } from "primereact/button";
 import { Dropdown } from "primereact/dropdown";
+import { InputText } from "primereact/inputtext";
 import { Calendar } from "primereact/calendar";
 import { Toast } from "primereact/toast";
 import { useRouter } from "next/navigation";
+import { Get } from "@/components/fetch";
 import moment from "moment";
 
 interface HistoryData {
@@ -28,11 +30,22 @@ interface HistoryData {
 export default function History() {
     const toast = useRef<Toast>(null);
     const router = useRouter();
+    const debounceTimer = useRef<NodeJS.Timeout | null>(null);
 
     const [filters, setFilters] = useState({
         menu: 'All',
-        partNo: 'All',
-        sdsMonthYear: 'All',
+        partNo: '',
+        sdsMonthYear: null as Date | null,
+        action: 'All',
+        actionRole: 'All',
+        actionBy: 'All',
+        actionDate: null as Date | null
+    });
+
+    const [searchFilters, setSearchFilters] = useState({
+        menu: 'All',
+        partNo: '',
+        sdsMonthYear: null as Date | null,
         action: 'All',
         actionRole: 'All',
         actionBy: 'All',
@@ -43,6 +56,7 @@ export default function History() {
     const [first, setFirst] = useState<number>(0);
     const [rows, setRows] = useState<number>(10);
     const [totalRows, setTotalRows] = useState<number>(0);
+    const [loading, setLoading] = useState<boolean>(false);
 
     const menuOptions = [
         { label: 'All', value: 'All' },
@@ -51,22 +65,11 @@ export default function History() {
         { label: 'SDS Approval', value: 'SDS Approval' },
     ];
 
-    const partNoOptions = [
-        { label: 'All', value: 'All' },
-        { label: '90151-06811', value: '90151-06811' },
-    ];
-
-    const sdsMonthYearOptions = [
-        { label: 'All', value: 'All' },
-        { label: '06-2025', value: '06-2025' },
-        { label: '08-2025', value: '08-2025' },
-        { label: '08-2025 Special', value: '08-2025 Special' },
-    ];
-
     const actionOptions = [
         { label: 'All', value: 'All' },
         { label: 'Submitted', value: 'Submitted' },
         { label: 'Approved', value: 'Approved' },
+        { label: 'Rejected', value: 'Rejected' },
         { label: 'Special Request', value: 'Special Request' },
         { label: 'Create / Edit', value: 'Create / Edit' },
     ];
@@ -74,75 +77,121 @@ export default function History() {
     const actionRoleOptions = [
         { label: 'All', value: 'All' },
         { label: 'Supplier', value: 'Supplier' },
-        { label: 'Checker 1', value: 'Checker 1' },
-        { label: 'Checker 2', value: 'Checker 2' },
+        { label: 'Checker1', value: 'Checker 1' },
+        { label: 'Checker2', value: 'Checker 2' },
         { label: 'Approver', value: 'Approver' },
     ];
 
     const actionByOptions = [
         { label: 'All', value: 'All' },
-        { label: 'Auto Valve Co., Ltd.', value: 'Auto Valve Co., Ltd.' },
-        { label: 'Somdai A.', value: 'Somdai A.' },
-        { label: 'Apiwat S.', value: 'Apiwat S.' },
-        { label: 'Piyawat S.', value: 'Piyawat S.' },
-        { label: 'Ekkachai V.', value: 'Ekkachai V.' },
-        { label: 'ABC Co.,Ltd.', value: 'ABC Co.,Ltd.' },
-    ];
-
-    // mock dataset
-    const allMockData: HistoryData[] = [
-        { id: 1, no: 1, menu: 'Create SDS', partNo: '90151-06811', sdsMonthYear: '08-2025 Special', action: 'Submitted', actionRole: 'Supplier', actionBy: 'Auto Valve Co., Ltd.', actionDate: '15/08/2025 16:22:44', remark: '' },
-        { id: 2, no: 2, menu: 'Inspection Detail', partNo: '90151-06811', sdsMonthYear: '08-2025 Special', action: 'Special Request', actionRole: 'Checker 1', actionBy: 'Somdai A.', actionDate: '15/08/2025 16:20:00', remark: '' },
-        { id: 3, no: 3, menu: 'Inspection Detail', partNo: '90151-06811', sdsMonthYear: '', action: 'Create / Edit', actionRole: 'Supplier', actionBy: 'Auto Valve Co., Ltd.', actionDate: '20/06/2025 01:32:22', remark: 'แก้ไขข้อมูล' },
-        { id: 4, no: 4, menu: 'SDS Approval', partNo: '90151-06811', sdsMonthYear: '06-2025', action: 'Approved', actionRole: 'Approver', actionBy: 'Apiwat S.', actionDate: '20/06/2025 01:31:00', remark: '' },
-        { id: 5, no: 5, menu: 'SDS Approval', partNo: '90151-06811', sdsMonthYear: '06-2025', action: 'Approved', actionRole: 'Checker 2', actionBy: 'Piyawat S.', actionDate: '20/06/2025 01:23:17', remark: 'แก้ไขข้อมูล' },
-        { id: 6, no: 6, menu: 'SDS Approval', partNo: '90151-06811', sdsMonthYear: '06-2025', action: 'Approved', actionRole: 'Checker 1', actionBy: 'Ekkachai V.', actionDate: '20/06/2025 01:11:06', remark: '' },
-        { id: 7, no: 7, menu: 'Create SDS', partNo: '90151-06811', sdsMonthYear: '06-2025', action: 'Submitted', actionRole: 'Supplier', actionBy: 'Auto Valve Co., Ltd.', actionDate: '20/06/2025 01:06:14', remark: 'Approved by Approver' },
-        { id: 8, no: 8, menu: 'Create SDS', partNo: '90151-06811', sdsMonthYear: '06-2025', action: 'Submitted', actionRole: 'Supplier', actionBy: 'ABC Co.,Ltd.', actionDate: '20/06/2025 01:04:30', remark: 'Approved by Checker 2' },
-        { id: 9, no: 9, menu: 'Create SDS', partNo: '90151-06811', sdsMonthYear: '06-2025', action: 'Submitted', actionRole: 'Supplier', actionBy: 'ABC Co.,Ltd.', actionDate: '20/06/2025 01:02:33', remark: 'Approved by Checker 1' },
     ];
 
     const GetDatas = async () => {
-        // simulate server-side filter and pagination
-        let filtered = allMockData;
-        if (filters.menu && filters.menu !== 'All') {
-            filtered = filtered.filter(x => x.menu === filters.menu);
-        }
-        if (filters.partNo && filters.partNo !== 'All') {
-            filtered = filtered.filter(x => x.partNo === filters.partNo);
-        }
-        if (filters.sdsMonthYear && filters.sdsMonthYear !== 'All') {
-            filtered = filtered.filter(x => x.sdsMonthYear === filters.sdsMonthYear);
-        }
-        if (filters.action && filters.action !== 'All') {
-            filtered = filtered.filter(x => x.action === filters.action);
-        }
-        if (filters.actionRole && filters.actionRole !== 'All') {
-            filtered = filtered.filter(x => x.actionRole === filters.actionRole);
-        }
-        if (filters.actionBy && filters.actionBy !== 'All') {
-            filtered = filtered.filter(x => x.actionBy === filters.actionBy);
-        }
-        if (filters.actionDate) {
-            const filterDate = moment(filters.actionDate).format('DD/MM/YYYY');
-            filtered = filtered.filter(x => x.actionDate.startsWith(filterDate));
-        }
+        setLoading(true);
+        try {
+            // Build query parameters
+            const params = new URLSearchParams();
+            
+            if (searchFilters.menu && searchFilters.menu !== 'All') {
+                params.append('menu', searchFilters.menu);
+            }
+            if (searchFilters.partNo && searchFilters.partNo.trim() !== '') {
+                params.append('partNo', searchFilters.partNo.trim());
+            }
+            if (searchFilters.sdsMonthYear) {
+                params.append('sdsMonthYear', moment(searchFilters.sdsMonthYear).format('MM-YYYY'));
+            }
+            if (searchFilters.action && searchFilters.action !== 'All') {
+                params.append('action', searchFilters.action);
+            }
+            if (searchFilters.actionRole && searchFilters.actionRole !== 'All') {
+                params.append('actionRole', searchFilters.actionRole);
+            }
+            if (searchFilters.actionBy && searchFilters.actionBy !== 'All') {
+                params.append('actionBy', searchFilters.actionBy);
+            }
+            if (searchFilters.actionDate) {
+                params.append('actionDateFrom', moment(searchFilters.actionDate).startOf('day').toISOString());
+                params.append('actionDateTo', moment(searchFilters.actionDate).endOf('day').toISOString());
+            }
 
-        setTotalRows(filtered.length);
-        const pageData = filtered.slice(first, first + rows);
-        setData(pageData.map((d, i) => ({ ...d, no: first + i + 1 })));
+            const queryString = params.toString();
+            const url = `/sds-log${queryString ? `?${queryString}` : ''}`;
+            
+            const response = await Get({ url });
+            
+            if (!response.ok) {
+                throw new Error('Failed to fetch history data');
+            }
+
+            const result = await response.json();
+            const logs = result.data || [];
+
+            setTotalRows(logs.length);
+            
+            // Client-side pagination
+            const pageData = logs.slice(first, first + rows);
+            setData(pageData.map((log: any, i: number) => ({
+                id: log.id,
+                no: first + i + 1,
+                menu: log.menu,
+                partNo: log.partNo || '',
+                sdsMonthYear: log.sdsMonthYear || '',
+                action: log.action,
+                actionRole: log.actionRole || '',
+                actionBy: log.actionBy || '',
+                actionDate: moment(log.actionDate).format('DD/MM/YYYY HH:mm:ss'),
+                remark: log.remark || '',
+            })));
+        } catch (error: any) {
+            console.error('Failed to fetch history:', error);
+            toast.current?.show({
+                severity: 'error',
+                summary: 'Error',
+                detail: error.message || 'Failed to load history data',
+            });
+            setData([]);
+            setTotalRows(0);
+        } finally {
+            setLoading(false);
+        }
     };
 
     useEffect(() => {
         GetDatas();
-    }, [first, rows, filters]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [first, rows, searchFilters]);
 
     const handleFilterChange = (value: string | null, field: string) => {
-        setFilters(old => ({ ...old, [field]: value || 'All' }));
+        const newFilters = { ...filters, [field]: value || 'All' };
+        setFilters(newFilters);
+        setSearchFilters(newFilters);
+    };
+
+    const handlePartNoChange = (value: string) => {
+        setFilters(old => ({ ...old, partNo: value }));
+        
+        // Clear existing timer
+        if (debounceTimer.current) {
+            clearTimeout(debounceTimer.current);
+        }
+        
+        // Set new timer to update search after 1 second
+        debounceTimer.current = setTimeout(() => {
+            setSearchFilters(old => ({ ...old, partNo: value }));
+        }, 1000);
+    };
+
+    const handleSdsMonthYearChange = (value: Date | null) => {
+        const newFilters = { ...filters, sdsMonthYear: value };
+        setFilters(newFilters);
+        setSearchFilters(newFilters);
     };
 
     const handleDateChange = (value: Date | null) => {
-        setFilters(old => ({ ...old, actionDate: value }));
+        const newFilters = { ...filters, actionDate: value };
+        setFilters(newFilters);
+        setSearchFilters(newFilters);
     };
 
     const sdsMonthYearBody = (row: HistoryData) => {
@@ -174,22 +223,23 @@ export default function History() {
                         </div>
                         <div className="flex flex-col gap-2 w-full">
                             <label>Part No.</label>
-                            <Dropdown
+                            <InputText
                                 value={filters.partNo}
-                                onChange={(e) => handleFilterChange(e.value, 'partNo')}
-                                options={partNoOptions}
-                                optionLabel="label"
+                                onChange={(e) => handlePartNoChange(e.target.value)}
+                                placeholder="Enter Part No."
                                 className="w-full"
                             />
                         </div>
                         <div className="flex flex-col gap-2 w-full">
                             <label>SDS Month-Year</label>
-                            <Dropdown
+                            <Calendar
                                 value={filters.sdsMonthYear}
-                                onChange={(e) => handleFilterChange(e.value, 'sdsMonthYear')}
-                                options={sdsMonthYearOptions}
-                                optionLabel="label"
+                                onChange={(e) => handleSdsMonthYearChange(e.value as Date | null)}
+                                view="month"
+                                dateFormat="mm-yy"
+                                showIcon
                                 className="w-full"
+                                placeholder="Select Month-Year"
                             />
                         </div>
                         <div className="flex flex-col gap-2 w-full">
@@ -253,6 +303,7 @@ export default function History() {
 
                 <DataTable
                     value={data}
+                    loading={loading}
                     showGridlines
                     className='table-header-center mt-4'
                     footer={

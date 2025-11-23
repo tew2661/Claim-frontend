@@ -25,6 +25,8 @@ export default function InspectionDetailForm({ mode, data }: Props) {
     const router = useRouter();
     const toast = useRef<Toast>(null);
     const IsSupplier = (process.env.NEXT_MODE == 'supplier');
+    const userInStorage = localStorage.getItem('user');
+    const user = userInStorage ? JSON.parse(userInStorage) : null;
     
     // Check if form is locked for supplier mode
     const isLocked = IsSupplier && mode === 'edit' && data?.supplierEditStatus === 'Locked';
@@ -33,8 +35,8 @@ export default function InspectionDetailForm({ mode, data }: Props) {
     const [showEditConfirmation, setShowEditConfirmation] = useState(false);
     
     const [form, setForm] = useState<any>({
-        supplierCode: data?.supplierCode || '',
-        supplierName: data?.supplierName || '',
+        supplierCode: (user.supplier && user.supplier.supplierCode ? user.supplier.supplierCode : '') || data?.supplierCode,
+        supplierName: (user.supplier && user.supplier.supplierName ? user.supplier.supplierName : '') || data?.supplierName,
         partNo: data?.partNo || '',
         partName: data?.partName || '',
         model: data?.model || '',
@@ -56,15 +58,46 @@ export default function InspectionDetailForm({ mode, data }: Props) {
     const [uploadAisFile, setUploadAisFile] = useState<File | null>(null);
     const [uploadSdrFile, setUploadSdrFile] = useState<File | null>(null);
 
-    const handleConfirmEdit = () => {
+    const handleConfirmEdit = async () => {
         setShowEditConfirmation(false);
-        // Go back to list
-        router.push('/pages-sample/inspection-detail');
+        
+        // Actually save the data
+        const payload = buildPayload();
+        const formData = buildFormData(payload);
+        const recordId = typeof data?.id === 'number' ? data.id : Number(data?.id ?? NaN);
+
+        try {
+            const res = await Put({
+                url: `/inspection-detail/${recordId}`,
+                body: formData,
+            });
+
+            if (!res.ok) {
+                const err: any = await res.json().catch(() => ({}));
+                throw new Error(err.message || 'Failed to save inspection detail');
+            }
+
+            toast.current?.show({
+                severity: 'success',
+                summary: 'Success',
+                detail: 'Data saved successfully',
+            });
+
+            setTimeout(() => {
+                router.push('/pages-sample/inspection-detail');
+            }, 1000);
+        } catch (error: any) {
+            console.error('Save error:', error);
+            toast.current?.show({
+                severity: 'error',
+                summary: 'Error',
+                detail: error.message || 'Cannot save inspection detail',
+            });
+        }
     };
 
     const handleCancelEdit = () => {
         setShowEditConfirmation(false);
-        
     };
 
     const [supplierOptions, setSupplierOptions] = useState<SupplierDropdownOption[]>([]);
@@ -127,8 +160,8 @@ export default function InspectionDetailForm({ mode, data }: Props) {
     useEffect(() => {
         if (data) {
             setForm({
-                supplierCode: data.supplierCode || '',
-                supplierName: data.supplierName || '',
+                supplierCode: (user.supplier && user.supplier.supplierCode ? user.supplier.supplierCode : '') || data?.supplierCode,
+                supplierName: (user.supplier && user.supplier.supplierName ? user.supplier.supplierName : '') || data?.supplierName,
                 partNo: data.partNo || '',
                 partName: data.partName || '',
                 model: data.model || '',
@@ -144,7 +177,7 @@ export default function InspectionDetailForm({ mode, data }: Props) {
                     rank: ''
                 }],
                 partStatus: data.partStatus || 'Inactive',
-                supplierEditStatus: data.supplierEditStatus || 'Unlocked'
+                supplierEditStatus: data?.supplierEditStatus || 'Unlocked'
             });
             setUploadAisFile(null);
             setUploadSdrFile(null);
@@ -446,7 +479,7 @@ export default function InspectionDetailForm({ mode, data }: Props) {
                             options={supplierOptions} 
                             className="w-full" 
                             placeholder="Select Supplier Code"
-                            disabled={isLocked}
+                            disabled={isLocked || IsSupplier}
                         />
                     </div>
                     <div>
@@ -456,7 +489,7 @@ export default function InspectionDetailForm({ mode, data }: Props) {
                             onChange={(e) => setForm((old: any) => ({ ...old, supplierName: e.target.value }))} 
                             className="w-full" 
                             placeholder="Enter Supplier Name"
-                            disabled={isLocked}
+                            disabled={isLocked || IsSupplier}
                         />
                     </div>
                     <div>
@@ -726,7 +759,11 @@ export default function InspectionDetailForm({ mode, data }: Props) {
                             }
                             <Dropdown 
                                 value={form.partStatus} 
-                                onChange={(e) => setForm((old: any) => ({ ...old, partStatus: e.value }))} 
+                                onChange={(e) => setForm((old: any) => ({ 
+                                    ...old, 
+                                    partStatus: e.value,
+                                    ...e.value === 'Active' ? { supplierEditStatus: 'Locked' } : {}
+                                }))} 
                                 options={[
                                     { label: 'Active', value: 'Active' }, 
                                     { label: 'Inactive', value: 'Inactive' }
@@ -751,7 +788,7 @@ export default function InspectionDetailForm({ mode, data }: Props) {
                                 ]} 
                                 className="w-full" 
                                 placeholder="Select Status"
-                                disabled={isLocked || IsSupplier}
+                                disabled={isLocked || IsSupplier || form.partStatus === 'Active'}
                             />
                         </div>
                     </div>

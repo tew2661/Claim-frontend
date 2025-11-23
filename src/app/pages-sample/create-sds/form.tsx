@@ -95,7 +95,7 @@ export default function SampleDataSheetForm({ mode, inspectionId }: SampleDataSh
         aisDocument: null as File | null,
         sdrDocument: null as File | null,
         production08_2025: 'Yes',
-        sdrDate: null as Date | null,
+        sdrDate: moment().endOf('month').toDate() as Date | null,
         remark: '',
         sdrData: [] as SdrRow[],
         inspectionDetailId: '' as string,

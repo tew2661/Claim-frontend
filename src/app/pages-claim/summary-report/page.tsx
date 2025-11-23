@@ -55,10 +55,17 @@ export default function SummaryReport() {
     const [rowsHistory, setRowsHistory] = useState(10);
     const [totalRowsHistory, setTotalRowsHistory] = useState(10);
     const [qprList, setQprList] = useState<DataSummaryReportTable[]>([])
+    
+    // Get user info from localStorage
+    const userInStorage = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
+    const user = userInStorage ? JSON.parse(userInStorage) : null;
+    const isSupplier = user?.role === 'Supplier';
+    const supplierCode = user?.supplier?.supplierCode || '';
+    
     const [filters, setFilters] = useState<FilterSummaryReport>({
         qprNo: "",
         month: null,
-        supplier: "All",
+        supplier: isSupplier ? supplierCode : "All",
         status: "All",
     });
 
@@ -377,18 +384,12 @@ export default function SummaryReport() {
                         </div>
                         <div className="flex flex-col gap-2 w-full">
                             <label htmlFor="supplier">Supplier</label>
-                            {/* <InputText
-                                id="supplier"
-                                value={filters.supplier}
-                                onChange={(e) => updateFilterCriteria(e, "supplier")}
-                                className="w-full"
-                            /> */}
                             <Dropdown
                                 value={filters.supplier || ""}
                                 onChange={(e: DropdownChangeEvent) => updateFilterCriteria({ target: { value: e.value } } as React.ChangeEvent<HTMLInputElement>, "supplier")}
-                                options={[{ label: 'All', value: 'All' }, ...supplier]}
+                                options={isSupplier ? supplier : [{ label: 'All', value: 'All' }, ...supplier]}
                                 optionLabel="label"
-                                // placeholder="Select Supplier" 
+                                disabled={isSupplier}
                                 className="w-full"
                             />
                         </div>

@@ -11,20 +11,23 @@ import Footer from '@/components/footer';
 import { Get, Post, Put } from '@/components/fetch';
 import { InputTextarea } from 'primereact/inputtextarea';
 import moment from 'moment';
+import { InputNumber } from 'primereact/inputnumber';
 
 interface SdrSample {
     no: number;
-    value: string;
+    value: number | null;
 }
 
 interface SdrRow {
     no: number;
     measuringItem: string;
-    specification: string;
+    specification: number;
     rank: string;
     inspectionInstrument: string;
     remark: string;
     sampleQty: number;
+    toleranceMinus: number;
+    tolerancePlus: number;
     samples: SdrSample[];
     judgement: string;
     xBar: string;
@@ -41,28 +44,31 @@ const createSampleArray = (qty: number, existingSamples: any[] = []): SdrSample[
         const sample = existingSamples[index];
         return {
             no: Number(sample?.no ?? index + 1),
-            value: sample?.value ?? '',
+            value: sample?.value ? Number(sample.value) : null,
         };
     });
 };
 
-const mapInspectionItemsToSdrRows = (items: any[]): SdrRow[] => (
+const mapInspectionItemsToSdrRows = (items: any[], specialRequest: any | undefined): SdrRow[] => (
     items.map((item, index) => {
         const sampleQty = Number(item.sampleQty) || DEFAULT_SAMPLE_QTY;
+
         return {
             no: Number(item.no ?? index + 1),
             measuringItem: item.measuringItem || '',
-            specification: item.specification || '',
+            specification: Number(item.specification) || 0,
             rank: item.rank || '',
             inspectionInstrument: item.inspectionInstrument || '',
             remark: item.remark || '',
-            sampleQty,
+            sampleQty : specialRequest && specialRequest.qty ? specialRequest.qty : sampleQty,
+            toleranceMinus: item.toleranceMinus,
+            tolerancePlus: item.tolerancePlus,
             samples: createSampleArray(sampleQty, item.samples),
             judgement: '',
             xBar: '',
             r: '',
-            cp: '',
-            cpk: '',
+            cp: specialRequest ? specialRequest.cpCpk : '',
+            cpk: specialRequest ? specialRequest.cpCpk : '',
         };
     })
 );
@@ -73,11 +79,13 @@ const normalizeSdrRows = (rows: any[]): SdrRow[] => (
         return {
             no: Number(row.no ?? index + 1),
             measuringItem: row.measuringItem || '',
-            specification: row.specification || '',
+            specification: Number(row.specification) || 0,
             rank: row.rank || '',
             inspectionInstrument: row.inspectionInstrument || '',
             remark: row.remark || '',
             sampleQty,
+            toleranceMinus: row.toleranceMinus,
+            tolerancePlus: row.tolerancePlus,
             samples: createSampleArray(sampleQty, row.samples),
             judgement: row.judgement || '',
             xBar: row.xBar || '',
@@ -102,7 +110,7 @@ export default function CreateSDSForm() {
         aisDocument: null as File | null,
         sdrDocument: null as File | null,
         production08_2025: 'Yes',
-        sdrDate: new Date() as Date | null,
+        sdrDate: moment().endOf('month').toDate() as Date | null,
         remark: '',
         sdrData: [] as SdrRow[],
         inspectionDetailId: '' as string,
@@ -159,6 +167,7 @@ export default function CreateSDSForm() {
             }
 
             setSheetId(null);
+            const specialRequest0 = detail.specialRequest && detail.specialRequest.length > 0 ? detail.specialRequest[detail.specialRequest.length - 1] : undefined;
             setForm((prev) => ({
                 ...prev,
                 supplier: detail.supplierName || prev.supplier,
@@ -167,8 +176,9 @@ export default function CreateSDSForm() {
                 model: detail.model || prev.model,
                 inspectionDetailId: detail.id?.toString() || prev.inspectionDetailId,
                 sdrData: detail.inspectionItems && detail.inspectionItems.length
-                    ? mapInspectionItemsToSdrRows(detail.inspectionItems)
+                    ? mapInspectionItemsToSdrRows(detail.inspectionItems, specialRequest0)
                     : prev.sdrData,
+                sdrDate: specialRequest0 && specialRequest0.dueDate ? new Date(specialRequest0.dueDate) : prev.sdrDate,
             }));
             setAisFileName(detail.aisFile || '');
             setSdrFileName(detail.sdrFile || '');
@@ -267,26 +277,6 @@ export default function CreateSDSForm() {
         }
     };
 
-    const addRow = () => {
-        const defaultSampleQty = DEFAULT_SAMPLE_QTY;
-        const newRow = {
-            no: form.sdrData.length + 1,
-            measuringItem: '',
-            specification: '',
-            rank: '',
-            inspectionInstrument: '',
-            remark: '',
-            sampleQty: defaultSampleQty,
-            samples: createSampleArray(defaultSampleQty),
-            judgement: '',
-            xBar: '',
-            r: '',
-            cp: '',
-            cpk: ''
-        };
-        setForm(prev => ({ ...prev, sdrData: [...prev.sdrData, newRow] }));
-    };
-
     const updateSdrData = (index: number, field: string, value: any) => {
         const newData = [...form.sdrData];
         const targetRow = newData[index];
@@ -309,27 +299,26 @@ export default function CreateSDSForm() {
         setForm(prev => ({ ...prev, sdrData: newData }));
     };
 
-    const updateSampleValue = (rowIndex: number, sampleIndex: number, value: string) => {
+    const updateSampleValue = (rowIndex: number, sampleIndex: number, value: number | null) => {
         const newData = [...form.sdrData];
         newData[rowIndex].samples[sampleIndex].value = value;
         setForm(prev => ({ ...prev, sdrData: newData }));
     };
 
     // ฟังก์ชันตรวจสอบว่าค่าอยู่ในช่วง tolerance หรือไม่
-    const isOutOfTolerance = (value: string, specification: string): boolean => {
-        if (!value || !specification) return false;
+    const isOutOfTolerance = (value: number | null, row: SdrRow): boolean => {
+        if (value === null || !row.specification) return false;
         
-        const numValue = parseFloat(value);
-        const numSpec = parseFloat(specification);
+        const numSpec = row.specification;
+        const tolerancePlus = parseFloat(String(row.tolerancePlus || 0));
+        const toleranceMinus = parseFloat(String(row.toleranceMinus || 0));
         
-        if (isNaN(numValue) || isNaN(numSpec)) return false;
+        if (isNaN(numSpec)) return false;
         
-        // สมมติว่า tolerance ±0.05 (5%)
-        const tolerance = 0.05;
-        const upperLimit = numSpec + tolerance;
-        const lowerLimit = numSpec - tolerance;
+        const upperLimit = numSpec + tolerancePlus;
+        const lowerLimit = numSpec - toleranceMinus;
         
-        return numValue > upperLimit || numValue < lowerLimit;
+        return value > upperLimit || value < lowerLimit;
     };
 
     const handleSave = async () => {
@@ -624,10 +613,13 @@ export default function CreateSDSForm() {
                                                 />
                                             </td>
                                             <td className="border p-2">
-                                                <InputText 
+                                                <InputNumber 
                                                     value={row.specification}
-                                                    onChange={(e) => updateSdrData(rowIndex, 'specification', e.target.value)}
+                                                    onChange={(e) => updateSdrData(rowIndex, 'specification', e.value)}
                                                     className="w-full"
+                                                    inputStyle={{
+                                                        width: '100px'
+                                                    }}
                                                     disabled={form.production08_2025 === 'No'}
                                                 />
                                             </td>
@@ -664,16 +656,19 @@ export default function CreateSDSForm() {
                                                 const sampleIndex = columnIndex - 1;
                                                 const sample = row.samples[sampleIndex];
                                                 const showInput = columnIndex <= row.sampleQty;
-                                                const sampleValue = sample?.value ?? '';
-                                                const isRed = showInput && isOutOfTolerance(sampleValue, row.specification);
+                                                const sampleValue = sample?.value ?? null;
+                                                const isRed = showInput && isOutOfTolerance(sampleValue, row);
                                                 return (
                                                     <td key={`row-${rowIndex}-sample-${columnIndex}`} className="border p-2">
                                                         {showInput ? (
-                                                            <InputText
+                                                            <InputNumber
                                                                 value={sampleValue}
-                                                                onChange={(e) => updateSampleValue(rowIndex, sampleIndex, e.target.value)}
+                                                                onChange={(e) => updateSampleValue(rowIndex, sampleIndex, e.value)}
                                                                 className="w-full"
-                                                                style={isRed ? { backgroundColor: '#fee', color: 'red', fontWeight: 'bold' } : undefined}
+                                                                inputStyle={{ 
+                                                                    ...isRed ? { backgroundColor: '#fee', color: 'red', fontWeight: 'bold' } : {},
+                                                                    width: '100px'
+                                                                }}
                                                                 disabled={form.production08_2025 === 'No'}
                                                             />
                                                         ) : (

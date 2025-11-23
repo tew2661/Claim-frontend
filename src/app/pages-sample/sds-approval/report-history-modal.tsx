@@ -7,8 +7,7 @@ import { TemplatePaginator } from "@/components/template-pagination";
 
 interface DataHistoryTable {
     id: number,
-    qprNo: string,
-    documentType: string,
+    menu: string,
     action: string,
     actionRole: string,
     actionBy: string,
@@ -58,13 +57,12 @@ export default function ReportHistoryModal({
                         />
                     }
                 >
-                    <Column field="qprNo" header="QPR No." bodyStyle={{ width: '18%' }}></Column>
-                    <Column field="documentType" header="Document Type" bodyStyle={{ width: '12%' }}></Column>
-                    <Column field="action" header="Action" bodyStyle={{ width: '10%' }}></Column>
-                    <Column field="actionRole" header="Action Role" bodyStyle={{ width: '18%' }}></Column>
+                    <Column field="menu" header="Menu" bodyStyle={{ width: '20%' }}></Column>
+                    <Column field="action" header="Action" bodyStyle={{ width: '15%' }}></Column>
+                    <Column field="actionRole" header="Action Role" bodyStyle={{ width: '15%' }}></Column>
                     <Column field="actionBy" header="Action By" bodyStyle={{ width: '15%' }}></Column>
-                    <Column field="actionDate" header="Action Date" bodyStyle={{ width: '15%' }}></Column>
-                    <Column field="remark" header="Remark" bodyStyle={{ width: '12%' }}></Column>
+                    <Column field="actionDate" header="Action Date" bodyStyle={{ width: '20%' }}></Column>
+                    <Column field="remark" header="Remark" bodyStyle={{ width: '15%' }}></Column>
                 </DataTable>
             </div>
         </Dialog>

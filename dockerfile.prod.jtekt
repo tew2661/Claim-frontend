@@ -1,6 +1,10 @@
 # 👇 ใช้ Image Node.js ที่เบาและเร็วที่สุด
 FROM node:18-alpine AS builder
 
+RUN apk add --no-cache tzdata \
+    && cp /usr/share/zoneinfo/Asia/Bangkok /etc/localtime \
+    && echo "Asia/Bangkok" > /etc/timezone
+    
 # ตั้งค่า Working Directory
 WORKDIR /app
 

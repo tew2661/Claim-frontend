@@ -1,5 +1,5 @@
 'use client';
-import { JSX, useEffect, useRef, useState } from "react";
+import { JSX, useCallback, useEffect, useRef, useState } from "react";
 import { InputText } from "primereact/inputtext";
 import { Button } from "primereact/button";
 import { DataTable } from "primereact/datatable";
@@ -18,8 +18,10 @@ import { getSocket } from "@/components/socket/socket";
 import ReportHistoryModal from "./report-history-modal";
 
 interface DataSummaryReportTable {
+    id: number,
     no: number,
     monthYear: string,
+    supplierCode: string,
     supplierName: string,
     partNo: string,
     partName: string,
@@ -28,26 +30,15 @@ interface DataSummaryReportTable {
     supplierStatus: string,
     sdsStatus: string,
     dueDate: string,
-    view: JSX.Element,
-}
-
-interface DataHistoryTable {
-    id: number,
-    qprNo: string,
-    documentType: string,
-    action: string,
-    actionRole: string,
-    actionBy: string,
-    actionDate: string,
-    remark: string
+    submittedDate?: string,
+    completedDate?: string,
+    hasDelay?: boolean,
 }
 
 interface FilterSummaryReport {
-    monthYear: string;
-    supplierName: string;
+    monthYear: Date | null;
+    supplierCode: string;
     partNo: string;
-    partName: string;
-    model: string;
     sdsType: string;
     supplierStatus: string;
     sdsStatus: string;
@@ -63,12 +54,22 @@ export default function SummaryReport() {
     const [rowsHistory, setRowsHistory] = useState(10);
     const [totalRowsHistory, setTotalRowsHistory] = useState(0);
     const [sampleDataList, setSampleDataList] = useState<DataSummaryReportTable[]>([])
+    const debounceTimerRef = useRef<number | null>(null);
+    
     const [filters, setFilters] = useState<FilterSummaryReport>({
-        monthYear: "All",
-        supplierName: "All",
-        partNo: "All",
-        partName: "All",
-        model: "All",
+        monthYear: new Date(),
+        supplierCode: "All",
+        partNo: "",
+        sdsType: "All",
+        supplierStatus: "All",
+        sdsStatus: "All",
+        delayNotDelay: "All",
+    });
+
+    const [appliedFilters, setAppliedFilters] = useState<FilterSummaryReport>({
+        monthYear: new Date(),
+        supplierCode: "All",
+        partNo: "",
         sdsType: "All",
         supplierStatus: "All",
         sdsStatus: "All",
@@ -76,121 +77,99 @@ export default function SummaryReport() {
     });
 
     const [visibleHistory, setVisibleHistory] = useState<boolean>(false);
-    const [selectedReportHistory, setSelectedReportHistory] = useState<DataHistoryTable[]>([]);
-    const [partNo, setPartNo] = useState<string>('');
+    const [selectedReportHistory, setSelectedReportHistory] = useState<any[]>([]);
+    const [selectedSdsInspectionDetailId, setSelectedSdsInspectionDetailId] = useState<number | null>(null);
 
-    // Mock data for dropdowns
-    const [supplierList] = useState([
-        { label: 'AAA CO. LTD', value: 'AAA CO. LTD' },
-        { label: 'BBB CO. LTD', value: 'BBB CO. LTD' },
-        { label: 'CCC CO. LTD', value: 'CCC CO. LTD' },
-        { label: 'DDD CO. LTD', value: 'DDD CO. LTD' },
-        { label: 'EEE CO. LTD', value: 'EEE CO. LTD' },
-        { label: 'FFF CO. LTD', value: 'FFF CO. LTD' },
-        { label: 'GGG CO. LTD', value: 'GGG CO. LTD' },
-    ]);
+    const [supplierList, setSupplierList] = useState<{ label: string; value: string; }[]>([]);
 
-    const [partNumberList] = useState([
-        { label: '90151-06811', value: '90151-06811' },
-    ]);
+    // Fetch history data using sdsInspectionDetailId
+    const GetHistoryDatas = async (sdsInspectionDetailId: number) => {
+        try {
+            const response = await Get({ 
+                url: `/sds-log/by-inspection-detail?sdsInspectionDetailId=${sdsInspectionDetailId}` 
+            });
 
-    const [modelList] = useState([
-        { label: 'XXX', value: 'XXX' },
-    ]);
-
-    const [sdsTypeList] = useState([
-        { label: 'Special', value: 'Special' },
-        { label: 'Normal', value: 'Normal' },
-    ]);
-
-    const [supplierStatusList] = useState([
-        { label: 'Pending', value: 'Pending' },
-        { label: 'Submitted', value: 'Submitted' },
-    ]);
-
-    const [sdsStatusList] = useState([
-        { label: 'Supplier Pending', value: 'Supplier Pending' },
-        { label: 'Rejected', value: 'Rejected' },
-        { label: 'Completed', value: 'Completed' },
-        { label: 'Wait for JATH Approve', value: 'Wait for JATH Approve' },
-    ]);
-
-    const fetchReportHistory = async (qprNo: string, openHistory?: boolean) => {
-        setPartNo(qprNo);
-        // Mock history data based on the image
-        const mockHistory = [
-            {
-                id: 1,
-                qprNo: '2508001',
-                documentType: 'Quick-Report',
-                action: 'Submitted',
-                actionRole: 'Supplier',
-                actionBy: 'AutoMotive',
-                actionDate: '15/08/2025 16:22:44',
-                remark: ''
-            },
-            {
-                id: 2,
-                qprNo: '2508001',
-                documentType: 'Quick-Report',
-                action: 'Created',
-                actionRole: 'Supervision / Assistant Manager',
-                actionBy: 'JakkrapongK',
-                actionDate: '15/08/2025 16:20:00',
-                remark: ''
-            },
-            {
-                id: 3,
-                qprNo: 'QPR Test Issue No. 001',
-                documentType: '8D-Report',
-                action: 'Rejected',
-                actionRole: 'Checker1',
-                actionBy: 'นายทดสอบ ระบบ',
-                actionDate: '20/06/2025 01:32:22',
-                remark: 'ตรวจสอบ'
-            },
-            {
-                id: 4,
-                qprNo: 'QPR Test Issue No. 001',
-                documentType: '8D-Report',
-                action: 'Submitted',
-                actionRole: 'Supplier',
-                actionBy: 'AutoMotive',
-                actionDate: '20/06/2025 01:31:00',
-                remark: ''
-            },
-            {
-                id: 5,
-                qprNo: 'QPR Test Issue No. 001',
-                documentType: '8D-Report',
-                action: 'Rejected',
-                actionRole: 'Checker1',
-                actionBy: 'นายทดสอบ ระบบ',
-                actionDate: '20/06/2025 01:23:17',
-                remark: 'ตรวจสอบ'
-            },
-            {
-                id: 6,
-                qprNo: 'QPR Test Issue No. 001',
-                documentType: '8D-Report',
-                action: 'Submitted',
-                actionRole: 'Supplier',
-                actionBy: 'AutoMotive',
-                actionDate: '20/06/2025 01:11:06',
-                remark: ''
+            if (!response.ok) {
+                throw new Error('Failed to load history');
             }
-        ];
-        setSelectedReportHistory(mockHistory);
-        setTotalRowsHistory(mockHistory.length);
-        setVisibleHistory(openHistory || false);
+
+            const payload = await response.json();
+            const logs = payload?.data ?? [];
+
+            // Map to match the interface
+            const mappedLogs = logs.map((log: any) => ({
+                id: log.id,
+                menu: log.menu,
+                action: log.action,
+                actionRole: log.actionRole || '-',
+                actionBy: log.actionBy || '-',
+                actionDate: log.actionDate ? moment(log.actionDate).format('YYYY-MM-DD HH:mm:ss') : '-',
+                remark: log.remark || '-',
+            }));
+
+            setSelectedReportHistory(mappedLogs);
+            setTotalRowsHistory(mappedLogs.length);
+        } catch (error) {
+            console.error('Failed to load history:', error);
+            toast.current?.show({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'Cannot load history data',
+            });
+            setSelectedReportHistory([]);
+            setTotalRowsHistory(0);
+        }
     };
 
-    const updateFilterCriteria = (value: string, field: string) => {
-        setFilters({ ...filters, [field]: value });
+    const openHistory = async (row: DataSummaryReportTable) => {
+        setSelectedSdsInspectionDetailId(row.id);
+        await GetHistoryDatas(row.id);
+        setFirstHistory(0);
+        setVisibleHistory(true);
+    };
+
+    const cancelPendingFilterApply = () => {
+        if (debounceTimerRef.current) {
+            window.clearTimeout(debounceTimerRef.current);
+            debounceTimerRef.current = null;
+        }
+    };
+
+    const applyFilters = (nextFilters: FilterSummaryReport) => {
+        cancelPendingFilterApply();
+        setAppliedFilters(nextFilters);
+        setFirst(0);
+    };
+
+    const scheduleFilterApply = (nextFilters: FilterSummaryReport) => {
+        cancelPendingFilterApply();
+        debounceTimerRef.current = window.setTimeout(() => {
+            applyFilters(nextFilters);
+        }, 1000);
+    };
+
+    const handleInputChange = (value: string | null, field: keyof FilterSummaryReport) => {
+        const normalized = value ?? 'All';
+        setFilters((prev) => ({ ...prev, [field]: normalized }));
+        setAppliedFilters((prev) => ({ ...prev, [field]: normalized }));
+        setFirst(0);
+    };
+
+    const handleInputFilterChange = (value: string, field: string) => {
+        const nextFilters = { ...filters, [field]: value };
+        setFilters(nextFilters);
+        scheduleFilterApply(nextFilters);
+    };
+
+    const handleMonthYearChange = (value: Date | null) => {
+        const nextFilters = { ...filters, monthYear: value };
+        setFilters(nextFilters);
+        setAppliedFilters(nextFilters);
+        setFirst(0);
     };
 
     const exportSummaryReportToExcel = async () => {
-        // Mock export functionality
+        // TODO: Implement export functionality
         toast.current?.show({ 
             severity: 'info', 
             summary: 'Export', 
@@ -200,27 +179,30 @@ export default function SummaryReport() {
     };
 
     const viewDocument = async (id: number) => {
-        // Mock view functionality
+        // TODO: Navigate to view page
         toast.current?.show({ 
             severity: 'info', 
             summary: 'View', 
-            detail: 'View document functionality will be implemented', 
+            detail: `View document ID: ${id}`, 
             life: 3000 
         });
     };
 
-    const viewBodyTemplate = (rowData: any) => {
+    const viewBodyTemplate = (rowData: DataSummaryReportTable) => {
         return (
             <Button 
                 label="VIEW" 
                 className="p-button-link text-blue-500" 
-                onClick={() => viewDocument(rowData.no)}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    viewDocument(rowData.id);
+                }}
                 style={{ padding: 0, textDecoration: 'underline' }}
             />
         );
     };
 
-    const supplierStatusBodyTemplate = (rowData: any) => {
+    const supplierStatusBodyTemplate = (rowData: DataSummaryReportTable) => {
         const getStatusColor = (status: string) => {
             switch (status) {
                 case 'Pending':
@@ -244,7 +226,7 @@ export default function SummaryReport() {
         );
     };
 
-    const sdsStatusBodyTemplate = (rowData: any) => {
+    const sdsStatusBodyTemplate = (rowData: DataSummaryReportTable) => {
         const getStatusColor = (status: string) => {
             switch (status) {
                 case 'Completed':
@@ -272,8 +254,8 @@ export default function SummaryReport() {
         );
     };
 
-    const dueDateBodyTemplate = (rowData: any) => {
-        const isDelay = rowData.dueDate && moment().isAfter(moment(rowData.dueDate, 'DD-MM-YYYY'));
+    const dueDateBodyTemplate = (rowData: DataSummaryReportTable) => {
+        const isDelay = rowData.hasDelay;
         return (
             <div className={isDelay ? 'text-red-600 font-medium' : ''}>
                 {rowData.dueDate}
@@ -282,7 +264,7 @@ export default function SummaryReport() {
         );
     };
 
-    const sdsTypeBodyTemplate = (rowData: any) => {
+    const sdsTypeBodyTemplate = (rowData: DataSummaryReportTable) => {
         return (
             <div className={rowData.sdsType === 'Special' ? 'text-red-600 font-medium' : ''}>
                 {rowData.sdsType}
@@ -290,130 +272,122 @@ export default function SummaryReport() {
         );
     };
 
-    const fetchSummaryReportData = async () => {
-        // Mock data based on the image
-        const mockData = [
-            {
-                no: 1,
-                monthYear: '08-2025 Special',
-                supplierName: 'AAA CO. LTD',
-                partNo: '90151-06811',
-                partName: 'SCREWFLATHEAD',
-                model: 'XXX',
-                sdsType: 'Special',
-                supplierStatus: 'Pending',
-                sdsStatus: 'Supplier Pending',
-                dueDate: '17-08-2025',
-                view: <></>,
-            },
-            {
-                no: 2,
-                monthYear: '08-2025 Special',
-                supplierName: 'BBB CO. LTD',
-                partNo: '90151-06811',
-                partName: 'SCREWFLATHEAD',
-                model: 'XXX',
-                sdsType: 'Special',
-                supplierStatus: 'Pending',
-                sdsStatus: 'Rejected',
-                dueDate: '21-08-2025',
-                completedDate: '20-08-2025',
-                view: <></>,
-            },
-            {
-                no: 3,
-                monthYear: '08-2025',
-                supplierName: 'CCC CO. LTD',
-                partNo: '90151-06811',
-                partName: 'SCREWFLATHEAD',
-                model: 'XXX',
-                sdsType: 'Normal',
-                supplierStatus: 'Pending',
-                sdsStatus: 'Supplier Pending',
-                dueDate: '25-08-2025',
-                view: <></>,
-            },
-            {
-                no: 4,
-                monthYear: '08-2025',
-                supplierName: 'DDD CO. LTD',
-                partNo: '90151-06811',
-                partName: 'SCREWFLATHEAD',
-                model: 'XXX',
-                sdsType: 'Normal',
-                supplierStatus: 'Submitted',
-                sdsStatus: 'Completed',
-                dueDate: '25-08-2025',
-                submittedDate: '20-08-2025',
-                completedDate: '20-08-2025',
-                view: <></>,
-            },
-            {
-                no: 5,
-                monthYear: '08-2025',
-                supplierName: 'EEE CO. LTD',
-                partNo: '90151-06811',
-                partName: 'SCREWFLATHEAD',
-                model: 'XXX',
-                sdsType: 'Normal',
-                supplierStatus: 'Submitted',
-                sdsStatus: 'Wait for JATH Approve',
-                dueDate: '25-08-2025',
-                submittedDate: '17-08-2025',
-                view: <></>,
-            },
-            {
-                no: 6,
-                monthYear: '08-2025',
-                supplierName: 'FFF CO. LTD',
-                partNo: '90151-06811',
-                partName: 'SCREWFLATHEAD',
-                model: 'XXX',
-                sdsType: 'Normal',
-                supplierStatus: 'Submitted',
-                sdsStatus: 'Wait for JATH Approve',
-                dueDate: '25-08-2025',
-                submittedDate: '19-08-2025',
-                view: <></>,
-            },
-            {
-                no: 7,
-                monthYear: '08-2025 Special',
-                supplierName: 'GGG CO. LTD',
-                partNo: '90151-06811',
-                partName: 'SCREWFLATHEAD',
-                model: 'XXX',
-                sdsType: 'Special',
-                supplierStatus: 'Submitted',
-                sdsStatus: 'Completed',
-                dueDate: '25-08-2025',
-                submittedDate: '19-08-2025',
-                completedDate: '20-08-2025',
-                view: <></>,
-            },
-        ];
+    const fetchSummaryReportData = useCallback(async () => {
+        try {
+            const params: Record<string, any> = {
+                skip: first,
+                limit: rows,
+            };
 
-        setSampleDataList(mockData);
-        setTotalRows(mockData.length);
+            if (filters.monthYear) {
+                params.monthYear = moment(filters.monthYear).format('MM-YYYY');
+            }
+            if (filters.partNo && filters.partNo.toLowerCase() !== 'all' && filters.partNo.trim()) {
+                params.partNo = filters.partNo.trim();
+            }
+            if (filters.sdsType && filters.sdsType.toLowerCase() !== 'all') {
+                params.sdsType = filters.sdsType;
+            }
+            if (filters.supplierCode && filters.supplierCode.toLowerCase() !== 'all') {
+                params.supplierCode = filters.supplierCode;
+            }
+            if (filters.supplierStatus && filters.supplierStatus.toLowerCase() !== 'all') {
+                params.supplierStatus = filters.supplierStatus;
+            }
+            if (filters.sdsStatus && filters.sdsStatus.toLowerCase() !== 'all') {
+                params.sdsStatus = filters.sdsStatus;
+            }
+            if (filters.delayNotDelay && filters.delayNotDelay.toLowerCase() !== 'all') {
+                params.hasDelay = filters.delayNotDelay === 'Delay';
+            }
+
+            const query = CreateQueryString(params);
+            const path = `/sample-data-sheet/inspection-details${query ? `?${query}` : ''}`;
+            const response = await Get({ url: path });
+
+            if (!response.ok) {
+                throw new Error('Failed to load summary report data');
+            }
+
+            const payload = await response.json();
+            const body = payload?.data ?? {};
+            const items = (body.items ?? []) as Array<any>;
+
+            const mapped = items.map((item: any) => ({
+                id: item.id,
+                no: item.no,
+                monthYear: item.monthYear,
+                supplierCode: item.supplierCode ?? '',
+                supplierName: item.supplierName,
+                partNo: item.partNo,
+                partName: item.partName,
+                model: item.model,
+                sdsType: item.sdsType,
+                supplierStatus: item.supplierStatus || 'Pending',
+                sdsStatus: item.adsStatus || 'Supplier Pending',
+                dueDate: item.dueDate ? item.dueDate : '-',
+                submittedDate: item.submittedDate ? moment(item.submittedDate).format('DD-MM-YYYY') : undefined,
+                completedDate: item.completedDate ? moment(item.completedDate).format('DD-MM-YYYY') : undefined,
+                hasDelay: item.hasDelay || false,
+            }));
+
+            setSampleDataList(mapped);
+            setTotalRows(body.total ?? mapped.length);
+        } catch (error) {
+            console.error('Failed to load summary report:', error);
+            toast.current?.show({
+                severity: 'error',
+                summary: 'Error',
+                detail: (error as Error).message || 'Cannot load summary report data',
+            });
+            setSampleDataList([]);
+            setTotalRows(0);
+        }
+    }, [filters, first, rows]);
+
+    const loadSupplierOptions = async () => {
+        try {
+            const res = await Get({ url: '/inspection-detail/suppliers' });
+            if (!res.ok) {
+                const err: any = await res.json().catch(() => ({}));
+                throw new Error(err.message || 'Failed to load suppliers');
+            }
+
+            const payload = await res.json();
+            const data: any[] = payload?.data || [];
+            setSupplierList([
+                { label: 'All', value: 'All' },
+                ...data.map((item) => ({
+                    label: `${item.supplierCode} - ${item.supplierName}`,
+                    value: item.supplierCode,
+                })),
+            ]);
+        } catch (error: any) {
+            console.error('Load supplier list failed', error);
+        }
     };
-
     const socketRef = useRef<Socket | null>(null);
+
+    useEffect(() => {
+        loadSupplierOptions();
+    }, []);
+
     useEffect(() => {
         fetchSummaryReportData();
-        
+    }, [fetchSummaryReportData]);
+
+    useEffect(() => {
         if (!socketRef.current) {
             socketRef.current = getSocket();
         }
 
         const socket = socketRef.current;
-        socket.on("sample-data-update", () => {
-            fetchSummaryReportData();
-        });
+        socket.on("sds-update", fetchSummaryReportData);
 
         return () => {
-            socket.off("sample-data-update");
+            socket.off("sds-update", fetchSummaryReportData);
         };
-    }, [first, rows]);
+    }, [fetchSummaryReportData]);
 
     return (
        <div className="flex justify-center pt-6 px-6">
@@ -425,71 +399,65 @@ export default function SummaryReport() {
                 
                 {/* Filter Section */}
                 <div className="flex gap-2 mx-4 mb-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-2 w-[calc(100%-100px)]">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2 w-[calc(100%-100px)]">
                         <div className="flex flex-col gap-2 w-full">
                             <label htmlFor="monthYear">Month-Year</label>
-                            <Dropdown
+                            <Calendar
                                 value={filters.monthYear}
-                                onChange={(e: DropdownChangeEvent) => updateFilterCriteria(e.value, "monthYear")}
-                                options={[
-                                    { label: 'All', value: 'All' },
-                                    { label: '08-2025', value: '08-2025' },
-                                    { label: '09-2025', value: '09-2025' },
-                                    { label: '10-2025', value: '10-2025' },
-                                ]}
+                                onChange={(e) => handleMonthYearChange(e.value ?? null)}
+                                view="month"
+                                dateFormat="mm-yy"
+                                showIcon
+                                monthNavigator
+                                yearNavigator
+                                yearRange="2020:2030"
+                                showButtonBar
+                                className="w-full"
+                            />
+                        </div>
+                        <div className="flex flex-col gap-2 w-full">
+                            <label htmlFor="supplierCode">Supplier</label>
+                            <Dropdown
+                                value={filters.supplierCode}
+                                onChange={(e: DropdownChangeEvent) => handleInputChange(e.value, "supplierCode")}
+                                options={supplierList}
                                 optionLabel="label"
                                 className="w-full"
                             />
                         </div>
                         <div className="flex flex-col gap-2 w-full">
-                            <label htmlFor="supplierName">Supplier Name</label>
-                            <Dropdown
-                                value={filters.supplierName}
-                                onChange={(e: DropdownChangeEvent) => updateFilterCriteria(e.value, "supplierName")}
-                                options={[{ label: 'All', value: 'All' }, ...supplierList]}
-                                optionLabel="label"
-                                className="w-full"
-                            />
-                        </div>
-                        <div className="flex flex-col gap-2 w-full">
-                            <label htmlFor="partNo">Part No.</label>
-                            <Dropdown
-                                value={filters.partNo}
-                                onChange={(e: DropdownChangeEvent) => updateFilterCriteria(e.value, "partNo")}
-                                options={[{ label: 'All', value: 'All' }, ...partNumberList]}
-                                optionLabel="label"
-                                className="w-full"
-                            />
-                        </div>
-                        <div className="flex flex-col gap-2 w-full">
-                            <label htmlFor="partName">Part Name</label>
-                            <Dropdown
-                                value={filters.partName}
-                                onChange={(e: DropdownChangeEvent) => updateFilterCriteria(e.value, "partName")}
-                                options={[
-                                    { label: 'All', value: 'All' },
-                                    { label: 'SCREWFLATHEAD', value: 'SCREWFLATHEAD' },
-                                ]}
-                                optionLabel="label"
-                                className="w-full"
-                            />
-                        </div>
-                        <div className="flex flex-col gap-2 w-full">
-                            <label htmlFor="model">Model</label>
-                            <Dropdown
-                                value={filters.model}
-                                onChange={(e: DropdownChangeEvent) => updateFilterCriteria(e.value, "model")}
-                                options={[{ label: 'All', value: 'All' }, ...modelList]}
-                                optionLabel="label"
-                                className="w-full"
+                            <label>Part No</label>
+                            <InputText 
+                                value={filters.partNo} 
+                                onChange={(e) => handleInputFilterChange(e.target.value, 'partNo')} 
+                                placeholder="Enter Part No" 
+                                className="w-full" 
                             />
                         </div>
                         <div className="flex flex-col gap-2 w-full">
                             <label htmlFor="sdsType">SDS Type</label>
                             <Dropdown
                                 value={filters.sdsType}
-                                onChange={(e: DropdownChangeEvent) => updateFilterCriteria(e.value, "sdsType")}
-                                options={[{ label: 'All', value: 'All' }, ...sdsTypeList]}
+                                onChange={(e: DropdownChangeEvent) => handleInputChange(e.value, "sdsType")}
+                                options={[
+                                    { label: 'All', value: 'All' },
+                                    { label: 'Special', value: 'Special' },
+                                    { label: 'Normal', value: 'Normal' },
+                                ]}
+                                optionLabel="label"
+                                className="w-full"
+                            />
+                        </div>
+                        <div className="flex flex-col gap-2 w-full">
+                            <label htmlFor="supplierStatus">Supplier Status</label>
+                            <Dropdown
+                                value={filters.supplierStatus}
+                                onChange={(e: DropdownChangeEvent) => handleInputChange(e.value, "supplierStatus")}
+                                options={[
+                                    { label: 'All', value: 'All' },
+                                    { label: 'Pending', value: 'Pending' },
+                                    { label: 'Submitted', value: 'Submitted' },
+                                ]}
                                 optionLabel="label"
                                 className="w-full"
                             />
@@ -505,23 +473,19 @@ export default function SummaryReport() {
 
                 {/* Second Row of Filters */}
                 <div className="flex gap-2 mx-4 mb-4">
-                    <div className="grid grid-cols-1 md:grid-cols-6 gap-2 w-[calc(100%-100px)]">
-                        <div className="flex flex-col gap-2 w-full">
-                            <label htmlFor="supplierStatus">Supplier Status</label>
-                            <Dropdown
-                                value={filters.supplierStatus}
-                                onChange={(e: DropdownChangeEvent) => updateFilterCriteria(e.value, "supplierStatus")}
-                                options={[{ label: 'All', value: 'All' }, ...supplierStatusList]}
-                                optionLabel="label"
-                                className="w-full"
-                            />
-                        </div>
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-2 w-[calc(100%-100px)]">
                         <div className="flex flex-col gap-2 w-full">
                             <label htmlFor="sdsStatus">SDS Status</label>
                             <Dropdown
                                 value={filters.sdsStatus}
-                                onChange={(e: DropdownChangeEvent) => updateFilterCriteria(e.value, "sdsStatus")}
-                                options={[{ label: 'All', value: 'All' }, ...sdsStatusList]}
+                                onChange={(e: DropdownChangeEvent) => handleInputChange(e.value, "sdsStatus")}
+                                options={[
+                                    { label: 'All', value: 'All' },
+                                    { label: 'Supplier Pending', value: 'Supplier Pending' },
+                                    { label: 'Rejected', value: 'Rejected' },
+                                    { label: 'Completed', value: 'Completed' },
+                                    { label: 'Wait for JATH Approve', value: 'Wait for JATH Approve' },
+                                ]}
                                 optionLabel="label"
                                 className="w-full"
                             />
@@ -530,7 +494,7 @@ export default function SummaryReport() {
                             <label htmlFor="delayNotDelay">Delay / Not Delay</label>
                             <Dropdown
                                 value={filters.delayNotDelay}
-                                onChange={(e: DropdownChangeEvent) => updateFilterCriteria(e.value, "delayNotDelay")}
+                                onChange={(e: DropdownChangeEvent) => handleInputChange(e.value, "delayNotDelay")}
                                 options={[
                                     { label: 'All', value: 'All' },
                                     { label: 'Delay', value: 'Delay' },
@@ -548,7 +512,7 @@ export default function SummaryReport() {
                     value={sampleDataList}
                     showGridlines
                     className='table-header-center mt-4'
-                    onRowClick={(e) => fetchReportHistory(`SDS-${e.data.no}`, true)}
+                    onRowClick={(e) => openHistory(e.data as DataSummaryReportTable)}
                     footer={<Paginator
                         first={first}
                         rows={rows}
@@ -584,7 +548,7 @@ export default function SummaryReport() {
                 <ReportHistoryModal
                     visible={visibleHistory}
                     onHide={() => setVisibleHistory(false)}
-                    historyData={selectedReportHistory}
+                    historyData={selectedReportHistory.slice(firstHistory, firstHistory + rowsHistory)}
                     first={firstHistory}
                     rows={rowsHistory}
                     totalRecords={totalRowsHistory}

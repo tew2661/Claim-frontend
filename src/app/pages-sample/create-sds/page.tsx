@@ -213,6 +213,7 @@ export default function CreateSDS() {
             <Button 
                 label={isEdit ? "Edit" : "Create"} 
                 className="p-button-text p-button-sm text-blue-600"
+                disabled={row.supplierStatus === 'Completed' || row.supplierStatus === 'Submitted'}
                 onClick={() => {
                     if (isEdit) {
                         router.push(`/pages-sample/create-sds/edit/${row.id}`);
@@ -221,6 +222,31 @@ export default function CreateSDS() {
                     }
                 }}
             />
+        );
+    };
+
+    const statusBodyTemplate = (rowData: CreateSDSData) => {
+        const getStatusColor = (status: string) => {
+            switch (status) {
+                case 'Completed':
+                    return 'text-green-600';
+                case 'Submitted':
+                    return 'text-green-600';
+                case 'Rejected':
+                    return 'text-red-600';
+                case 'Pending':
+                    return 'text-orange-500';
+                case 'Wait for JATH Approve':
+                    return 'text-yellow-600';
+                default:
+                    return 'text-gray-500';
+            }
+        };
+
+        return (
+            <div className={`font-medium ${getStatusColor(rowData.supplierStatus)}`}>
+                {rowData.supplierStatus}
+            </div>
         );
     };
 
@@ -312,7 +338,7 @@ export default function CreateSDS() {
                     <Column field="partName" header="Part Name" bodyStyle={{ width: '15%' }}></Column>
                     <Column field="model" header="Model" bodyStyle={{ width: '8%', textAlign: 'center' }}></Column>
                     <Column header="SDS Type" body={sdsTypeBody} bodyStyle={{ width: '8%', textAlign: 'center' }}></Column>
-                    <Column field="supplierStatus" header="Supplier Status" bodyStyle={{ width: '10%', textAlign: 'center' }}></Column>
+                    <Column field="supplierStatus" body={statusBodyTemplate} header="Supplier Status" bodyStyle={{ width: '10%', textAlign: 'center' }}></Column>
                     <Column header="Due Date" body={dueDateBody} bodyStyle={{ width: '10%', textAlign: 'center' }}></Column>
                     <Column header="Create SDS" body={createSDSBody} bodyStyle={{ width: '8%', textAlign: 'center' }}></Column>
                 </DataTable>

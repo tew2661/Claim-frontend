@@ -200,7 +200,7 @@ export function SDSApprovalTable(props: { checker: 1 | 2 | 3 }) {
     const statusBodyTemplate = (rowData: DataSDS) => {
         const getStatusColor = (status: string) => {
             switch (status) {
-                case 'Processed':
+                case 'Completed':
                     return 'text-green-600';
                 case 'Rejected':
                     return 'text-red-600';
@@ -341,30 +341,52 @@ export function SDSApprovalTable(props: { checker: 1 | 2 | 3 }) {
     const [visibleHistory, setVisibleHistory] = useState<boolean>(false);
     const [selectedReportHistory, setSelectedReportHistory] = useState<any[]>([]);
     const [firstHistory, setFirstHistory] = useState<number>(0);
-    const [rowsHistory, setRowsHistory] = useState<number>(5);
+    const [rowsHistory, setRowsHistory] = useState<number>(10);
     const [totalRowsHistory, setTotalRowsHistory] = useState<number>(0);
+    const [selectedSdsInspectionDetailId, setSelectedSdsInspectionDetailId] = useState<number | null>(null);
 
-    // Mock history data fetch
-    const GetHistoryDatas = async (sdsId: number, page = 0, size = 5) => {
-        // In real implementation call API with sdsId, page and size
-        const mockHistory = [
-            { qprNo: 'SDS-001', documentType: 'SDS', action: 'Created', actionRole: 'Supplier', actionBy: 'sup_user', actionDate: '2025-08-10 10:15', remark: 'Initial upload' },
-            { qprNo: 'SDS-001', documentType: 'SDS', action: 'Submitted', actionRole: 'Checker1', actionBy: 'checker1', actionDate: '2025-08-11 09:05', remark: 'Please review' },
-            { qprNo: 'SDS-001', documentType: 'SDS', action: 'Reviewed', actionRole: 'Checker2', actionBy: 'checker2', actionDate: '2025-08-12 11:25', remark: 'OK' },
-            { qprNo: 'SDS-001', documentType: 'SDS', action: 'Approved', actionRole: 'Approver', actionBy: 'approver', actionDate: '2025-08-13 14:40', remark: 'Approved' },
-        ];
+    // Fetch history data using sdsInspectionDetailId
+    const GetHistoryDatas = async (sdsInspectionDetailId: number) => {
+        try {
+            const response = await Get({ 
+                url: `/sds-log/by-inspection-detail?sdsInspectionDetailId=${sdsInspectionDetailId}` 
+            });
 
-        // simple pagination simulation
-        const start = page;
-        const end = Math.min(start + size, mockHistory.length);
-        const pageData = mockHistory.slice(start, end);
+            if (!response.ok) {
+                throw new Error('Failed to load history');
+            }
 
-        setSelectedReportHistory(pageData);
-        setTotalRowsHistory(mockHistory.length);
+            const payload = await response.json();
+            const logs = payload?.data ?? [];
+
+            // Map to match the interface
+            const mappedLogs = logs.map((log: any) => ({
+                id: log.id,
+                menu: log.menu,
+                action: log.action,
+                actionRole: log.actionRole || '-',
+                actionBy: log.actionBy || '-',
+                actionDate: log.actionDate ? moment(log.actionDate).format('YYYY-MM-DD HH:mm:ss') : '-',
+                remark: log.remark || '-',
+            }));
+
+            setSelectedReportHistory(mappedLogs);
+            setTotalRowsHistory(mappedLogs.length);
+        } catch (error) {
+            console.error('Failed to load history:', error);
+            toast.current?.show({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'Cannot load history data',
+            });
+            setSelectedReportHistory([]);
+            setTotalRowsHistory(0);
+        }
     };
 
     const openHistory = async (row: DataSDS) => {
-        await GetHistoryDatas(row.id, 0, rowsHistory);
+        setSelectedSdsInspectionDetailId(row.id);
+        await GetHistoryDatas(row.id);
         setFirstHistory(0);
         setVisibleHistory(true);
     }
@@ -567,16 +589,13 @@ export function SDSApprovalTable(props: { checker: 1 | 2 | 3 }) {
                 <ReportHistoryModal
                     visible={visibleHistory}
                     onHide={() => setVisibleHistory(false)}
-                    historyData={selectedReportHistory}
+                    historyData={selectedReportHistory.slice(firstHistory, firstHistory + rowsHistory)}
                     first={firstHistory}
                     rows={rowsHistory}
                     totalRecords={totalRowsHistory}
                     onPageChange={(event) => {
                         setFirstHistory(event.first);
                         setRowsHistory(event.rows);
-                        // fetch new page slice
-                        // event.first contains the index of the first item => use it as offset
-                        GetHistoryDatas(0, event.first, event.rows);
                     }}
                 />
             </div>
