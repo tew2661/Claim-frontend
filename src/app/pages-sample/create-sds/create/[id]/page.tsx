@@ -473,10 +473,10 @@ export default function CreateSDSForm() {
                     </div>
 
                     {/* Section 1: 08-2025 Production */}
-                    <div className="mb-6 p-4 bg-gray-50 rounded">
+                    <div className="mb-6 py-4 px-2 bg-gray-50 rounded">
                         <div className="flex items-center gap-4">
-                            <span className="font-semibold">1. {form.sdrDate ? moment(form.sdrDate).format('MM-YYYY'): '-'} Production :</span>
-                            <div className="flex gap-4">
+                            <span className="font-semibold text-lg">1. {form.sdrDate ? moment(form.sdrDate).format('MM-YYYY'): '-'} Production :</span>
+                            <div className="flex gap-4 text-lg">
                                 {productionOptions.map((option) => (
                                     <div key={option.value} className="flex items-center gap-2">
                                         <input
@@ -496,7 +496,7 @@ export default function CreateSDSForm() {
                     </div>
 
                     {/* Section 2: SDR Sample Data Report */}
-                    <div className="mb-6">
+                    <div className="mb-6 px-2">
                         <h3 className="font-semibold text-lg mb-3">2. SDR : Sample Data Report</h3>
                         <div className={`border rounded p-4 flex flex-col items-center justify-center ${form.production08_2025 === 'No' ? 'bg-gray-200' : 'bg-gray-50'}`} style={{ minHeight: '300px' }}>
                             <div className="text-center mb-4">
@@ -609,7 +609,7 @@ export default function CreateSDSForm() {
                                                     value={row.measuringItem}
                                                     onChange={(e) => updateSdrData(rowIndex, 'measuringItem', e.target.value)}
                                                     className="w-full"
-                                                    disabled={form.production08_2025 === 'No'}
+                                                    disabled
                                                 />
                                             </td>
                                             <td className="border p-2">
@@ -620,7 +620,7 @@ export default function CreateSDSForm() {
                                                     inputStyle={{
                                                         width: '100px'
                                                     }}
-                                                    disabled={form.production08_2025 === 'No'}
+                                                    disabled
                                                 />
                                             </td>
                                             <td className="border p-2">
@@ -629,7 +629,7 @@ export default function CreateSDSForm() {
                                                     options={rankOptions}
                                                     onChange={(e) => updateSdrData(rowIndex, 'rank', e.value)}
                                                     className="w-full"
-                                                    disabled={form.production08_2025 === 'No'}
+                                                    disabled
                                                 />
                                             </td>
                                             <td className="border p-2">
@@ -637,7 +637,7 @@ export default function CreateSDSForm() {
                                                     value={row.inspectionInstrument}
                                                     onChange={(e) => updateSdrData(rowIndex, 'inspectionInstrument', e.target.value)}
                                                     className="w-full"
-                                                    disabled={form.production08_2025 === 'No'}
+                                                    disabled
                                                 />
                                             </td>
                                             <td className="border p-2 text-center">
@@ -665,10 +665,14 @@ export default function CreateSDSForm() {
                                                                 value={sampleValue}
                                                                 onChange={(e) => updateSampleValue(rowIndex, sampleIndex, e.value)}
                                                                 className="w-full"
-                                                                inputStyle={{ 
+                                                                inputStyle={{
                                                                     ...isRed ? { backgroundColor: '#fee', color: 'red', fontWeight: 'bold' } : {},
                                                                     width: '100px'
                                                                 }}
+                                                                mode="decimal"
+                                                                step={0.01}
+                                                                minFractionDigits={0}
+                                                                maxFractionDigits={3}
                                                                 disabled={form.production08_2025 === 'No'}
                                                             />
                                                         ) : (
