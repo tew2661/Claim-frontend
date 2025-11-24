@@ -26,15 +26,15 @@ function LayoutPages({
         if (!IsJtekt) {
             router.push('/pages-sample'); 
         } else {
-            if ((getCheckerLevel(pathname) == 'checker1' && role == 'Leader / Engineer') || NEXT_TEST) {
-                setPages(<>{children}</>)
-            } else if ((getCheckerLevel(pathname) == 'checker2' && role == 'Supervision / Asistant Manager') || NEXT_TEST) {
-                setPages(<>{children}</>)
-            } else if ((getCheckerLevel(pathname) == 'checker3' && (role == 'Manager' || role == 'GM / DGM' || role == 'Plant Manager') || NEXT_TEST)) {
-                setPages(<>{children}</>)
-            } else {
-                router.back()
-            }  
+            // if ((getCheckerLevel(pathname) == 'checker1' && role == 'Leader / Engineer') || NEXT_TEST) {
+            //     setPages(<>{children}</>)
+            // } else if ((getCheckerLevel(pathname) == 'checker2' && role == 'Supervision / Asistant Manager') || NEXT_TEST) {
+            //     setPages(<>{children}</>)
+            // } else if ((getCheckerLevel(pathname) == 'checker3' && (role == 'Manager' || role == 'GM / DGM' || role == 'Plant Manager') || NEXT_TEST)) {
+            //     setPages(<>{children}</>)
+            // } else {
+            //     router.back()
+            // }  
         }
     }, [pathname]); // useEffect จะทำงานเมื่อ pathname หรือ router เปลี่ยน
 
