@@ -35,6 +35,7 @@ function LayoutPages({
             // } else {
             //     router.back()
             // }  
+            setPages(<>{children}</>)
         }
     }, [pathname]); // useEffect จะทำงานเมื่อ pathname หรือ router เปลี่ยน
 
