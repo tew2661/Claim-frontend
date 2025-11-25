@@ -68,7 +68,7 @@ export default function ApprovedTable(props: { checker: 1 | 2 | 3 }) {
 
     const getActionStatus = (x: FormDataQpr, checker: number): boolean => {
         const key = `${checker}-${x.delayDocument}` as `${1 | 2 | 3}-Quick Report` | `${1 | 2 | 3}-8D Report`;
-        
+
         const conditions: Record<`${1 | 2 | 3}-Quick Report` | `${1 | 2 | 3}-8D Report`, boolean> = {
             "1-Quick Report": x.quickReportStatus !== 'Rejected' && x.quickReportSupplierStatus == "Approved" && !x.quickReportStatusChecker1,
             "2-Quick Report": x.quickReportStatus !== 'Rejected' && x.quickReportSupplierStatus == "Approved" && x.quickReportStatusChecker1 === 'Approved' && !x.quickReportStatusChecker2,
@@ -76,21 +76,21 @@ export default function ApprovedTable(props: { checker: 1 | 2 | 3 }) {
             "1-8D Report": x.eightDReportStatus !== 'Rejected' && x.eightDReportSupplierStatus == "Approved" && !x.eightDStatusChecker1,
             "2-8D Report": x.eightDReportStatus !== 'Rejected' && x.eightDReportSupplierStatus == "Approved" && x.eightDStatusChecker1 === 'Approved' && !x.eightDStatusChecker2,
             "3-8D Report": (
-                (x.eightDReportStatus !== 'Rejected' && x.eightDReportSupplierStatus == "Approved" && x.eightDStatusChecker2 === 'Approved' && !x.eightDStatusChecker3) || 
+                (x.eightDReportStatus !== 'Rejected' && x.eightDReportSupplierStatus == "Approved" && x.eightDStatusChecker2 === 'Approved' && !x.eightDStatusChecker3) ||
                 (x.eightDStatusChecker3 === "Approved" && x.eightDReportSupplierStatus == "Approved" && x.eightDStatusChecker2 !== 'Completed')
             ) && x.eightDReportApprover === role,
-        };    
+        };
         return conditions[key] ?? false;
     };
-    
+
     const getStatus = (x: FormDataQpr, checker: number): "Pending" | "Approved" | "Rejected" | "Wait for Supplier" | "Completed" => {
         if (!x.delayDocument || (x.delayDocument !== "Quick Report" && x.delayDocument !== "8D Report")) {
             return "Pending"; // ป้องกัน undefined หรือค่าอื่นๆ
         }
-    
+
         const key = `${checker}-${x.delayDocument}` as `${1 | 2 | 3}-Quick Report` | `${1 | 2 | 3}-8D Report`;
-    
-        const statusMap: Record<`${1 | 2 | 3}-Quick Report` | `${1 | 2 | 3}-8D Report`, "Pending" | "Approved" | "Rejected" | "Wait for Supplier"| "Completed"> = {
+
+        const statusMap: Record<`${1 | 2 | 3}-Quick Report` | `${1 | 2 | 3}-8D Report`, "Pending" | "Approved" | "Rejected" | "Wait for Supplier" | "Completed"> = {
             "1-Quick Report": x.quickReportStatusChecker1 || "Pending",
             "2-Quick Report": x.quickReportStatusChecker2 || "Pending",
             "3-Quick Report": x.quickReportStatusChecker3 || "Pending",
@@ -98,18 +98,18 @@ export default function ApprovedTable(props: { checker: 1 | 2 | 3 }) {
             "2-8D Report": x.eightDStatusChecker2 || "Pending",
             "3-8D Report": x.eightDStatusChecker3 || "Pending",
         };
-    
+
         return statusMap[key] ?? "Pending"; // ใช้ key อย่างปลอดภัย
     };
-    
-    
+
+
     const GetDatas = async () => {
-        const queryString = CreateQueryString({ 
+        const queryString = CreateQueryString({
             ...filters,
             page: `checker${props.checker}`
         });
         const res = await Get({ url: `/qpr?limit=${rows}&offset=${first}&${queryString}` });
-    
+
         if (res.ok) {
             const res_data = await res.json();
             setTotalRows(res_data.total || 0);
@@ -135,7 +135,7 @@ export default function ApprovedTable(props: { checker: 1 | 2 | 3 }) {
             });
         }
     };
-    
+
     const socketRef = useRef<Socket | null>(null);
     const SocketConnect = () => {
         if (!socketRef.current) {
@@ -143,28 +143,28 @@ export default function ApprovedTable(props: { checker: 1 | 2 | 3 }) {
         }
 
         const socket = socketRef.current;
-    
+
         socket.on("create-qpr", () => GetDatas());
-    
+
         socket.on("reload-status", (x: FormDataQpr) => {
             setQprList((old: DataQPR[]) =>
                 old.map((arr: DataQPR) =>
                     arr.id === x.id
                         ? {
-                              ...arr,
-                              status: getStatus(x, props.checker),
-                              action: getActionStatus(x, props.checker),
-                          }
+                            ...arr,
+                            status: getStatus(x, props.checker),
+                            action: getActionStatus(x, props.checker),
+                        }
                         : arr
                 )
             );
         });
-    
+
         return () => {
             socket.off("create-qpr");
             socket.off("reload-status");
         };
-    };    
+    };
 
     const [supplier, setSupplier] = useState<{ label: string, value: string }[]>([]);
     const GetSupplier = async () => {
@@ -185,7 +185,7 @@ export default function ApprovedTable(props: { checker: 1 | 2 | 3 }) {
 
     useEffect(() => {
         GetDatas()
-    },[first , rows])
+    }, [first, rows])
 
     return (
         <div className="flex justify-center pt-6 px-6">

@@ -27,6 +27,8 @@ interface CreateSDSData {
     hasDelay: boolean;
     delayDays?: number;
     sdsCreated: boolean;
+    canCreateSds: boolean;
+    sheetId: number;
 }
 
 interface FilterState {
@@ -106,14 +108,14 @@ export default function CreateSDS() {
                 params.monthYear = monthYearString;
             }
             const query = CreateQueryString(params);
-            const path = `/sample-data-sheet/inspection-details${query ? `?${query}` : ''}`;
+            const path = `/sample-data-sheet/inspection-details-page-created-sds${query ? `?${query}` : ''}`;
             const response = await Get({ url: path });
             if (!response.ok) {
                 throw new Error('ไม่สามารถโหลดข้อมูล Create SDS ได้ในขณะนี้');
             }
             const payload = await response.json();
             const body = payload?.data ?? {};
-            const list = (body.items ?? []) as CreateSDSData[];
+            const list = (body.items ?? []).map((x: any) => ({ ...x, sheetId: x.sheet_id })) as CreateSDSData[];
             setData(list);
             setTotalRows(body.total ?? list.length);
         } catch (error) {
@@ -210,15 +212,19 @@ export default function CreateSDS() {
 
     const createSDSBody = (row: CreateSDSData) => {
         const isEdit = row.sdsCreated;
+        if (((row.supplierStatus === 'Completed' || row.supplierStatus === 'Submitted') || row.canCreateSds === false)) {
+            return (
+                <></>
+            );
+        }
         return (
-            <Button 
-                label={isEdit ? "Edit" : "Create"} 
+            <Button
+                label={isEdit ? "Edit" : "Create"}
                 className="p-button-text p-button-sm text-blue-600"
-                disabled={row.supplierStatus === 'Completed' || row.supplierStatus === 'Submitted'}
                 onClick={() => {
                     if (isEdit) {
-                        router.push(`/pages-sample/create-sds/edit/${row.id}`);
-                    } else {
+                        router.push(`/pages-sample/create-sds/edit/${row.sheetId}`);
+                    } else if (row.canCreateSds) {
                         router.push(`/pages-sample/create-sds/create/${row.id}`);
                     }
                 }}
@@ -303,32 +309,32 @@ export default function CreateSDS() {
                         </div>
                         <div className="flex flex-col gap-2 w-full">
                             <label>SDS Type</label>
-                            <Dropdown 
-                                value={filters.sdsType} 
-                                onChange={(e) => handleDropdownFilterChange(e.value, 'sdsType')} 
-                                options={sdsTypeOptions} 
-                                optionLabel="label" 
-                                className="w-full" 
+                            <Dropdown
+                                value={filters.sdsType}
+                                onChange={(e) => handleDropdownFilterChange(e.value, 'sdsType')}
+                                options={sdsTypeOptions}
+                                optionLabel="label"
+                                className="w-full"
                             />
                         </div>
                     </div>
                 </div>
 
-                <DataTable 
-                    value={data} 
-                    showGridlines 
-                    className='table-header-center mt-4' 
+                <DataTable
+                    value={data}
+                    showGridlines
+                    className='table-header-center mt-4'
                     footer={
-                        <Paginator 
-                            first={first} 
-                            rows={rows} 
-                            totalRecords={totalRows} 
-                            template={TemplatePaginator} 
-                            rowsPerPageOptions={[10, 20, 50, 100]} 
-                            onPageChange={(event) => { 
-                                setFirst(event.first); 
-                                setRows(event.rows); 
-                            }} 
+                        <Paginator
+                            first={first}
+                            rows={rows}
+                            totalRecords={totalRows}
+                            template={TemplatePaginator}
+                            rowsPerPageOptions={[10, 20, 50, 100]}
+                            onPageChange={(event) => {
+                                setFirst(event.first);
+                                setRows(event.rows);
+                            }}
                         />
                     }
                 >

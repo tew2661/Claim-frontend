@@ -27,13 +27,13 @@ export default function InspectionDetailForm({ mode, data }: Props) {
     const IsSupplier = (process.env.NEXT_MODE == 'supplier');
     const userInStorage = localStorage.getItem('user');
     const user = userInStorage ? JSON.parse(userInStorage) : null;
-    
+
     // Check if form is locked for supplier mode
     const isLocked = IsSupplier && mode === 'edit' && data?.supplierEditStatus === 'Locked';
-    
+
     // Show confirmation dialog for supplier edit mode
     const [showEditConfirmation, setShowEditConfirmation] = useState(false);
-    
+
     const [form, setForm] = useState<any>({
         supplierCode: (user.supplier && user.supplier.supplierCode ? user.supplier.supplierCode : '') || data?.supplierCode,
         supplierName: (user.supplier && user.supplier.supplierName ? user.supplier.supplierName : '') || data?.supplierName,
@@ -42,14 +42,14 @@ export default function InspectionDetailForm({ mode, data }: Props) {
         model: data?.model || '',
         aisFileName: data?.aisFile || '',
         sdrFileName: data?.sdrFile || '',
-        inspectionItems: data?.inspectionItems || [{ 
-            no: 1, 
-            measuringItem: '', 
-            specification: '', 
-            tolerancePlus: '', 
-            toleranceMinus: '', 
-            inspectionInstrument: '', 
-            rank: '' 
+        inspectionItems: data?.inspectionItems || [{
+            no: 1,
+            measuringItem: '',
+            specification: '',
+            tolerancePlus: '',
+            toleranceMinus: '',
+            inspectionInstrument: '',
+            rank: ''
         }],
         partStatus: data?.partStatus || 'Inactive',
         supplierEditStatus: data?.supplierEditStatus || 'Unlocked'
@@ -60,7 +60,7 @@ export default function InspectionDetailForm({ mode, data }: Props) {
 
     const handleConfirmEdit = async () => {
         setShowEditConfirmation(false);
-        
+
         // Actually save the data
         const payload = buildPayload();
         const formData = buildFormData(payload);
@@ -185,17 +185,17 @@ export default function InspectionDetailForm({ mode, data }: Props) {
     }, [data]);
 
     const addInspectionItem = () => {
-        setForm((old: any) => ({ 
-            ...old, 
-            inspectionItems: [...old.inspectionItems, { 
-                no: old.inspectionItems.length + 1, 
-                measuringItem: '', 
-                specification: '', 
-                tolerancePlus: '', 
-                toleranceMinus: '', 
-                inspectionInstrument: '', 
-                rank: '' 
-            }] 
+        setForm((old: any) => ({
+            ...old,
+            inspectionItems: [...old.inspectionItems, {
+                no: old.inspectionItems.length + 1,
+                measuringItem: '',
+                specification: '',
+                tolerancePlus: '',
+                toleranceMinus: '',
+                inspectionInstrument: '',
+                rank: ''
+            }]
         }));
     }
 
@@ -374,7 +374,7 @@ export default function InspectionDetailForm({ mode, data }: Props) {
     return (
         <div className="bg-white rounded-lg shadow-lg p-6 h-[calc(100vh-250px)] overflow-auto">
             <Toast ref={toast} />
-            
+
             {/* Edit Confirmation Dialog for Supplier */}
             <Dialog
                 header={
@@ -466,8 +466,8 @@ export default function InspectionDetailForm({ mode, data }: Props) {
                 <div className="grid grid-cols-2 gap-3">
                     <div>
                         <label>Supplier Code <span className="text-red-500">*</span></label>
-                        <Dropdown 
-                            value={form.supplierCode} 
+                        <Dropdown
+                            value={form.supplierCode}
                             onChange={(e) => {
                                 const selected = supplierOptions.find((option) => option.value === e.value);
                                 setForm((old: any) => ({
@@ -475,49 +475,49 @@ export default function InspectionDetailForm({ mode, data }: Props) {
                                     supplierCode: e.value,
                                     supplierName: selected?.supplierName ?? old.supplierName,
                                 }));
-                            }} 
-                            options={supplierOptions} 
-                            className="w-full" 
+                            }}
+                            options={supplierOptions}
+                            className="w-full"
                             placeholder="Select Supplier Code"
                             disabled={isLocked || IsSupplier}
                         />
                     </div>
                     <div>
                         <label>Supplier Name <span className="text-red-500">*</span></label>
-                        <InputText 
-                            value={form.supplierName} 
-                            onChange={(e) => setForm((old: any) => ({ ...old, supplierName: e.target.value }))} 
-                            className="w-full" 
+                        <InputText
+                            value={form.supplierName}
+                            onChange={(e) => setForm((old: any) => ({ ...old, supplierName: e.target.value }))}
+                            className="w-full"
                             placeholder="Enter Supplier Name"
                             disabled={isLocked || IsSupplier}
                         />
                     </div>
                     <div>
                         <label>Part No. <span className="text-red-500">*</span></label>
-                        <InputText 
-                            value={form.partNo} 
-                            onChange={(e) => setForm((old: any) => ({ ...old, partNo: e.target.value }))} 
-                            className="w-full" 
+                        <InputText
+                            value={form.partNo}
+                            onChange={(e) => setForm((old: any) => ({ ...old, partNo: e.target.value }))}
+                            className="w-full"
                             placeholder="Enter Part No."
                             disabled={isLocked}
                         />
                     </div>
                     <div>
                         <label>Part Name <span className="text-red-500">*</span></label>
-                        <InputText 
-                            value={form.partName} 
-                            onChange={(e) => setForm((old: any) => ({ ...old, partName: e.target.value }))} 
-                            className="w-full" 
+                        <InputText
+                            value={form.partName}
+                            onChange={(e) => setForm((old: any) => ({ ...old, partName: e.target.value }))}
+                            className="w-full"
                             placeholder="Enter Part Name"
                             disabled={isLocked}
                         />
                     </div>
                     <div>
                         <label>Model <span className="text-red-500">*</span></label>
-                        <InputText 
-                            value={form.model} 
-                            onChange={(e) => setForm((old: any) => ({ ...old, model: e.target.value }))} 
-                            className="w-full" 
+                        <InputText
+                            value={form.model}
+                            onChange={(e) => setForm((old: any) => ({ ...old, model: e.target.value }))}
+                            className="w-full"
                             placeholder="Enter Model"
                             disabled={isLocked}
                         />
@@ -526,20 +526,20 @@ export default function InspectionDetailForm({ mode, data }: Props) {
 
                 <div className="mt-4">
                     <h3 className="font-medium">Upload File <span className="text-red-500">*</span></h3>
-                        <div className="grid grid-cols-2 gap-4 items-center">
+                    <div className="grid grid-cols-2 gap-4 items-center">
                         <div>
                             <div className="mb-2">AIS <span className="text-red-500">*</span></div>
                             <div className="flex flex-col gap-1">
                                 <div className="flex gap-2 items-center">
-                                    <InputText 
-                                        placeholder="File Name" 
-                                        value={uploadAisFile?.name || form.aisFileName} 
-                                        readOnly 
-                                        className="w-2/3" 
+                                    <InputText
+                                        placeholder="File Name"
+                                        value={uploadAisFile?.name || form.aisFileName}
+                                        readOnly
+                                        className="w-2/3"
                                     />
-                                    <Button 
-                                        label="Download" 
-                                        className="p-button-primary" 
+                                    <Button
+                                        label="Download"
+                                        className="p-button-primary"
                                         disabled={!uploadAisFile && !form.aisFileName}
                                         onClick={() => {
                                             if (uploadAisFile) {
@@ -550,9 +550,9 @@ export default function InspectionDetailForm({ mode, data }: Props) {
                                             }
                                         }}
                                     />
-                                    <Button 
-                                        label="Upload PDF File" 
-                                        className="p-button-secondary" 
+                                    <Button
+                                        label="Upload PDF File"
+                                        className="p-button-secondary"
                                         onClick={() => document.getElementById('upload-ais-file-id')?.click()}
                                         disabled={isLocked}
                                     />
@@ -571,21 +571,21 @@ export default function InspectionDetailForm({ mode, data }: Props) {
                                         }}
                                     />
                                 </div>
-                                
+
                             </div>
                         </div>
                         <div>
                             <div className="mb-2">SDR : Cover Page <span className="text-red-500">*</span></div>
                             <div className="flex flex-col gap-1">
                                 <div className="flex gap-2 items-center">
-                                    <InputText 
-                                        placeholder="File Name" 
-                                        value={uploadSdrFile?.name || form.sdrFileName} 
-                                        readOnly 
-                                        className="w-2/3" 
+                                    <InputText
+                                        placeholder="File Name"
+                                        value={uploadSdrFile?.name || form.sdrFileName}
+                                        readOnly
+                                        className="w-2/3"
                                     />
-                                    <Button 
-                                        label="Download" 
+                                    <Button
+                                        label="Download"
                                         className="p-button-primary"
                                         disabled={!uploadSdrFile && !form.sdrFileName}
                                         onClick={() => {
@@ -597,8 +597,8 @@ export default function InspectionDetailForm({ mode, data }: Props) {
                                             }
                                         }}
                                     />
-                                    <Button 
-                                        label="Upload PDF File" 
+                                    <Button
+                                        label="Upload PDF File"
                                         className="p-button-secondary"
                                         onClick={() => document.getElementById('upload-sdr-file-id')?.click()}
                                         disabled={isLocked}
@@ -618,7 +618,7 @@ export default function InspectionDetailForm({ mode, data }: Props) {
                                         }}
                                     />
                                 </div>
-                                
+
                             </div>
                         </div>
                     </div>
@@ -635,14 +635,14 @@ export default function InspectionDetailForm({ mode, data }: Props) {
                                 </div>
                                 <div className="col-span-11">
                                     <label className="block mb-1">Measuring Item <span className="text-red-500">*</span></label>
-                                    <InputText 
-                                        value={it.measuringItem} 
+                                    <InputText
+                                        value={it.measuringItem}
                                         onChange={(e) => {
-                                            const arr = [...form.inspectionItems]; 
-                                            arr[idx].measuringItem = e.target.value; 
+                                            const arr = [...form.inspectionItems];
+                                            arr[idx].measuringItem = e.target.value;
                                             setForm((old: any) => ({ ...old, inspectionItems: arr }));
-                                        }} 
-                                        placeholder="Enter Measuring Item" 
+                                        }}
+                                        placeholder="Enter Measuring Item"
                                         className="w-full"
                                         disabled={isLocked}
                                     />
@@ -651,8 +651,8 @@ export default function InspectionDetailForm({ mode, data }: Props) {
                             <div className="grid grid-cols-12 gap-3 mb-2">
                                 <div className="col-span-3">
                                     <label className="block mb-1">Specification / Standard <span className="text-red-500">*</span></label>
-                                    <InputText 
-                                        value={it.specification} 
+                                    <InputText
+                                        value={it.specification}
                                         onChange={(e) => {
                                             const arr = [...form.inspectionItems];
                                             // Allow only numbers with up to 4 decimal places
@@ -661,16 +661,16 @@ export default function InspectionDetailForm({ mode, data }: Props) {
                                                 arr[idx].specification = value;
                                                 setForm((old: any) => ({ ...old, inspectionItems: arr }));
                                             }
-                                        }} 
-                                        placeholder="0.0000" 
+                                        }}
+                                        placeholder="0.0000"
                                         className="w-full"
                                         disabled={isLocked}
                                     />
                                 </div>
                                 <div className="col-span-2">
                                     <label className="block mb-1">Tolerance (+) <span className="text-red-500">*</span></label>
-                                    <InputText 
-                                        value={it.tolerancePlus} 
+                                    <InputText
+                                        value={it.tolerancePlus}
                                         onChange={(e) => {
                                             const arr = [...form.inspectionItems];
                                             const value = e.target.value;
@@ -678,16 +678,16 @@ export default function InspectionDetailForm({ mode, data }: Props) {
                                                 arr[idx].tolerancePlus = value;
                                                 setForm((old: any) => ({ ...old, inspectionItems: arr }));
                                             }
-                                        }} 
-                                        placeholder="0.0000" 
+                                        }}
+                                        placeholder="0.0000"
                                         className="w-full"
                                         disabled={isLocked}
                                     />
                                 </div>
                                 <div className="col-span-2">
                                     <label className="block mb-1">Tolerance (-) <span className="text-red-500">*</span></label>
-                                    <InputText 
-                                        value={it.toleranceMinus} 
+                                    <InputText
+                                        value={it.toleranceMinus}
                                         onChange={(e) => {
                                             const arr = [...form.inspectionItems];
                                             const value = e.target.value;
@@ -695,43 +695,43 @@ export default function InspectionDetailForm({ mode, data }: Props) {
                                                 arr[idx].toleranceMinus = value;
                                                 setForm((old: any) => ({ ...old, inspectionItems: arr }));
                                             }
-                                        }} 
-                                        placeholder="0.0000" 
+                                        }}
+                                        placeholder="0.0000"
                                         className="w-full"
                                         disabled={isLocked}
                                     />
                                 </div>
                                 <div className="col-span-3">
                                     <label className="block mb-1">Inspection Instrument <span className="text-red-500">*</span></label>
-                                    <InputText 
-                                        value={it.inspectionInstrument} 
+                                    <InputText
+                                        value={it.inspectionInstrument}
                                         onChange={(e) => {
                                             const arr = [...form.inspectionItems];
                                             arr[idx].inspectionInstrument = e.target.value;
                                             setForm((old: any) => ({ ...old, inspectionItems: arr }));
-                                        }} 
-                                        placeholder="Enter Instrument" 
+                                        }}
+                                        placeholder="Enter Instrument"
                                         className="w-full"
                                         disabled={isLocked}
                                     />
                                 </div>
                                 <div className="col-span-2">
                                     <label className="block mb-1">Rank <span className="text-red-500">*</span></label>
-                                    <Dropdown 
-                                        value={it.rank} 
-                                        onChange={(e) => { 
-                                            const arr = [...form.inspectionItems]; 
-                                            arr[idx].rank = e.value; 
-                                            setForm((old: any) => ({ ...old, inspectionItems: arr })); 
-                                        }} 
+                                    <Dropdown
+                                        value={it.rank}
+                                        onChange={(e) => {
+                                            const arr = [...form.inspectionItems];
+                                            arr[idx].rank = e.value;
+                                            setForm((old: any) => ({ ...old, inspectionItems: arr }));
+                                        }}
                                         options={[
-                                            { label: 'A', value: 'A' }, 
-                                            { label: 'B', value: 'B' }, 
-                                            { label: 'C', value: 'C' }, 
-                                            { label: 'S', value: 'S' }, 
+                                            { label: 'A', value: 'A' },
+                                            { label: 'B', value: 'B' },
+                                            { label: 'C', value: 'C' },
+                                            { label: 'S', value: 'S' },
                                             { label: 'R', value: 'R' }
-                                        ]} 
-                                        className="w-full" 
+                                        ]}
+                                        className="w-full"
                                         placeholder="Select"
                                         disabled={isLocked}
                                     />
@@ -740,9 +740,9 @@ export default function InspectionDetailForm({ mode, data }: Props) {
                         </div>
                     ))}
                     <div>
-                        <Button 
-                            label="Add New" 
-                            className="p-button-danger" 
+                        <Button
+                            label="Add New"
+                            className="p-button-danger"
                             onClick={addInspectionItem}
                             disabled={isLocked}
                         />
@@ -754,41 +754,41 @@ export default function InspectionDetailForm({ mode, data }: Props) {
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             {
-                                IsSupplier ?  <label>Status (Active / Inactive) <span className="text-red-500">*</span></label> :
-                                <label>Part Status (Active / Inactive) <span className="text-red-500">*</span></label>
+                                IsSupplier ? <label>Status (Active / Inactive) <span className="text-red-500">*</span></label> :
+                                    <label>Part Status (Active / Inactive) <span className="text-red-500">*</span></label>
                             }
-                            <Dropdown 
-                                value={form.partStatus} 
-                                onChange={(e) => setForm((old: any) => ({ 
-                                    ...old, 
+                            <Dropdown
+                                value={form.partStatus}
+                                onChange={(e) => setForm((old: any) => ({
+                                    ...old,
                                     partStatus: e.value,
                                     ...e.value === 'Active' ? { supplierEditStatus: 'Locked' } : {}
-                                }))} 
+                                }))}
                                 options={[
-                                    { label: 'Active', value: 'Active' }, 
+                                    { label: 'Active', value: 'Active' },
                                     { label: 'Inactive', value: 'Inactive' }
-                                ]} 
-                                className="w-full" 
+                                ]}
+                                className="w-full"
                                 placeholder="Select Status"
                                 disabled={isLocked || IsSupplier}
                             />
                         </div>
                         <div>
                             {
-                                IsSupplier ?  <label>Edit (Locked / Unlock)<span className="text-red-500">*</span></label> :
-                                <label>Supplier Edit Status (Locked / Unlock) <span className="text-red-500">*</span></label>
+                                IsSupplier ? <label>Edit (Locked / Unlock)<span className="text-red-500">*</span></label> :
+                                    <label>Supplier Edit Status (Locked / Unlock) <span className="text-red-500">*</span></label>
                             }
-                            
-                            <Dropdown 
-                                value={form.supplierEditStatus} 
-                                onChange={(e) => setForm((old: any) => ({ ...old, supplierEditStatus: e.value }))} 
+
+                            <Dropdown
+                                value={form.supplierEditStatus}
+                                onChange={(e) => setForm((old: any) => ({ ...old, supplierEditStatus: e.value }))}
                                 options={[
-                                    { label: 'Locked', value: 'Locked' }, 
+                                    { label: 'Locked', value: 'Locked' },
                                     { label: 'Unlocked', value: 'Unlocked' }
-                                ]} 
-                                className="w-full" 
+                                ]}
+                                className="w-full"
                                 placeholder="Select Status"
-                                disabled={isLocked || IsSupplier || form.partStatus === 'Active'}
+                                disabled={isLocked || form.partStatus === 'Active'}
                             />
                         </div>
                     </div>
@@ -797,9 +797,9 @@ export default function InspectionDetailForm({ mode, data }: Props) {
                 <Footer>
                     <div className='flex justify-end mt-2 w-full gap-2'>
                         <Button label="Cancel" className="p-button-danger min-w-[150px]" onClick={() => router.back()} />
-                        <Button 
-                            label="SAVE" 
-                            className="p-button-primary min-w-[150px]" 
+                        <Button
+                            label="SAVE"
+                            className="p-button-primary min-w-[150px]"
                             onClick={handleSave}
                             disabled={isLocked}
                         />

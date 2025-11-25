@@ -19,6 +19,7 @@ import ReportHistoryModal from "./report-history-modal";
 
 interface DataSummaryReportTable {
     id: number,
+    sheetId: number,
     no: number,
     monthYear: string,
     supplierCode: string,
@@ -56,7 +57,7 @@ export default function SummaryReport() {
     const [totalRowsHistory, setTotalRowsHistory] = useState(0);
     const [sampleDataList, setSampleDataList] = useState<DataSummaryReportTable[]>([])
     const debounceTimerRef = useRef<number | null>(null);
-    
+
     const [filters, setFilters] = useState<FilterSummaryReport>({
         monthYear: null,
         supplierCode: "All",
@@ -84,10 +85,14 @@ export default function SummaryReport() {
     const [supplierList, setSupplierList] = useState<{ label: string; value: string; }[]>([]);
 
     // Fetch history data using sdsInspectionDetailId
-    const GetHistoryDatas = async (sdsInspectionDetailId: number) => {
+    const GetHistoryDatas = async (sdsId: number, inspectionDetailId: number) => {
         try {
-            const response = await Get({ 
-                url: `/sds-log/by-inspection-detail?sdsInspectionDetailId=${sdsInspectionDetailId}` 
+            const queryString = CreateQueryString({
+                sdsId,
+                inspectionDetailId,
+            });
+            const response = await Get({
+                url: `/sds-log/by-inspection-detail?${queryString}`
             });
 
             if (!response.ok) {
@@ -124,7 +129,7 @@ export default function SummaryReport() {
 
     const openHistory = async (row: DataSummaryReportTable) => {
         setSelectedSdsInspectionDetailId(row.id);
-        await GetHistoryDatas(row.id);
+        await GetHistoryDatas(row.sheetId, row.id);
         setFirstHistory(0);
         setVisibleHistory(true);
     };
@@ -171,29 +176,29 @@ export default function SummaryReport() {
 
     const exportSummaryReportToExcel = async () => {
         // TODO: Implement export functionality
-        toast.current?.show({ 
-            severity: 'info', 
-            summary: 'Export', 
-            detail: 'Export functionality will be implemented', 
-            life: 3000 
+        toast.current?.show({
+            severity: 'info',
+            summary: 'Export',
+            detail: 'Export functionality will be implemented',
+            life: 3000
         });
     };
 
     const viewDocument = async (id: number) => {
         // TODO: Navigate to view page
-        toast.current?.show({ 
-            severity: 'info', 
-            summary: 'View', 
-            detail: `View document ID: ${id}`, 
-            life: 3000 
+        toast.current?.show({
+            severity: 'info',
+            summary: 'View',
+            detail: `View document ID: ${id}`,
+            life: 3000
         });
     };
 
     const viewBodyTemplate = (rowData: DataSummaryReportTable) => {
         return (
-            <Button 
-                label="VIEW" 
-                className="p-button-link text-blue-500" 
+            <Button
+                label="VIEW"
+                className="p-button-link text-blue-500"
                 onClick={(e) => {
                     e.stopPropagation();
                     viewDocument(rowData.id);
@@ -210,6 +215,14 @@ export default function SummaryReport() {
                     return 'text-orange-500';
                 case 'Submitted':
                     return 'text-blue-500';
+                case 'Completed':
+                    return 'text-green-600';
+                case 'Rejected':
+                    return 'text-red-600';
+                case 'Wait for JATH Approve':
+                    return 'text-blue-600';
+                case 'Supplier Pending':
+                    return 'text-orange-500';
                 default:
                     return 'text-gray-500';
             }
@@ -303,7 +316,7 @@ export default function SummaryReport() {
             }
 
             const query = CreateQueryString(params);
-            const path = `/sample-data-sheet/inspection-details${query ? `?${query}` : ''}`;
+            const path = `/sample-data-sheet/summary-report${query ? `?${query}` : ''}`;
             const response = await Get({ url: path });
 
             if (!response.ok) {
@@ -316,6 +329,7 @@ export default function SummaryReport() {
 
             const mapped = items.map((item: any) => ({
                 id: item.id,
+                sheetId: item.sheet_id,
                 no: item.no,
                 monthYear: item.monthYear,
                 supplierCode: item.supplierCode ?? '',
@@ -392,13 +406,13 @@ export default function SummaryReport() {
     }, [fetchSummaryReportData]);
 
     return (
-       <div className="flex justify-center pt-6 px-6">
+        <div className="flex justify-center pt-6 px-6">
             <Toast ref={toast} />
             <div className="container">
                 <div className="mx-4 mb-4 text-2xl font-bold py-3 border-solid border-t-0 border-x-0 border-b-2 border-gray-600">
                     Summary Report
                 </div>
-                
+
                 {/* Filter Section */}
                 <div className="flex gap-2 mx-4 mb-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2 w-[calc(100%-100px)]">
@@ -430,11 +444,11 @@ export default function SummaryReport() {
                         </div>
                         <div className="flex flex-col gap-2 w-full">
                             <label>Part No</label>
-                            <InputText 
-                                value={filters.partNo} 
-                                onChange={(e) => handleInputFilterChange(e.target.value, 'partNo')} 
-                                placeholder="Enter Part No" 
-                                className="w-full" 
+                            <InputText
+                                value={filters.partNo}
+                                onChange={(e) => handleInputFilterChange(e.target.value, 'partNo')}
+                                placeholder="Enter Part No"
+                                className="w-full"
                             />
                         </div>
                         <div className="flex flex-col gap-2 w-full">
