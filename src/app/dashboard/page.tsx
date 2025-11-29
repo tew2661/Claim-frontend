@@ -71,10 +71,14 @@ export function Dashboard() {
     const [hasMoreInspection, setHasMoreInspection] = useState(true);
     const LIMIT = 30;
 
+    const [lastUpdated, setLastUpdated] = useState<string>('');
+
     const fetchDashboardData = async (skip = 0, append = false) => {
         try {
             if (!append) setLoading(true);
             else setLoadingMore(true);
+
+            console.log('Fetching dashboard data...', new Date().toLocaleTimeString());
 
             const params = new URLSearchParams();
             params.append('limit', LIMIT.toString());
@@ -87,6 +91,7 @@ export function Dashboard() {
 
             if (response.ok) {
                 const responseJson = await response.json();
+                setLastUpdated(moment().format('DD/MM/YYYY HH:mm:ss'));
 
                 if (append && dashboardData) {
                     // Append new data to existing data
@@ -237,8 +242,16 @@ export function Dashboard() {
     }, []);
 
     return (
-        <div className="p-2 sm:p-4 md:p-6 w-full h-full overflow-auto">
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
+        <div className="p-2 sm:p-4 md:p-6 w-full h-full overflow-auto relative">
+            {loading && !loadingMore && (
+                <div className="absolute top-0 right-0 m-4 z-50 bg-blue-500 text-white px-3 py-1 rounded-full text-xs shadow-md animate-pulse">
+                    Refreshing...
+                </div>
+            )}
+            <div className="absolute top-0 right-0 m-4 z-40 text-xs text-gray-500">
+                Last updated: {lastUpdated}
+            </div>
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6 pt-8">
                 {/* Left Side - Monthly and Yearly Status */}
                 <div className="space-y-4 md:space-y-6">
                     {/* Monthly Status */}
@@ -252,11 +265,11 @@ export function Dashboard() {
                                 <div className='flex items-center gap-2'>
                                     <div className='flex items-center gap-2 border border-green-500 px-3 py-1 rounded-xl bg-green-500 text-white'>
                                         <label>On Process Complete</label>
-                                        <label>{dashboardData?.monthly.onProcessCompleteCount}</label>
+                                        <label>{dashboardData?.monthly?.onProcessCompleteCount || 0}</label>
                                     </div>
                                     <div className='flex items-center gap-2 border border-red-500 px-3 py-1 rounded-xl bg-red-500 text-white'>
                                         <label>Delay</label>
-                                        <label>{dashboardData?.monthly.delayCount}</label>
+                                        <label>{dashboardData?.monthly?.delayCount || 0}</label>
                                     </div>
 
                                 </div>
@@ -276,7 +289,7 @@ export function Dashboard() {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {dashboardData?.monthly.delayData.map((row) => (
+                                            {dashboardData?.monthly?.delayData?.map((row) => (
                                                 <tr key={row.no} className="hover:bg-gray-50" style={{ backgroundColor: row.delay ? 'red' : 'transparent', color: row.delay ? 'white' : 'black' }}>
                                                     <td className="border border-gray-300 px-2 py-1">{row.no}</td>
                                                     <td className="border border-gray-300 px-2 py-1">{row.supplier}</td>
@@ -305,11 +318,11 @@ export function Dashboard() {
                                 <div className='flex items-center gap-2'>
                                     <div className='flex items-center gap-2 border border-green-500 px-3 py-1 rounded-xl bg-green-500 text-white'>
                                         <label>On Process Complete</label>
-                                        <label>{dashboardData?.yearly.onProcessCompleteCount}</label>
+                                        <label>{dashboardData?.yearly?.onProcessCompleteCount || 0}</label>
                                     </div>
                                     <div className='flex items-center gap-2 border border-red-500 px-3 py-1 rounded-xl bg-red-500 text-white'>
                                         <label>Delay</label>
-                                        <label>{dashboardData?.yearly.delayCount}</label>
+                                        <label>{dashboardData?.yearly?.delayCount || 0}</label>
                                     </div>
                                 </div>
                             </div>
@@ -328,7 +341,7 @@ export function Dashboard() {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {dashboardData?.yearly.delayData.map((row) => (
+                                            {dashboardData?.yearly?.delayData?.map((row) => (
                                                 <tr key={row.no} className="hover:bg-gray-50" style={{ backgroundColor: row.delay ? 'red' : 'transparent', color: row.delay ? 'white' : 'black' }}>
                                                     <td className="border border-gray-300 px-2 py-1">{row.no}</td>
                                                     <td className="border border-gray-300 px-2 py-1">{row.supplier}</td>
@@ -382,7 +395,7 @@ export function Dashboard() {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {dashboardData?.inspection.inspectionData.map((row) => (
+                                            {dashboardData?.inspection?.inspectionData?.map((row) => (
                                                 <tr key={row.no} className="hover:bg-gray-50">
                                                     <td className="border border-gray-300 px-2 py-1">{row.no}</td>
                                                     <td className="border border-gray-300 px-2 py-1">{row.supplier}</td>
