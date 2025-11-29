@@ -312,7 +312,7 @@ export function Dashboard() {
                         <div className="h-full flex flex-col">
                             <div className="flex items-center gap-5 mb-2 md:mb-4">
                                 <div className='flex items-center gap-2'>
-                                    <h2 className="text-lg md:text-2xl font-bold my-2">Yearly Status [FY25]</h2>
+                                    <h2 className="text-lg md:text-2xl font-bold my-2">Yearly Status [{moment().format('MMMYY')}]</h2>
                                     <span className="bg-yellow-200 px-2 md:px-3 py-1 rounded-full text-xs md:text-sm font-semibold">Submit</span>
                                 </div>
                                 <div className='flex items-center gap-2'>

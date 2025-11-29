@@ -276,6 +276,7 @@ export default function CreateSDS() {
                                 monthNavigator
                                 yearNavigator
                                 yearRange="2020:2030"
+                                placeholder="Select Month-Year"
                                 showButtonBar
                                 className="w-full"
                             />

@@ -142,7 +142,7 @@ export function Page({ page }: { page: number }) {
                 if (sheet) {
                     setSheetId(sheet.id);
                     const linkFile = await downloadDocument(sheet.sdrReportFile);
-                    const sdsLinkFile = await downloadDocumentSDS(sheet.inspectionDetailId);
+                    const sdsLinkFile = await downloadDocumentSDS(sheet.id);
                     setForm((prevForm) => ({
                         ...prevForm,
                         supplier: sheet.supplier || prevForm.supplier,
@@ -443,8 +443,8 @@ export function Page({ page }: { page: number }) {
                                     label="Approve All"
                                     className="p-button-success ml-2"
                                     onClick={() => {
-                                        setForm((prev) => ({ 
-                                            ...prev, 
+                                        setForm((prev) => ({
+                                            ...prev,
                                             approveAllAction: 'approve',
                                             actionSdrApproval: 'approve',
                                             actionSdsApproval: 'approve'
@@ -455,8 +455,8 @@ export function Page({ page }: { page: number }) {
                                     label="Reject All"
                                     className="p-button-danger ml-2"
                                     onClick={() => {
-                                        setForm((prev) => ({ 
-                                            ...prev, 
+                                        setForm((prev) => ({
+                                            ...prev,
                                             approveAllAction: 'reject',
                                             actionSdrApproval: 'reject',
                                             actionSdsApproval: 'reject'
@@ -477,12 +477,12 @@ export function Page({ page }: { page: number }) {
                         </div>
                         <div className="mb-4">
                             <label className="font-semibold block mb-2">Re-Submit Date</label>
-                            <Calendar 
-                                value={form.reSubmitDate} 
+                            <Calendar
+                                value={form.reSubmitDate}
                                 onChange={(e) => {
                                     const dateValue = e.target.value ? new Date(e.target.value) : null;
                                     setForm((prev) => ({ ...prev, reSubmitDate: dateValue }));
-                                }} 
+                                }}
                                 className="w-full"
                                 placeholder="dd/mm/yy"
                             />

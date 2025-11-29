@@ -185,13 +185,25 @@ export default function SummaryReport() {
     };
 
     const viewDocument = async (id: number) => {
-        // TODO: Navigate to view page
-        toast.current?.show({
-            severity: 'info',
-            summary: 'View',
-            detail: `View document ID: ${id}`,
-            life: 3000
-        });
+        try {
+            const res = await Get({ url: `/sample-data-sheet/by-inspection/pdf/${id}` });
+            // const res = await Get({ url: `/sample-data-sheet/by-inspection/1` });
+            if (!res.ok) {
+                const errText = await res.text().catch(() => 'Failed to download file');
+                throw new Error(errText || 'Failed to download file');
+            }
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            return url;
+        } catch (error: any) {
+            console.error('Document download failed', error);
+            toast.current?.show({
+                severity: 'error',
+                summary: 'Error',
+                detail: error?.message || 'Unable to download document',
+            });
+            return null;
+        }
     };
 
     const viewBodyTemplate = (rowData: DataSummaryReportTable) => {
@@ -199,9 +211,13 @@ export default function SummaryReport() {
             <Button
                 label="VIEW"
                 className="p-button-link text-blue-500"
-                onClick={(e) => {
+                disabled={!rowData.sheetId}
+                onClick={async (e) => {
                     e.stopPropagation();
-                    viewDocument(rowData.id);
+                    const sdsLinkFile = await viewDocument(rowData.sheetId);
+                    if (sdsLinkFile) {
+                        window.open(sdsLinkFile, '_blank');
+                    }
                 }}
                 style={{ padding: 0, textDecoration: 'underline' }}
             />
