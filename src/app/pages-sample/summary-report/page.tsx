@@ -16,6 +16,7 @@ import { Dropdown, DropdownChangeEvent } from "primereact/dropdown";
 import { Socket } from "socket.io-client";
 import { getSocket } from "@/components/socket/socket";
 import ReportHistoryModal from "./report-history-modal";
+import { Dialog } from "primereact/dialog";
 
 interface DataSummaryReportTable {
     id: number,
@@ -81,6 +82,14 @@ export default function SummaryReport() {
     const [visibleHistory, setVisibleHistory] = useState<boolean>(false);
     const [selectedReportHistory, setSelectedReportHistory] = useState<any[]>([]);
     const [selectedSdsInspectionDetailId, setSelectedSdsInspectionDetailId] = useState<number | null>(null);
+
+    const [viewModalVisible, setViewModalVisible] = useState(false);
+    const [selectedSheetFiles, setSelectedSheetFiles] = useState<{
+        aisFile?: string;
+        sdrFile?: string;
+        sdrReportFile?: string;
+        sheetId?: number;
+    }>({});
 
     const [supplierList, setSupplierList] = useState<{ label: string; value: string; }[]>([]);
 
@@ -206,19 +215,121 @@ export default function SummaryReport() {
         }
     };
 
+    const viewSdrReport = async (id: number) => {
+        try {
+            const res = await Get({ url: `/inspection-detail/files/stampt-signature/${id}` });
+            // const res = await Get({ url: `/sample-data-sheet/by-inspection/1` });
+            if (!res.ok) {
+                const errText = await res.text().catch(() => 'Failed to download file');
+                throw new Error(errText || 'Failed to download file');
+            }
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            return url;
+        } catch (error: any) {
+            console.error('Document download failed', error);
+            toast.current?.show({
+                severity: 'error',
+                summary: 'Error',
+                detail: error?.message || 'Unable to download document',
+            });
+            return null;
+        }
+    };
+
+    const fetchFileUrl = async (fileName?: string) => {
+        if (!fileName) return null;
+        try {
+            const res = await Get({ url: `/inspection-detail/files/${fileName}` });
+            if (!res.ok) throw new Error('Failed to download file');
+            const blob = await res.blob();
+            return window.URL.createObjectURL(blob);
+        } catch (error) {
+            toast.current?.show({ severity: 'error', summary: 'Error', detail: 'Unable to load file' });
+            return null;
+        }
+    };
+
+    const [activeFileUrl, setActiveFileUrl] = useState<string | null>(null);
+    const [activeFileType, setActiveFileType] = useState<string>('');
+
+    const openFilesModal = async (sheetId: number, id: number) => {
+        try {
+
+            if (sheetId) {
+                const res = await Get({ url: `/sample-data-sheet/by-inspection/${sheetId}` });
+                if (!res.ok) throw new Error('Failed to load sheet details');
+                const payload = await res.json();
+                const sheet = payload.data;
+
+                setSelectedSheetFiles({
+                    aisFile: sheet.aisFile,
+                    sdrFile: sheet.sdrFile,
+                    sdrReportFile: sheet.sdrReportFile,
+                    sheetId: sheetId
+                });
+            } else if (id) {
+                const res = await Get({ url: `/inspection-detail/detail/${id}` });
+                if (!res.ok) throw new Error('Failed to load sheet details');
+                const payload = await res.json();
+                const sheet = payload.data;
+
+                setSelectedSheetFiles({
+                    aisFile: sheet.aisFile,
+                    sdrFile: sheet.sdrFile,
+                    sdrReportFile: undefined,
+                    sheetId: undefined
+                });
+            }
+
+            // Reset active file
+            setActiveFileUrl(null);
+            setActiveFileType('');
+
+            setViewModalVisible(true);
+        } catch (error) {
+            toast.current?.show({ severity: 'error', summary: 'Error', detail: 'Unable to load document details' });
+        }
+    };
+
+    const handlePreview = async (type: 'AIS' | 'SDR' | 'REPORT' | 'SDS') => {
+        let url: string | null = null;
+
+        switch (type) {
+            case 'AIS':
+                url = await fetchFileUrl(selectedSheetFiles.aisFile);
+                break;
+            case 'SDR':
+                url = await fetchFileUrl(selectedSheetFiles.sdrFile);
+                break;
+            case 'REPORT':
+                if (selectedSheetFiles.sheetId) {
+                    url = await viewSdrReport(selectedSheetFiles.sheetId);
+                }
+                break;
+            case 'SDS':
+                if (selectedSheetFiles.sheetId) {
+                    url = await viewDocument(selectedSheetFiles.sheetId);
+                }
+                break;
+        }
+
+        if (url) {
+            setActiveFileUrl(url);
+            setActiveFileType(type);
+        }
+    };
+
     const viewBodyTemplate = (rowData: DataSummaryReportTable) => {
         return (
             <Button
                 label="VIEW"
                 severity="info"
                 outlined
-                disabled={!rowData.sheetId}
-                onClick={async (e) => {
+                // disabled={!rowData.sheetId}
+                onClick={(e) => {
                     e.stopPropagation();
-                    const sdsLinkFile = await viewDocument(rowData.sheetId);
-                    if (sdsLinkFile) {
-                        window.open(sdsLinkFile, '_blank');
-                    }
+                    openFilesModal(rowData.sheetId, rowData.id);
                 }}
             />
         );
@@ -423,6 +534,11 @@ export default function SummaryReport() {
         };
     }, [fetchSummaryReportData]);
 
+    const onPageChangeHistory = (event: { first: number; rows: number }) => {
+        setFirstHistory(event.first);
+        setRowsHistory(event.rows);
+    };
+
     return (
         <div className="flex justify-center pt-6 px-6">
             <Toast ref={toast} />
@@ -583,15 +699,70 @@ export default function SummaryReport() {
                 <ReportHistoryModal
                     visible={visibleHistory}
                     onHide={() => setVisibleHistory(false)}
-                    historyData={selectedReportHistory.slice(firstHistory, firstHistory + rowsHistory)}
+                    historyData={selectedReportHistory}
                     first={firstHistory}
                     rows={rowsHistory}
                     totalRecords={totalRowsHistory}
-                    onPageChange={(event) => {
-                        setFirstHistory(event.first);
-                        setRowsHistory(event.rows);
-                    }}
+                    onPageChange={onPageChangeHistory}
                 />
+
+                <Dialog
+                    header="View Documents"
+                    visible={viewModalVisible}
+                    style={{ width: '90vw', height: '90vh' }}
+                    onHide={() => {
+                        setViewModalVisible(false);
+                        setActiveFileUrl(null);
+                    }}
+                    maximizable
+                >
+                    <div className="flex flex-col h-full gap-4">
+                        <div className="flex gap-2 flex-wrap">
+                            <Button
+                                label="AIS"
+                                icon="pi pi-file"
+                                severity={activeFileType === 'AIS' ? 'info' : 'secondary'}
+                                disabled={!selectedSheetFiles.aisFile}
+                                onClick={() => handlePreview('AIS')}
+                            />
+                            <Button
+                                label="SDR Cover Page"
+                                icon="pi pi-file"
+                                severity={activeFileType === 'SDR' ? 'info' : 'secondary'}
+                                disabled={!selectedSheetFiles.sdrFile}
+                                onClick={() => handlePreview('SDR')}
+                            />
+                            <Button
+                                label="SDR Report"
+                                icon="pi pi-file"
+                                severity={activeFileType === 'REPORT' ? 'info' : 'secondary'}
+                                disabled={!selectedSheetFiles.sdrReportFile}
+                                onClick={() => handlePreview('REPORT')}
+                            />
+                            <Button
+                                label="SDS (PDF)"
+                                icon="pi pi-file-pdf"
+                                severity={activeFileType === 'SDS' ? 'info' : 'secondary'}
+                                disabled={!selectedSheetFiles.sheetId}
+                                onClick={() => handlePreview('SDS')}
+                            />
+                        </div>
+
+                        <div className="flex-1 border rounded bg-gray-100 overflow-hidden relative">
+                            {activeFileUrl ? (
+                                <iframe
+                                    src={activeFileUrl}
+                                    className="w-full h-full border-none"
+                                    title="File Preview"
+                                />
+                            ) : (
+                                <div className="flex items-center justify-center h-full text-gray-500">
+                                    Select a file to preview
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </Dialog>
             </div>
         </div>
     );
