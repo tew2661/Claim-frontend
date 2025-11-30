@@ -1,8 +1,8 @@
 'use client';
 
-import CreateSDSForm from "../../create/[id]/page";
+import CreateSDSForm from "../../form";
 
-export default function EditSDSForm() {
+export default function EditSDSPage() {
     return (
         <CreateSDSForm page="edit" />
     );
