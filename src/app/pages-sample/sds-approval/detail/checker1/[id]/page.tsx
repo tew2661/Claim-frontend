@@ -18,6 +18,8 @@ export function Page({ page }: { page: number }) {
     const [sheetId, setSheetId] = useState<number | null>(null);
     const [aisFileName, setAisFileName] = useState('');
     const [sdrFileName, setSdrFileName] = useState('');
+    const [remarkSupplier, setRemarkSupplier] = useState('');
+    const [remarkSdr, setRemarkSdr] = useState('');
 
     const [form, setForm] = useState({
         id: 0,
@@ -119,7 +121,7 @@ export function Page({ page }: { page: number }) {
                 supplier: detail.supplierName || prev.supplier,
                 partNo: detail.partNo || prev.partNo,
                 partName: detail.partName || prev.partName,
-                model: detail.model || prev.model
+                model: detail.model || prev.model,
             }));
             setAisFileName(detail.aisFile || '');
             setSdrFileName(detail.sdrFile || '');
@@ -143,6 +145,7 @@ export function Page({ page }: { page: number }) {
                     setSheetId(sheet.id);
                     const linkFile = await downloadDocument(sheet.sdrReportFile);
                     const sdsLinkFile = await downloadDocumentSDS(sheet.id);
+                    const remarkLast = page > 1 && sheet.approvals?.length ? sheet.approvals[sheet.approvals.length - 1]?.remark : '';
                     setForm((prevForm) => ({
                         ...prevForm,
                         supplier: sheet.supplier || prevForm.supplier,
@@ -151,7 +154,11 @@ export function Page({ page }: { page: number }) {
                         model: sheet.model || prevForm.model,
                         sdrReportFile: sheet.sdrReportFile && linkFile ? linkFile : null,
                         sdsReportFile: sheet.sdrFile ? sdsLinkFile : null,
+                        remark: remarkLast ? remarkLast : '',
                     }));
+
+                    setRemarkSdr(remarkLast || '');
+                    setRemarkSupplier(sheet.remark || '');
                     setAisFileName(sheet.aisFile || '');
                     setSdrFileName(sheet.sdrFile || '');
                     return;
@@ -427,6 +434,14 @@ export function Page({ page }: { page: number }) {
                                 <p>No SDS document available.</p>
                             )
                         }
+                    </div>
+                    <div className="w-full mt-2 border-solid border-gray-200 p-4"
+                        style={{
+                            borderRadius: '5px',
+                            backgroundColor: form.approveAllAction == 'approve' ? '#f0fff0' : form.approveAllAction == 'reject' ? '#fff0f0' : 'transparent',
+                            borderColor: form.approveAllAction == 'approve' ? 'green' : form.approveAllAction == 'reject' ? 'red' : '#e5e7eb',
+                        }}>
+                        <span className="font-semibold">Remark {page > 1 ? ('Checker ' + (page - 1)) : 'Supplier'} :</span> {page > 1 ? remarkSdr : remarkSupplier}
                     </div>
                     <div className="w-full mt-2 border-solid border-gray-200 p-4"
                         style={{
