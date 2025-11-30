@@ -302,7 +302,7 @@ export default function ProblemReportTable() {
                                     onChange={(e: DropdownChangeEvent) => setFilters({ ...filters, status: e.target.value || "" })}
                                     options={[
                                         { label: 'All', value: 'All' },
-                                        { label: 'Inprocess', value: 'inprocess' }, 
+                                        { label: 'Inprocess', value: 'inprocess' },
                                         { label: 'Complete', value: 'completed' },
                                     ]}
                                     optionLabel="label"

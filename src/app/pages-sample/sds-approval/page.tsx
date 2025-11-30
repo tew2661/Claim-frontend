@@ -256,7 +256,7 @@ export function SDSApprovalTable(props: { checker: 1 | 2 | 3 }) {
             }
 
             const query = CreateQueryString(params);
-            const path = `/sample-data-sheet/inspection-details${query ? `?${query}` : ''}`;
+            const path = `/sample-data-sheet/sds-approval${query ? `?${query}` : ''}`;
             const response = await Get({ url: path });
 
             if (!response.ok) {
@@ -360,10 +360,10 @@ export function SDSApprovalTable(props: { checker: 1 | 2 | 3 }) {
     const [selectedSdsInspectionDetailId, setSelectedSdsInspectionDetailId] = useState<number | null>(null);
 
     // Fetch history data using sdsInspectionDetailId
-    const GetHistoryDatas = async (sdsInspectionDetailId: number) => {
+    const GetHistoryDatas = async (sdsId: number) => {
         try {
-            const response = await Get({ 
-                url: `/sds-log/by-inspection-detail?sdsInspectionDetailId=${sdsInspectionDetailId}` 
+            const response = await Get({
+                url: `/sds-log/by-inspection-detail?sdsId=${sdsId}`
             });
 
             if (!response.ok) {
@@ -510,6 +510,7 @@ export function SDSApprovalTable(props: { checker: 1 | 2 | 3 }) {
                                 showIcon
                                 monthNavigator
                                 yearNavigator
+                                placeholder="MM-YYYY"
                                 yearRange="2020:2030"
                                 showButtonBar
                                 className="w-full"

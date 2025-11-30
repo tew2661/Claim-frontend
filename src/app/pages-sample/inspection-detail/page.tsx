@@ -41,7 +41,7 @@ interface SupplierDropdownOption {
 interface SpecialRequestRecord {
     id: number;
     inspectionDetailId: number;
-    specialRequestItems: string[];
+    specialRequestItems: number[];
     qty: number | 'All';
     cpCpk: string;
     dueDate: string;
@@ -51,7 +51,7 @@ interface SpecialRequestRecord {
 }
 
 const createDefaultSpecialRequestForm = () => ({
-    selectedItems: ['Height', 'Thickness', 'Outer Diameter (OD)'] as string[],
+    selectedItems: [] as number[],
     qty: 'All' as number | 'All',
     cpCpk: 'All',
     dueDate: new Date(),
@@ -267,23 +267,28 @@ export default function InspectionDetail() {
     const fetchSpecialRequests = async (inspectionDetailId: number) => {
         setLoadingRequests(true);
         try {
-            const res = await Get({ url: `/inspection-detail/special-request/${inspectionDetailId}` });
+            const res = await Get({ url: `/inspection-detail/items/${inspectionDetailId}` });
             if (!res.ok) {
                 const err: any = await res.json().catch(() => ({}));
                 throw new Error(err.message || 'Failed to load special requests');
             }
             const json: any = await res.json();
             const payload: any[] = json.data || [];
-            const records = payload.map((item) => ({
-                ...item,
-                specialRequestItems: item.specialRequestItems || [],
-                dueDate: item.dueDate,
-                createdAt: item.createdAt,
-            }));
-            setSpecialRequests(records);
-            if (records.length) {
-                applyRecordToForm(records[0]);
-            }
+            console.log(payload);
+            setMeasuringItems(payload.map((item: any) => ({
+                label: item.measuringItem as string,
+                value: item.id as number,
+            })));
+            // const records = payload.map((item) => ({
+            //     ...item,
+            //     specialRequestItems: item.specialRequestItems || [],
+            //     dueDate: item.dueDate,
+            //     createdAt: item.createdAt,
+            // }));
+            // setSpecialRequests(records);
+            // if (records.length) {
+            //     applyRecordToForm(records[0]);
+            // }
         } catch (error: any) {
             console.error('Fetch special requests failed', error);
             toast.current?.show({
@@ -349,8 +354,8 @@ export default function InspectionDetail() {
     };
 
     const specialRequestBody = (row: InspectionData) => (
-        <Button 
-            label="Special Request" 
+        <Button
+            label="Special Request"
             className="p-button-text p-button-sm text-blue-600"
             onClick={() => openSpecialRequestModal(row)}
         />
@@ -406,17 +411,12 @@ export default function InspectionDetail() {
             setSpecialRequests([]);
             GetDatas();
         } catch (error: any) {
-            console.error('Special request failed', error);
+            // console.error('Special request failed', error);
             toast.current?.show({ severity: 'error', summary: 'Error', detail: error.message || 'Cannot submit special request' });
         }
     };
 
-    const measuringItems = [
-        { label: 'Height', value: 'Height' },
-        { label: 'Thickness', value: 'Thickness' },
-        { label: 'Outer Diameter (OD)', value: 'Outer Diameter (OD)' },
-        { label: 'Inner Diameter (ID)', value: 'Inner Diameter (ID)' }
-    ];
+    const [measuringItems, setMeasuringItems] = useState<{ label: string; value: number }[]>([]);
 
     const qtyOptions = [
         { label: 'All', value: 'All' },
@@ -491,7 +491,7 @@ export default function InspectionDetail() {
     return (
         <div className="flex justify-center pt-6 px-6">
             <Toast ref={toast} />
-            
+
             <Dialog
                 header="Confirmation !!!!"
                 visible={showSpecialRequestModal}
@@ -552,14 +552,16 @@ export default function InspectionDetail() {
                     </div> */}
 
                     <div>
-                        <label className="font-semibold text-blue-700 mb-3 block">Select Item Measuring</label>
+                        <label className="font-semibold text-blue-700 mb-3 block">Select Item Measuring { }</label>
                         <div className="space-y-3">
                             {measuringItems.map((item) => (
                                 <div key={item.value} className="flex items-center gap-3">
                                     <input
                                         type="checkbox"
-                                        id={item.value}
-                                        name={item.value}
+                                        id={`id-${item.value}`}
+                                        name={`id-${item.value}`}
+                                        value={item.value}
+                                        checked={specialRequestForm.selectedItems.includes(item.value)}
                                         className="w-5 h-5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer"
                                         onChange={(e) => {
                                             const isChecked = e.target.checked;
@@ -575,9 +577,8 @@ export default function InspectionDetail() {
                                                 }));
                                             }
                                         }}
-                                        checked={specialRequestForm.selectedItems.includes(item.value)}
                                     />
-                                    <label htmlFor={item.value} className="cursor-pointer text-gray-700">{item.label}</label>
+                                    <label htmlFor={`id-${item.value}`} className="cursor-pointer text-gray-700">{item.label}</label>
                                 </div>
                             ))}
                         </div>
@@ -703,7 +704,10 @@ export default function InspectionDetail() {
                             <div>Edit Status</div>
                         </div>
                     }} bodyStyle={{ width: '15%', textAlign: 'center' }}></Column>
-                    <Column header="Special Request" body={specialRequestBody} bodyStyle={{ width: '7%', textAlign: 'center' }}></Column>
+                    {
+                        IsSupplier ? <Column header="Special Request" body={specialRequestBody} bodyStyle={{ width: '7%', textAlign: 'center' }}></Column> : undefined
+                    }
+
                     <Column header="Action" body={editBody} bodyStyle={{ width: '3%', textAlign: 'center' }}></Column>
                 </DataTable>
 

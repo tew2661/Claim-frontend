@@ -16,9 +16,11 @@ import { Dropdown, DropdownChangeEvent } from "primereact/dropdown";
 import { Socket } from "socket.io-client";
 import { getSocket } from "@/components/socket/socket";
 import ReportHistoryModal from "./report-history-modal";
+import { Dialog } from "primereact/dialog";
 
 interface DataSummaryReportTable {
     id: number,
+    sheetId: number,
     no: number,
     monthYear: string,
     supplierCode: string,
@@ -56,7 +58,7 @@ export default function SummaryReport() {
     const [totalRowsHistory, setTotalRowsHistory] = useState(0);
     const [sampleDataList, setSampleDataList] = useState<DataSummaryReportTable[]>([])
     const debounceTimerRef = useRef<number | null>(null);
-    
+
     const [filters, setFilters] = useState<FilterSummaryReport>({
         monthYear: null,
         supplierCode: "All",
@@ -81,13 +83,25 @@ export default function SummaryReport() {
     const [selectedReportHistory, setSelectedReportHistory] = useState<any[]>([]);
     const [selectedSdsInspectionDetailId, setSelectedSdsInspectionDetailId] = useState<number | null>(null);
 
+    const [viewModalVisible, setViewModalVisible] = useState(false);
+    const [selectedSheetFiles, setSelectedSheetFiles] = useState<{
+        aisFile?: string;
+        sdrFile?: string;
+        sdrReportFile?: string;
+        sheetId?: number;
+    }>({});
+
     const [supplierList, setSupplierList] = useState<{ label: string; value: string; }[]>([]);
 
     // Fetch history data using sdsInspectionDetailId
-    const GetHistoryDatas = async (sdsInspectionDetailId: number) => {
+    const GetHistoryDatas = async (sdsId: number, inspectionDetailId: number) => {
         try {
-            const response = await Get({ 
-                url: `/sds-log/by-inspection-detail?sdsInspectionDetailId=${sdsInspectionDetailId}` 
+            const queryString = CreateQueryString({
+                sdsId,
+                inspectionDetailId,
+            });
+            const response = await Get({
+                url: `/sds-log/by-inspection-detail?${queryString}`
             });
 
             if (!response.ok) {
@@ -124,7 +138,7 @@ export default function SummaryReport() {
 
     const openHistory = async (row: DataSummaryReportTable) => {
         setSelectedSdsInspectionDetailId(row.id);
-        await GetHistoryDatas(row.id);
+        await GetHistoryDatas(row.sheetId, row.id);
         setFirstHistory(0);
         setVisibleHistory(true);
     };
@@ -171,34 +185,152 @@ export default function SummaryReport() {
 
     const exportSummaryReportToExcel = async () => {
         // TODO: Implement export functionality
-        toast.current?.show({ 
-            severity: 'info', 
-            summary: 'Export', 
-            detail: 'Export functionality will be implemented', 
-            life: 3000 
+        toast.current?.show({
+            severity: 'info',
+            summary: 'Export',
+            detail: 'Export functionality will be implemented',
+            life: 3000
         });
     };
 
     const viewDocument = async (id: number) => {
-        // TODO: Navigate to view page
-        toast.current?.show({ 
-            severity: 'info', 
-            summary: 'View', 
-            detail: `View document ID: ${id}`, 
-            life: 3000 
-        });
+        try {
+            const res = await Get({ url: `/sample-data-sheet/by-inspection/pdf/${id}` });
+            // const res = await Get({ url: `/sample-data-sheet/by-inspection/1` });
+            if (!res.ok) {
+                const errText = await res.text().catch(() => 'Failed to download file');
+                throw new Error(errText || 'Failed to download file');
+            }
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            return url;
+        } catch (error: any) {
+            console.error('Document download failed', error);
+            toast.current?.show({
+                severity: 'error',
+                summary: 'Error',
+                detail: error?.message || 'Unable to download document',
+            });
+            return null;
+        }
+    };
+
+    const viewSdrReport = async (id: number) => {
+        try {
+            const res = await Get({ url: `/inspection-detail/files/stampt-signature/${id}` });
+            // const res = await Get({ url: `/sample-data-sheet/by-inspection/1` });
+            if (!res.ok) {
+                const errText = await res.text().catch(() => 'Failed to download file');
+                throw new Error(errText || 'Failed to download file');
+            }
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            return url;
+        } catch (error: any) {
+            console.error('Document download failed', error);
+            toast.current?.show({
+                severity: 'error',
+                summary: 'Error',
+                detail: error?.message || 'Unable to download document',
+            });
+            return null;
+        }
+    };
+
+    const fetchFileUrl = async (fileName?: string) => {
+        if (!fileName) return null;
+        try {
+            const res = await Get({ url: `/inspection-detail/files/${fileName}` });
+            if (!res.ok) throw new Error('Failed to download file');
+            const blob = await res.blob();
+            return window.URL.createObjectURL(blob);
+        } catch (error) {
+            toast.current?.show({ severity: 'error', summary: 'Error', detail: 'Unable to load file' });
+            return null;
+        }
+    };
+
+    const [activeFileUrl, setActiveFileUrl] = useState<string | null>(null);
+    const [activeFileType, setActiveFileType] = useState<string>('');
+
+    const openFilesModal = async (sheetId: number, id: number) => {
+        try {
+
+            if (sheetId) {
+                const res = await Get({ url: `/sample-data-sheet/by-inspection/${sheetId}` });
+                if (!res.ok) throw new Error('Failed to load sheet details');
+                const payload = await res.json();
+                const sheet = payload.data;
+
+                setSelectedSheetFiles({
+                    aisFile: sheet.aisFile,
+                    sdrFile: sheet.sdrFile,
+                    sdrReportFile: sheet.sdrReportFile,
+                    sheetId: sheetId
+                });
+            } else if (id) {
+                const res = await Get({ url: `/inspection-detail/detail/${id}` });
+                if (!res.ok) throw new Error('Failed to load sheet details');
+                const payload = await res.json();
+                const sheet = payload.data;
+
+                setSelectedSheetFiles({
+                    aisFile: sheet.aisFile,
+                    sdrFile: sheet.sdrFile,
+                    sdrReportFile: undefined,
+                    sheetId: undefined
+                });
+            }
+
+            // Reset active file
+            setActiveFileUrl(null);
+            setActiveFileType('');
+
+            setViewModalVisible(true);
+        } catch (error) {
+            toast.current?.show({ severity: 'error', summary: 'Error', detail: 'Unable to load document details' });
+        }
+    };
+
+    const handlePreview = async (type: 'AIS' | 'SDR' | 'REPORT' | 'SDS') => {
+        let url: string | null = null;
+
+        switch (type) {
+            case 'AIS':
+                url = await fetchFileUrl(selectedSheetFiles.aisFile);
+                break;
+            case 'SDR':
+                url = await fetchFileUrl(selectedSheetFiles.sdrFile);
+                break;
+            case 'REPORT':
+                if (selectedSheetFiles.sheetId) {
+                    url = await viewSdrReport(selectedSheetFiles.sheetId);
+                }
+                break;
+            case 'SDS':
+                if (selectedSheetFiles.sheetId) {
+                    url = await viewDocument(selectedSheetFiles.sheetId);
+                }
+                break;
+        }
+
+        if (url) {
+            setActiveFileUrl(url);
+            setActiveFileType(type);
+        }
     };
 
     const viewBodyTemplate = (rowData: DataSummaryReportTable) => {
         return (
-            <Button 
-                label="VIEW" 
-                className="p-button-link text-blue-500" 
+            <Button
+                label="VIEW"
+                severity="info"
+                outlined
+                // disabled={!rowData.sheetId}
                 onClick={(e) => {
                     e.stopPropagation();
-                    viewDocument(rowData.id);
+                    openFilesModal(rowData.sheetId, rowData.id);
                 }}
-                style={{ padding: 0, textDecoration: 'underline' }}
             />
         );
     };
@@ -210,6 +342,14 @@ export default function SummaryReport() {
                     return 'text-orange-500';
                 case 'Submitted':
                     return 'text-blue-500';
+                case 'Completed':
+                    return 'text-green-600';
+                case 'Rejected':
+                    return 'text-red-600';
+                case 'Wait for JATH Approve':
+                    return 'text-blue-600';
+                case 'Supplier Pending':
+                    return 'text-orange-500';
                 default:
                     return 'text-gray-500';
             }
@@ -298,12 +438,14 @@ export default function SummaryReport() {
             if (filters.sdsStatus && filters.sdsStatus.toLowerCase() !== 'all') {
                 params.sdsStatus = filters.sdsStatus;
             }
-            if (filters.delayNotDelay && filters.delayNotDelay.toLowerCase() !== 'all') {
-                params.hasDelay = filters.delayNotDelay === 'Delay';
+            if (filters.delayNotDelay && filters.delayNotDelay.toLowerCase() === 'delay') {
+                params.hasDelay = true;
+            } else if (filters.delayNotDelay && filters.delayNotDelay.toLowerCase() === 'not delay') {
+                params.notHasDelay = true;
             }
 
             const query = CreateQueryString(params);
-            const path = `/sample-data-sheet/inspection-details${query ? `?${query}` : ''}`;
+            const path = `/sample-data-sheet/summary-report${query ? `?${query}` : ''}`;
             const response = await Get({ url: path });
 
             if (!response.ok) {
@@ -316,6 +458,7 @@ export default function SummaryReport() {
 
             const mapped = items.map((item: any) => ({
                 id: item.id,
+                sheetId: item.sheet_id,
                 no: item.no,
                 monthYear: item.monthYear,
                 supplierCode: item.supplierCode ?? '',
@@ -391,14 +534,19 @@ export default function SummaryReport() {
         };
     }, [fetchSummaryReportData]);
 
+    const onPageChangeHistory = (event: { first: number; rows: number }) => {
+        setFirstHistory(event.first);
+        setRowsHistory(event.rows);
+    };
+
     return (
-       <div className="flex justify-center pt-6 px-6">
+        <div className="flex justify-center pt-6 px-6">
             <Toast ref={toast} />
             <div className="container">
                 <div className="mx-4 mb-4 text-2xl font-bold py-3 border-solid border-t-0 border-x-0 border-b-2 border-gray-600">
                     Summary Report
                 </div>
-                
+
                 {/* Filter Section */}
                 <div className="flex gap-2 mx-4 mb-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2 w-[calc(100%-100px)]">
@@ -430,11 +578,11 @@ export default function SummaryReport() {
                         </div>
                         <div className="flex flex-col gap-2 w-full">
                             <label>Part No</label>
-                            <InputText 
-                                value={filters.partNo} 
-                                onChange={(e) => handleInputFilterChange(e.target.value, 'partNo')} 
-                                placeholder="Enter Part No" 
-                                className="w-full" 
+                            <InputText
+                                value={filters.partNo}
+                                onChange={(e) => handleInputFilterChange(e.target.value, 'partNo')}
+                                placeholder="Enter Part No"
+                                className="w-full"
                             />
                         </div>
                         <div className="flex flex-col gap-2 w-full">
@@ -551,15 +699,70 @@ export default function SummaryReport() {
                 <ReportHistoryModal
                     visible={visibleHistory}
                     onHide={() => setVisibleHistory(false)}
-                    historyData={selectedReportHistory.slice(firstHistory, firstHistory + rowsHistory)}
+                    historyData={selectedReportHistory}
                     first={firstHistory}
                     rows={rowsHistory}
                     totalRecords={totalRowsHistory}
-                    onPageChange={(event) => {
-                        setFirstHistory(event.first);
-                        setRowsHistory(event.rows);
-                    }}
+                    onPageChange={onPageChangeHistory}
                 />
+
+                <Dialog
+                    header="View Documents"
+                    visible={viewModalVisible}
+                    style={{ width: '90vw', height: '90vh' }}
+                    onHide={() => {
+                        setViewModalVisible(false);
+                        setActiveFileUrl(null);
+                    }}
+                    maximizable
+                >
+                    <div className="flex flex-col h-full gap-4">
+                        <div className="flex gap-2 flex-wrap">
+                            <Button
+                                label="AIS"
+                                icon="pi pi-file"
+                                severity={activeFileType === 'AIS' ? 'info' : 'secondary'}
+                                disabled={!selectedSheetFiles.aisFile}
+                                onClick={() => handlePreview('AIS')}
+                            />
+                            <Button
+                                label="SDR Cover Page"
+                                icon="pi pi-file"
+                                severity={activeFileType === 'SDR' ? 'info' : 'secondary'}
+                                disabled={!selectedSheetFiles.sdrFile}
+                                onClick={() => handlePreview('SDR')}
+                            />
+                            <Button
+                                label="SDR Report"
+                                icon="pi pi-file"
+                                severity={activeFileType === 'REPORT' ? 'info' : 'secondary'}
+                                disabled={!selectedSheetFiles.sdrReportFile}
+                                onClick={() => handlePreview('REPORT')}
+                            />
+                            <Button
+                                label="SDS (PDF)"
+                                icon="pi pi-file-pdf"
+                                severity={activeFileType === 'SDS' ? 'info' : 'secondary'}
+                                disabled={!selectedSheetFiles.sheetId}
+                                onClick={() => handlePreview('SDS')}
+                            />
+                        </div>
+
+                        <div className="flex-1 border rounded bg-gray-100 overflow-hidden relative">
+                            {activeFileUrl ? (
+                                <iframe
+                                    src={activeFileUrl}
+                                    className="w-full h-full border-none"
+                                    title="File Preview"
+                                />
+                            ) : (
+                                <div className="flex items-center justify-center h-full text-gray-500">
+                                    Select a file to preview
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </Dialog>
             </div>
         </div>
     );

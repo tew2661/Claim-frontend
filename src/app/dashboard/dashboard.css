@@ -1,0 +1,90 @@
+/* Dashboard Card Heights - Responsive based on orientation */
+
+/* Default: Portrait mode (vertical screen) */
+.dashboard-card-half {
+    height: calc(100vh - 60px);
+}
+
+.table-height {
+    height: calc(100vh - 500px);
+    width: 100%;
+}
+
+.table-height-inspection {
+    height: calc(100vh - 600px);
+    width: 100%;
+}
+
+/* Landscape mode (horizontal screen) */
+@media (orientation: landscape) {
+    .dashboard-card-half {
+        height: calc(50vh - 60px);
+    }
+
+    .table-height {
+        height: calc(50vh - 200px)
+    }
+}
+
+/* Compact Table Styling for Dashboard */
+.dashboard-card-half .p-datatable {
+    font-size: 0.75rem; /* 12px */
+}
+
+.dashboard-card-half .p-datatable .p-datatable-thead > tr > th {
+    padding: 0.5rem 0.5rem;
+    font-size: 0.75rem;
+}
+
+.dashboard-card-half .p-datatable .p-datatable-tbody > tr > td {
+    padding: 0.4rem 0.5rem;
+    font-size: 0.7rem; /* 11.2px */
+}
+
+/* For medium screens and up */
+@media (min-width: 768px) {
+    .dashboard-card-half .p-datatable {
+        font-size: 0.875rem; /* 14px */
+    }
+    
+    .dashboard-card-half .p-datatable .p-datatable-thead > tr > th {
+        padding: 0.6rem 0.75rem;
+        font-size: 0.875rem;
+    }
+    
+    .dashboard-card-half .p-datatable .p-datatable-tbody > tr > td {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.8125rem; /* 13px */
+    }
+}
+
+/* Table Scroll Wrappers - Critical for proper scrolling */
+.dashboard-table-scroll {
+    flex: 1;
+    overflow: auto;
+    min-height: 0; /* Critical: allows flex child to scroll */
+}
+
+/* Inspection Table Scroll Wrapper */
+.inspection-table-wrapper {
+    flex: 1;
+    overflow: auto;
+    min-height: 0; /* Critical for flex children to scroll */
+    max-height: 100%; /* Ensure it doesn't exceed parent */
+}
+
+/* Alternative: Based on aspect ratio */
+/* If you prefer aspect ratio detection instead of orientation */
+/*
+@media (min-aspect-ratio: 1/1) {
+    .dashboard-card-half {
+        height: calc(50vh - 60px);
+    }
+}
+
+@media (max-aspect-ratio: 1/1) {
+    .dashboard-card-half {
+        height: calc(100vh - 60px);
+    }
+}
+*/

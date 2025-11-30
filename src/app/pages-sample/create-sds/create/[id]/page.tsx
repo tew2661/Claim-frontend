@@ -60,7 +60,7 @@ const mapInspectionItemsToSdrRows = (items: any[], specialRequest: any | undefin
             rank: item.rank || '',
             inspectionInstrument: item.inspectionInstrument || '',
             remark: item.remark || '',
-            sampleQty : specialRequest && specialRequest.qty ? specialRequest.qty : sampleQty,
+            sampleQty: specialRequest && specialRequest.qty ? specialRequest.qty : sampleQty,
             toleranceMinus: item.toleranceMinus,
             tolerancePlus: item.tolerancePlus,
             samples: createSampleArray(sampleQty, item.samples),
@@ -75,7 +75,7 @@ const mapInspectionItemsToSdrRows = (items: any[], specialRequest: any | undefin
 
 const normalizeSdrRows = (rows: any[]): SdrRow[] => (
     rows.map((row: any, index: number) => {
-        const sampleQty = Math.max(DEFAULT_SAMPLE_QTY, Number(row.sampleQty) || DEFAULT_SAMPLE_QTY);
+        const sampleQty = Number(row.sampleQty) || DEFAULT_SAMPLE_QTY;
         return {
             no: Number(row.no ?? index + 1),
             measuringItem: row.measuringItem || '',
@@ -96,7 +96,7 @@ const normalizeSdrRows = (rows: any[]): SdrRow[] => (
     })
 );
 
-export default function CreateSDSForm() {
+export default function CreateSDSForm({ page = 'create' }: { page: string }) {
     const router = useRouter();
     const params = useParams();
     const toast = useRef<Toast>(null);
@@ -122,6 +122,8 @@ export default function CreateSDSForm() {
     const [uploadSdrReportName, setUploadSdrReportName] = useState<string>('');
     const [isLoadingDetail, setIsLoadingDetail] = useState(false);
     const [sheetId, setSheetId] = useState<number | null>(null);
+    const [remarkJtekt, setRemarkJtekt] = useState('');
+    const [statusJtekt, setStatusJtekt] = useState('');
     const isEditMode = Boolean(sheetId);
 
     const productionOptions = [
@@ -167,7 +169,9 @@ export default function CreateSDSForm() {
             }
 
             setSheetId(null);
-            const specialRequest0 = detail.specialRequest && detail.specialRequest.length > 0 ? detail.specialRequest[detail.specialRequest.length - 1] : undefined;
+            const specialRequest0 = detail.specialRequest && detail.specialRequest.length > 0 ? detail.specialRequest[detail.specialRequest.length - 1] : (
+                detail.dueDate ? detail : undefined
+            )
             setForm((prev) => ({
                 ...prev,
                 supplier: detail.supplierName || prev.supplier,
@@ -190,38 +194,42 @@ export default function CreateSDSForm() {
             setUploadSdrReport(null);
             setUploadSdrReportName('');
             try {
-                const sheetResponse = await Get({ url: `/sample-data-sheet/by-inspection/${inspectionId}` });
-                if (sheetResponse.status === 404) {
-                    await fetchInspectionDetail();
-                    return;
+                let sheetResponse = undefined
+                if (page == 'edit') {
+                    sheetResponse = await Get({ url: `/sample-data-sheet/by-inspection/${inspectionId}` });
+                    if (sheetResponse.status === 404) {
+                        await fetchInspectionDetail();
+                        return;
+                    }
                 }
-                if (!sheetResponse.ok) {
-                    const errorBody = await sheetResponse.json().catch(() => ({}));
-                    throw new Error(errorBody?.message || 'Failed to load Sample Data Sheet');
-                }
+                if (sheetResponse && sheetResponse?.ok) {
+                    const sheetPayload = await sheetResponse.json();
+                    const sheet = sheetPayload?.data;
+                    if (sheet) {
+                        setSheetId(sheet.id);
+                        setForm((prev) => ({
+                            ...prev,
+                            supplier: sheet.supplier || prev.supplier,
+                            partNo: sheet.partNo || prev.partNo,
+                            partName: sheet.partName || prev.partName,
+                            model: sheet.model || prev.model,
+                            inspectionDetailId: sheet.inspectionDetailId?.toString() || prev.inspectionDetailId,
+                            production08_2025: sheet.production08_2025 || prev.production08_2025,
+                            sdrDate: sheet.sdrDate ? new Date(sheet.sdrDate) : prev.sdrDate,
+                            sdrData: sheet.sdrData && sheet.sdrData.length
+                                ? normalizeSdrRows(sheet.sdrData)
+                                : prev.sdrData,
+                            remark: sheet.remark || prev.remark,
+                        }));
 
-                const sheetPayload = await sheetResponse.json();
-                const sheet = sheetPayload?.data;
-                if (sheet) {
-                    setSheetId(sheet.id);
-                    setForm((prev) => ({
-                        ...prev,
-                        supplier: sheet.supplier || prev.supplier,
-                        partNo: sheet.partNo || prev.partNo,
-                        partName: sheet.partName || prev.partName,
-                        model: sheet.model || prev.model,
-                        inspectionDetailId: sheet.inspectionDetailId?.toString() || prev.inspectionDetailId,
-                        production08_2025: sheet.production08_2025 || prev.production08_2025,
-                        sdrDate: sheet.sdrDate ? new Date(sheet.sdrDate) : prev.sdrDate,
-                        sdrData: sheet.sdrData && sheet.sdrData.length
-                            ? normalizeSdrRows(sheet.sdrData)
-                            : prev.sdrData,
-                        remark: sheet.remark || prev.remark,
-                    }));
-                    setAisFileName(sheet.aisFile || '');
-                    setSdrFileName(sheet.sdrFile || '');
-                    setUploadSdrReportName(sheet.sdrReportFile || '');
-                    return;
+                        const remarkApproved = sheet.approvals && sheet.approvals.length > 0 ? sheet.approvals[sheet.approvals.length - 1] : undefined;
+                        setRemarkJtekt(remarkApproved && remarkApproved?.remark || '');
+                        setStatusJtekt(remarkApproved && remarkApproved?.action || '');
+                        setAisFileName(sheet.aisFile || '');
+                        setSdrFileName(sheet.sdrFile || '');
+                        setUploadSdrReportName(sheet.sdrReportFile || '');
+                        return;
+                    }
                 }
 
                 await fetchInspectionDetail();
@@ -308,21 +316,24 @@ export default function CreateSDSForm() {
     // ฟังก์ชันตรวจสอบว่าค่าอยู่ในช่วง tolerance หรือไม่
     const isOutOfTolerance = (value: number | null, row: SdrRow): boolean => {
         if (value === null || !row.specification) return false;
-        
+
         const numSpec = row.specification;
         const tolerancePlus = parseFloat(String(row.tolerancePlus || 0));
         const toleranceMinus = parseFloat(String(row.toleranceMinus || 0));
-        
+
         if (isNaN(numSpec)) return false;
-        
+
         const upperLimit = numSpec + tolerancePlus;
         const lowerLimit = numSpec - toleranceMinus;
-        
+
         return value > upperLimit || value < lowerLimit;
     };
 
+    const [isSubmitted, setIsSubmitted] = useState(false);
+
     const handleSave = async () => {
-    if (!isEditMode && form.production08_2025 === 'Yes' && !uploadSdrReport) {
+        setIsSubmitted(true);
+        if (!isEditMode && form.production08_2025 === 'Yes' && !uploadSdrReport) {
             toast.current?.show({
                 severity: 'warn',
                 summary: 'Warning',
@@ -331,15 +342,42 @@ export default function CreateSDSForm() {
             return;
         }
 
-        const hasEmptyData = form.sdrData.some(
-            (row) => !row.measuringItem || !row.specification || !row.rank || !row.inspectionInstrument,
-        );
+        const missingFields: string[] = [];
+        const hasEmptyData = form.sdrData.some((row, index) => {
+            const isMissing = !row.measuringItem ||
+                (row.specification === null || row.specification === undefined) ||
+                !row.rank ||
+                !row.inspectionInstrument ||
+                !row.sampleQty ||
+                !row.judgement ||
+                !row.xBar ||
+                !row.r ||
+                !row.cp ||
+                !row.cpk ||
+                row.samples.slice(0, row.sampleQty).some(s => s.value === null);
+
+            if (isMissing) {
+                if (!row.measuringItem) missingFields.push(`Row ${index + 1}: Measuring Item`);
+                if (row.specification === null || row.specification === undefined) missingFields.push(`Row ${index + 1}: Specification`);
+                if (!row.rank) missingFields.push(`Row ${index + 1}: Rank`);
+                if (!row.inspectionInstrument) missingFields.push(`Row ${index + 1}: Inspection Instrument`);
+                if (!row.sampleQty) missingFields.push(`Row ${index + 1}: Sample Qty`);
+                if (!row.judgement) missingFields.push(`Row ${index + 1}: Judgement`);
+                if (!row.xBar) missingFields.push(`Row ${index + 1}: X-Bar`);
+                if (!row.r) missingFields.push(`Row ${index + 1}: R`);
+                if (!row.cp) missingFields.push(`Row ${index + 1}: Cp`);
+                if (!row.cpk) missingFields.push(`Row ${index + 1}: Cpk`);
+                if (row.samples.slice(0, row.sampleQty).some(s => s.value === null)) missingFields.push(`Row ${index + 1}: Samples`);
+            }
+            return isMissing;
+        });
 
         if (hasEmptyData) {
+            console.log('Missing fields:', missingFields);
             toast.current?.show({
                 severity: 'warn',
                 summary: 'Warning',
-                detail: 'Please complete all SDS data fields',
+                detail: `Please complete all SDS data fields. Missing: ${missingFields[0]}`,
             });
             return;
         }
@@ -437,37 +475,37 @@ export default function CreateSDSForm() {
                         <div>
                             <label className="font-semibold block mb-2">Document : AIS</label>
                             <div className="flex gap-2 items-center">
-                                <InputText 
-                                    value={aisFileName} 
-                                    className="flex-1" 
-                                    readOnly 
+                                <InputText
+                                    value={aisFileName}
+                                    className="flex-1"
+                                    readOnly
                                     placeholder="No file selected"
                                 />
-                                <Button 
-                                    label="Download" 
-                                    className="p-button-primary" 
+                                <Button
+                                    label="Download"
+                                    className="p-button-primary"
                                     disabled={!aisFileName}
                                     onClick={() => downloadServerFile(aisFileName)}
                                 />
-                                
+
                             </div>
                         </div>
                         <div>
                             <label className="font-semibold block mb-2">SDR : Cover Page</label>
                             <div className="flex gap-2 items-center">
-                                <InputText 
-                                    value={sdrFileName} 
-                                    className="flex-1" 
-                                    readOnly 
+                                <InputText
+                                    value={sdrFileName}
+                                    className="flex-1"
+                                    readOnly
                                     placeholder="No file selected"
                                 />
-                                <Button 
-                                    label="Download" 
-                                    className="p-button-primary" 
+                                <Button
+                                    label="Download"
+                                    className="p-button-primary"
                                     disabled={!sdrFileName}
                                     onClick={() => downloadServerFile(sdrFileName)}
                                 />
-                                
+
                             </div>
                         </div>
                     </div>
@@ -475,7 +513,7 @@ export default function CreateSDSForm() {
                     {/* Section 1: 08-2025 Production */}
                     <div className="mb-6 py-4 px-2 bg-gray-50 rounded">
                         <div className="flex items-center gap-4">
-                            <span className="font-semibold text-lg">1. {form.sdrDate ? moment(form.sdrDate).format('MM-YYYY'): '-'} Production :</span>
+                            <span className="font-semibold text-lg">1. {form.sdrDate ? moment(form.sdrDate).format('MM-YYYY') : '-'} Production :</span>
                             <div className="flex gap-4 text-lg">
                                 {productionOptions.map((option) => (
                                     <div key={option.value} className="flex items-center gap-2">
@@ -518,13 +556,13 @@ export default function CreateSDSForm() {
                                 )}
                             </div>
                             <div className="flex gap-2">
-                                <Button 
-                                    label="Download" 
-                                    className="p-button-primary" 
-                                    disabled={(!uploadSdrReport || form.production08_2025 === 'No') && !uploadSdrReportName} 
+                                <Button
+                                    label="Download"
+                                    className="p-button-primary"
+                                    disabled={(!uploadSdrReport || form.production08_2025 === 'No') && !uploadSdrReportName}
                                     onClick={() => {
                                         if (uploadSdrReportName) {
-                                           downloadServerFile(uploadSdrReportName);
+                                            downloadServerFile(uploadSdrReportName);
                                         }
                                         else if (uploadSdrReport) {
                                             const fileUrl = URL.createObjectURL(uploadSdrReport);
@@ -543,8 +581,8 @@ export default function CreateSDSForm() {
                                         if (file) setUploadSdrReport(file);
                                     }}
                                 />
-                                <Button 
-                                    label="Upload" 
+                                <Button
+                                    label="Upload"
                                     className="p-button-success"
                                     disabled={form.production08_2025 === 'No'}
                                     onClick={() => document.getElementById('upload-sdr-report')?.click()}
@@ -592,12 +630,12 @@ export default function CreateSDSForm() {
                                                 {columnIndex}
                                             </th>
                                         ))}
-                                        <th className="border p-2 text-center" style={{ minWidth: '100px' }}>JUDGEMENT<br/>SUPP</th>
+                                        <th className="border p-2 text-center" style={{ minWidth: '100px' }}>JUDGEMENT<br />SUPP</th>
                                         <th className="border p-2 text-center" style={{ minWidth: '80px' }}>X-BAR</th>
                                         <th className="border p-2 text-center" style={{ minWidth: '80px' }}>R</th>
                                         <th className="border p-2 text-center" style={{ minWidth: '80px' }}>Cp</th>
                                         <th className="border p-2 text-center" style={{ minWidth: '80px' }}>Cpk</th>
-                                        <th className="border p-2 text-center" style={{ minWidth: '120px' }}>X-JUDGEMENT<br/>SUPP</th>
+                                        <th className="border p-2 text-center" style={{ minWidth: '120px' }}>X-JUDGEMENT<br />SUPP</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -605,7 +643,7 @@ export default function CreateSDSForm() {
                                         <tr key={rowIndex} className={rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                                             <td className="border p-2 text-center">{row.no}</td>
                                             <td className="border p-2">
-                                                <InputText 
+                                                <InputText
                                                     value={row.measuringItem}
                                                     onChange={(e) => updateSdrData(rowIndex, 'measuringItem', e.target.value)}
                                                     className="w-full"
@@ -613,7 +651,7 @@ export default function CreateSDSForm() {
                                                 />
                                             </td>
                                             <td className="border p-2">
-                                                <InputNumber 
+                                                <InputNumber
                                                     value={row.specification}
                                                     onChange={(e) => updateSdrData(rowIndex, 'specification', e.value)}
                                                     className="w-full"
@@ -633,7 +671,7 @@ export default function CreateSDSForm() {
                                                 />
                                             </td>
                                             <td className="border p-2">
-                                                <InputText 
+                                                <InputText
                                                     value={row.inspectionInstrument}
                                                     onChange={(e) => updateSdrData(rowIndex, 'inspectionInstrument', e.target.value)}
                                                     className="w-full"
@@ -648,7 +686,7 @@ export default function CreateSDSForm() {
                                                         value: index + 1,
                                                     }))}
                                                     onChange={(e) => updateSdrData(rowIndex, 'sampleQty', e.value)}
-                                                    className="w-full"
+                                                    className={`w-full ${isSubmitted && !row.sampleQty ? 'p-invalid' : ''}`}
                                                     disabled={form.production08_2025 === 'No'}
                                                 />
                                             </td>
@@ -664,7 +702,7 @@ export default function CreateSDSForm() {
                                                             <InputNumber
                                                                 value={sampleValue}
                                                                 onChange={(e) => updateSampleValue(rowIndex, sampleIndex, e.value)}
-                                                                className="w-full"
+                                                                className={`w-full ${isSubmitted && sampleValue === null ? 'p-invalid' : ''}`}
                                                                 inputStyle={{
                                                                     ...isRed ? { backgroundColor: '#fee', color: 'red', fontWeight: 'bold' } : {},
                                                                     width: '100px'
@@ -686,39 +724,39 @@ export default function CreateSDSForm() {
                                                     value={row.judgement}
                                                     options={judgementOptions}
                                                     onChange={(e) => updateSdrData(rowIndex, 'judgement', e.value)}
-                                                    className="w-full"
+                                                    className={`w-full ${isSubmitted && !row.judgement ? 'p-invalid' : ''}`}
                                                     disabled={form.production08_2025 === 'No'}
                                                 />
                                             </td>
                                             <td className="border p-2">
-                                                <InputText 
+                                                <InputText
                                                     value={row.xBar}
                                                     onChange={(e) => updateSdrData(rowIndex, 'xBar', e.target.value)}
-                                                    className="w-full"
+                                                    className={`w-full ${isSubmitted && !row.xBar ? 'p-invalid' : ''}`}
                                                     disabled={form.production08_2025 === 'No'}
                                                 />
                                             </td>
                                             <td className="border p-2">
-                                                <InputText 
+                                                <InputText
                                                     value={row.r}
                                                     onChange={(e) => updateSdrData(rowIndex, 'r', e.target.value)}
-                                                    className="w-full"
+                                                    className={`w-full ${isSubmitted && !row.r ? 'p-invalid' : ''}`}
                                                     disabled={form.production08_2025 === 'No'}
                                                 />
                                             </td>
                                             <td className="border p-2">
-                                                <InputText 
+                                                <InputText
                                                     value={row.cp}
                                                     onChange={(e) => updateSdrData(rowIndex, 'cp', e.target.value)}
-                                                    className="w-full"
+                                                    className={`w-full ${isSubmitted && !row.cp ? 'p-invalid' : ''}`}
                                                     disabled={form.production08_2025 === 'No'}
                                                 />
                                             </td>
                                             <td className="border p-2">
-                                                <InputText 
+                                                <InputText
                                                     value={row.cpk}
                                                     onChange={(e) => updateSdrData(rowIndex, 'cpk', e.target.value)}
-                                                    className="w-full"
+                                                    className={`w-full ${isSubmitted && !row.cpk ? 'p-invalid' : ''}`}
                                                     disabled={form.production08_2025 === 'No'}
                                                 />
                                             </td>
@@ -727,7 +765,7 @@ export default function CreateSDSForm() {
                                                     value={row.remark}
                                                     options={remarkOptions}
                                                     onChange={(e) => updateSdrData(rowIndex, 'remark', e.value)}
-                                                    className="w-full"
+                                                    className={`w-full ${isSubmitted && !row.remark ? 'p-invalid' : ''}`}
                                                     disabled={form.production08_2025 === 'No'}
                                                 />
                                             </td>
@@ -737,8 +775,25 @@ export default function CreateSDSForm() {
                             </table>
                         </div>
 
+                        {remarkJtekt && <div
+                            className='flex flex-col items-left gap-2 mt-4'
+                            style={{
+                                backgroundColor: '#ffe1e1',
+                                padding: '6px 10px',
+                                borderRadius: '10px',
+                                border: '1px solid #e24c4c'
+                            }}>
+                            <label className='font-bold'>Remark {statusJtekt}</label>
+                            <InputTextarea
+                                value={remarkJtekt}
+                                disabled
+                                rows={2}
+                                cols={30}
+                            />
+                        </div>}
+
                         <div className='flex flex-col items-left gap-2 mt-4'>
-                            <label>Remark</label>
+                            <label className='font-bold'>Remark</label>
                             <InputTextarea
                                 value={form.remark}
                                 onChange={(e) => setForm(prev => ({ ...prev, remark: e.target.value }))}
@@ -758,15 +813,15 @@ export default function CreateSDSForm() {
 
                     <Footer>
                         <div className='flex justify-end mt-4 w-full gap-2'>
-                            <Button 
-                                label="Cancel" 
-                                className="p-button-danger min-w-[150px]" 
-                                onClick={() => router.back()} 
+                            <Button
+                                label="Cancel"
+                                className="p-button-danger min-w-[150px]"
+                                onClick={() => router.back()}
                             />
-                            <Button 
-                                label={isEditMode ? 'Update' : 'Submit'} 
-                                className="p-button-primary min-w-[150px]" 
-                                onClick={handleSave} 
+                            <Button
+                                label={isEditMode ? 'Update' : 'Submit'}
+                                className="p-button-primary min-w-[150px]"
+                                onClick={handleSave}
                             />
                         </div>
                     </Footer>
