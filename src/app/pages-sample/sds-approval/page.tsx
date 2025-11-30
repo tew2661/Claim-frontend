@@ -50,6 +50,7 @@ interface DataSDS {
     checker3Approved?: boolean,
     checker3Rejected?: boolean,
     hasAnyRejection?: boolean,
+    production_08_2025: 'Yes' | 'No'
 }
 
 export function SDSApprovalTable(props: { checker: 1 | 2 | 3 }) {
@@ -129,11 +130,11 @@ export function SDSApprovalTable(props: { checker: 1 | 2 | 3 }) {
         }
 
         // ตรวจสอบว่ามีการ reject หรือไม่ - ต้องรอ supplier แก้ไขก่อน
-        if (rowData.hasAnyRejection) {
+        if (rowData.hasAnyRejection || ((rowData.checker3Approved || rowData.checker3Rejected) && rowData.production_08_2025 == 'No')) {
             return (
                 <Button
                     label="View"
-                    className="p-button-warning"
+                    className="p-button-secondary"
                     disabled
                     outlined
                     tooltip="Waiting for supplier to fix rejected items"
@@ -280,12 +281,14 @@ export function SDSApprovalTable(props: { checker: 1 | 2 | 3 }) {
                 delayDays?: number;
                 hasDelay: boolean;
                 sdsCreated: boolean;
+                hasAnyRejection: boolean;
                 checker1Approved?: boolean;
                 checker1Rejected?: boolean;
                 checker2Approved?: boolean;
                 checker2Rejected?: boolean;
                 checker3Approved?: boolean;
                 checker3Rejected?: boolean;
+                production_08_2025: 'Yes' | 'No'
             }>;
 
             const mapped = items.map((item: any) => ({
@@ -305,6 +308,8 @@ export function SDSApprovalTable(props: { checker: 1 | 2 | 3 }) {
                 hasDelay: item.hasDelay ? true : false,
                 delayDays: item.delayDays ?? 0,
                 action: item.sdsCreated,
+                hasAnyRejection: item.hasAnyRejection,
+                production_08_2025: item.production_08_2025,
                 checker1Approved: item.checker1Approved ?? false,
                 checker1Rejected: item.checker1Rejected ?? false,
                 checker2Approved: item.checker2Approved ?? false,

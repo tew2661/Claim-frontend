@@ -27,6 +27,7 @@ export function Page({ page }: { page: number }) {
         partNo: '',
         model: '',
         partName: '',
+        production08_2025: 'No',
         aisDocument: null as File | null,
         sdrDocument: null as File | null,
         sdrReportFile: null as string | null,
@@ -38,7 +39,11 @@ export function Page({ page }: { page: number }) {
         reSubmitDate: null as Date | null,
     });
 
-    const downloadDocument = async (fileName?: string) => {
+    const downloadDocument = async (fileName?: string, load?: boolean) => {
+        if (!load) {
+            return;
+        }
+
         if (!fileName) {
             toast.current?.show({ severity: 'warn', summary: 'Missing file', detail: 'No document available' });
             return;
@@ -121,6 +126,7 @@ export function Page({ page }: { page: number }) {
                 supplier: detail.supplierName || prev.supplier,
                 partNo: detail.partNo || prev.partNo,
                 partName: detail.partName || prev.partName,
+                production08_2025: detail.production08_2025 || prev.production08_2025,
                 model: detail.model || prev.model,
             }));
             setAisFileName(detail.aisFile || '');
@@ -143,7 +149,7 @@ export function Page({ page }: { page: number }) {
                 const sheet = sheetPayload?.data;
                 if (sheet) {
                     setSheetId(sheet.id);
-                    const linkFile = await downloadDocument(sheet.sdrReportFile);
+                    const linkFile = await downloadDocument(sheet.sdrReportFile, sheet.production08_2025 == 'Yes');
                     const sdsLinkFile = await downloadDocumentSDS(sheet.id);
                     const remarkLast = page > 1 && sheet.approvals?.length ? sheet.approvals[sheet.approvals.length - 1]?.remark : '';
                     setForm((prevForm) => ({
@@ -154,6 +160,7 @@ export function Page({ page }: { page: number }) {
                         model: sheet.model || prevForm.model,
                         sdrReportFile: sheet.sdrReportFile && linkFile ? linkFile : null,
                         sdsReportFile: sheet.sdrFile ? sdsLinkFile : null,
+                        production08_2025: sheet.production08_2025 || prevForm.production08_2025,
                         remark: remarkLast ? remarkLast : '',
                     }));
 
@@ -237,7 +244,7 @@ export function Page({ page }: { page: number }) {
         try {
             const payload = {
                 id: sheetId,
-                actionSdrApproval: form.actionSdrApproval,
+                actionSdrApproval: form.production08_2025 == 'Yes' ? form.actionSdrApproval : form.actionSdsApproval,
                 actionSdsApproval: form.actionSdsApproval,
                 remark: form.remark,
                 reSubmitDate: form.reSubmitDate ? form.reSubmitDate.toISOString() : null,
@@ -346,6 +353,7 @@ export function Page({ page }: { page: number }) {
                     </div>
                     <div className="w-full mt-2 border-solid border-gray-200 p-4"
                         style={{
+                            display: form.production08_2025 == 'No' ? 'none' : 'block',
                             borderRadius: '5px',
                             backgroundColor: form.actionSdrApproval == 'approve' ? '#f0fff0' : form.actionSdrApproval == 'reject' ? '#fff0f0' : 'transparent',
                             borderColor: form.actionSdrApproval == 'approve' ? 'green' : form.actionSdrApproval == 'reject' ? 'red' : '#e5e7eb',

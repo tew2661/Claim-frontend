@@ -37,7 +37,11 @@ const roleOptions = [
     { label: "Plant Manager", value: "Plant Manager" },
 ];
 
-const systemRoleOptions = roleOptions;
+const systemRoleOptions = [
+    { label: "Leader", value: "Leader" },
+    { label: "Engineer / Supervision / Assistant Manager", value: "Engineer / Supervision / Assistant Manager" },
+    { label: "Manager", value: "Manager" },
+];
 
 export function UserManagement() {
     const defaultUser: UserData = {
@@ -226,7 +230,7 @@ export function UserManagement() {
     }, [filters, rows, first]);
 
     const DeleteData = async (id: number) => {
-        
+
 
         const accept = async () => {
             const res = await Delete({
@@ -243,9 +247,9 @@ export function UserManagement() {
             } else {
                 toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await res!.json()).message)}`, life: 3000 });
             }
-            
+
         }
-        const reject = () => {}
+        const reject = () => { }
 
         confirmDialog({
             message: 'Do you want to delete this record?',
@@ -276,10 +280,10 @@ export function UserManagement() {
                 setVisibleAdd(false);
             } else {
                 toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await res!.json()).message)}`, life: 3000 });
-            } 
+            }
         }
 
-        const reject = () => {}
+        const reject = () => { }
 
         confirmDialog({
             message: `ต้องการ ${active == 'Y' ? "เปิดการใช้งาน" : "ปิดการใช้งาน"} user นี้ใช่หรือไม่`,
@@ -291,7 +295,7 @@ export function UserManagement() {
             reject
         });
 
-        
+
     }
 
     useEffect(() => {
@@ -359,7 +363,7 @@ export function UserManagement() {
                     }} ></Column>
                     <Column field="action" header="Action" style={{ width: '10%', textAlign: 'center' }} body={(arr: UserData) => {
                         return <div className="flex justify-center gap-2">
-                            <Button icon="pi pi-sync" severity="warning" outlined onClick={ async () => {
+                            <Button icon="pi pi-sync" severity="warning" outlined onClick={async () => {
                                 confirmDialog({
                                     message: `ต้องการ reset password ใช่หรือไม่`,
                                     header: `ยืนยัน reset password`,
@@ -384,7 +388,7 @@ export function UserManagement() {
                                             toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await res!.json()).message)}`, life: 3000 });
                                         }
                                     },
-                                    reject: () => {}
+                                    reject: () => { }
                                 })
                             }} />
                             <Button icon="pi pi-pen-to-square" outlined onClick={() => {
@@ -472,16 +476,16 @@ export function UserManagement() {
 
                             <div className="flex flex-col gap-2 w-full">
                                 <label htmlFor="accessmastermanagement">Access Master Management</label>
-                                <Dropdown 
-                                    value={newUser.accessMasterManagement} 
+                                <Dropdown
+                                    value={newUser.accessMasterManagement}
                                     invalid={iInvalid.accessMasterManagement && !newUser.accessMasterManagement}
-                                    onChange={(e) => handleDropdownChangeAdd("accessMasterManagement", e.value)} 
+                                    onChange={(e) => handleDropdownChangeAdd("accessMasterManagement", e.value)}
                                     options={[
-                                        { label: 'Yes' , value: 'Y' }, 
-                                        { label: 'No' , value: 'N' }, 
-                                    ]} 
-                                    optionLabel="label" 
-                                    className="w-full" 
+                                        { label: 'Yes', value: 'Y' },
+                                        { label: 'No', value: 'N' },
+                                    ]}
+                                    optionLabel="label"
+                                    className="w-full"
                                 />
                             </div>
                             <div className='flex justify-end mt-2 w-full gap-2'>

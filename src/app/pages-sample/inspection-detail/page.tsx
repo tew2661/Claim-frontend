@@ -705,7 +705,7 @@ export default function InspectionDetail() {
                         </div>
                     }} bodyStyle={{ width: '15%', textAlign: 'center' }}></Column>
                     {
-                        IsSupplier ? <Column header="Special Request" body={specialRequestBody} bodyStyle={{ width: '7%', textAlign: 'center' }}></Column> : undefined
+                        !IsSupplier ? <Column header="Special Request" body={specialRequestBody} bodyStyle={{ width: '7%', textAlign: 'center' }}></Column> : undefined
                     }
 
                     <Column header="Action" body={editBody} bodyStyle={{ width: '3%', textAlign: 'center' }}></Column>
