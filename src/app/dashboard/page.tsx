@@ -290,7 +290,7 @@ export function Dashboard() {
                                         </thead>
                                         <tbody>
                                             {dashboardData?.monthly?.delayData?.map((row) => (
-                                                <tr key={row.no} className="hover:bg-gray-50" style={{ backgroundColor: row.delay ? 'red' : 'transparent', color: row.delay ? 'white' : 'black' }}>
+                                                <tr key={row.no} className="hover:bg-gray-50">
                                                     <td className="border border-gray-300 px-2 py-1">{row.no}</td>
                                                     <td className="border border-gray-300 px-2 py-1">{row.supplier}</td>
                                                     <td className="border border-gray-300 px-2 py-1">{row.partName}</td>
@@ -342,7 +342,7 @@ export function Dashboard() {
                                         </thead>
                                         <tbody>
                                             {dashboardData?.yearly?.delayData?.map((row) => (
-                                                <tr key={row.no} className="hover:bg-gray-50" style={{ backgroundColor: row.delay ? 'red' : 'transparent', color: row.delay ? 'white' : 'black' }}>
+                                                <tr key={row.no} className="hover:bg-gray-50">
                                                     <td className="border border-gray-300 px-2 py-1">{row.no}</td>
                                                     <td className="border border-gray-300 px-2 py-1">{row.supplier}</td>
                                                     <td className="border border-gray-300 px-2 py-1">{row.partName}</td>
