@@ -20,6 +20,7 @@ const Header = (props: { IsJtekt: boolean, menu: 'claim' | 'sample' }) => {
     const router = useRouter();
     const [name, setName] = useState('')
     const [role, setRole] = useState('')
+    const [roleSample, setRoleSample] = useState('')
 
     useEffect(() => {
         const localUser = localStorage.getItem('user') ?? ''
@@ -83,7 +84,7 @@ const Header = (props: { IsJtekt: boolean, menu: 'claim' | 'sample' }) => {
                 icon: undefined,
                 url: "/pages-claim/delay",
             }] : [],
-            
+
             // Sample Menu สำหรับ JTEKT
             ...IsJtekt && sample ? [{
                 label: 'Dashboard',
@@ -130,7 +131,7 @@ const Header = (props: { IsJtekt: boolean, menu: 'claim' | 'sample' }) => {
                 icon: undefined,
                 url: "/pages-sample/delay",
             }] : [],
-            
+
             ...!IsJtekt && claim ? [{
                 label: 'Action List',
                 items: [],
@@ -180,6 +181,7 @@ const Header = (props: { IsJtekt: boolean, menu: 'claim' | 'sample' }) => {
             const jsonUser = JSON.parse(localUser);
             setName(jsonUser.name);
             setRole(jsonUser.role);
+            setRoleSample(jsonUser.sampleDataSheetRole)
         } else {
             localStorage.clear();
             window.location.href = "/login"
@@ -200,6 +202,7 @@ const Header = (props: { IsJtekt: boolean, menu: 'claim' | 'sample' }) => {
                 localStorage.setItem('role', data.role);
                 setName(data.name);
                 setRole(data.role);
+                setRoleSample(data.sampleDataSheetRole)
             }
         });
 
@@ -215,7 +218,7 @@ const Header = (props: { IsJtekt: boolean, menu: 'claim' | 'sample' }) => {
             <div className="p-bar">
                 <div
                     className="class-custom-bar-item class-custom-logo"
-                    onClick={() => { 
+                    onClick={() => {
                         if (sample) {
                             router.push('/pages-sample')
                         } else {
@@ -295,7 +298,7 @@ const Header = (props: { IsJtekt: boolean, menu: 'claim' | 'sample' }) => {
                     <button className="class-custom-button class-custom-avatar">
                         <div className='mr-2 user'>
                             <div>{name}</div>
-                            <div>({role})</div>
+                            <div>({sample ? roleSample : role})</div>
                         </div>
                         <Image src={IconAvatar} alt="Logo" />
                     </button>
