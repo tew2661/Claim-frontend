@@ -342,44 +342,46 @@ export default function CreateSDSForm({ page = 'create' }: { page: string }) {
             return;
         }
 
-        const missingFields: string[] = [];
-        const hasEmptyData = form.sdrData.some((row, index) => {
-            const isMissing = !row.measuringItem ||
-                (row.specification === null || row.specification === undefined) ||
-                !row.rank ||
-                !row.inspectionInstrument ||
-                !row.sampleQty ||
-                !row.judgement ||
-                !row.xBar ||
-                !row.r ||
-                !row.cp ||
-                !row.cpk ||
-                row.samples.slice(0, row.sampleQty).some(s => s.value === null);
+        if (form.production08_2025 === 'Yes') {
+            const missingFields: string[] = [];
+            const hasEmptyData = form.sdrData.some((row, index) => {
+                const isMissing = !row.measuringItem ||
+                    (row.specification === null || row.specification === undefined) ||
+                    !row.rank ||
+                    !row.inspectionInstrument ||
+                    !row.sampleQty ||
+                    !row.judgement ||
+                    !row.xBar ||
+                    !row.r ||
+                    !row.cp ||
+                    !row.cpk ||
+                    row.samples.slice(0, row.sampleQty).some(s => s.value === null);
 
-            if (isMissing) {
-                if (!row.measuringItem) missingFields.push(`Row ${index + 1}: Measuring Item`);
-                if (row.specification === null || row.specification === undefined) missingFields.push(`Row ${index + 1}: Specification`);
-                if (!row.rank) missingFields.push(`Row ${index + 1}: Rank`);
-                if (!row.inspectionInstrument) missingFields.push(`Row ${index + 1}: Inspection Instrument`);
-                if (!row.sampleQty) missingFields.push(`Row ${index + 1}: Sample Qty`);
-                if (!row.judgement) missingFields.push(`Row ${index + 1}: Judgement`);
-                if (!row.xBar) missingFields.push(`Row ${index + 1}: X-Bar`);
-                if (!row.r) missingFields.push(`Row ${index + 1}: R`);
-                if (!row.cp) missingFields.push(`Row ${index + 1}: Cp`);
-                if (!row.cpk) missingFields.push(`Row ${index + 1}: Cpk`);
-                if (row.samples.slice(0, row.sampleQty).some(s => s.value === null)) missingFields.push(`Row ${index + 1}: Samples`);
-            }
-            return isMissing;
-        });
-
-        if (hasEmptyData) {
-            console.log('Missing fields:', missingFields);
-            toast.current?.show({
-                severity: 'warn',
-                summary: 'Warning',
-                detail: `Please complete all SDS data fields. Missing: ${missingFields[0]}`,
+                if (isMissing) {
+                    if (!row.measuringItem) missingFields.push(`Row ${index + 1}: Measuring Item`);
+                    if (row.specification === null || row.specification === undefined) missingFields.push(`Row ${index + 1}: Specification`);
+                    if (!row.rank) missingFields.push(`Row ${index + 1}: Rank`);
+                    if (!row.inspectionInstrument) missingFields.push(`Row ${index + 1}: Inspection Instrument`);
+                    if (!row.sampleQty) missingFields.push(`Row ${index + 1}: Sample Qty`);
+                    if (!row.judgement) missingFields.push(`Row ${index + 1}: Judgement`);
+                    if (!row.xBar) missingFields.push(`Row ${index + 1}: X-Bar`);
+                    if (!row.r) missingFields.push(`Row ${index + 1}: R`);
+                    if (!row.cp) missingFields.push(`Row ${index + 1}: Cp`);
+                    if (!row.cpk) missingFields.push(`Row ${index + 1}: Cpk`);
+                    if (row.samples.slice(0, row.sampleQty).some(s => s.value === null)) missingFields.push(`Row ${index + 1}: Samples`);
+                }
+                return isMissing;
             });
-            return;
+
+            if (hasEmptyData) {
+                console.log('Missing fields:', missingFields);
+                toast.current?.show({
+                    severity: 'warn',
+                    summary: 'Warning',
+                    detail: `Please complete all SDS data fields. Missing: ${missingFields[0]}`,
+                });
+                return;
+            }
         }
 
         const payload = {
