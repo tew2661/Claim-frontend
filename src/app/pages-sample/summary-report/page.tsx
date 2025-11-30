@@ -210,7 +210,8 @@ export default function SummaryReport() {
         return (
             <Button
                 label="VIEW"
-                className="p-button-link text-blue-500"
+                severity="info"
+                outlined
                 disabled={!rowData.sheetId}
                 onClick={async (e) => {
                     e.stopPropagation();
@@ -219,7 +220,6 @@ export default function SummaryReport() {
                         window.open(sdsLinkFile, '_blank');
                     }
                 }}
-                style={{ padding: 0, textDecoration: 'underline' }}
             />
         );
     };

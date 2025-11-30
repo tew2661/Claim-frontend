@@ -329,7 +329,10 @@ export default function CreateSDSForm({ page = 'create' }: { page: string }) {
         return value > upperLimit || value < lowerLimit;
     };
 
+    const [isSubmitted, setIsSubmitted] = useState(false);
+
     const handleSave = async () => {
+        setIsSubmitted(true);
         if (!isEditMode && form.production08_2025 === 'Yes' && !uploadSdrReport) {
             toast.current?.show({
                 severity: 'warn',
@@ -339,15 +342,42 @@ export default function CreateSDSForm({ page = 'create' }: { page: string }) {
             return;
         }
 
-        const hasEmptyData = form.sdrData.some(
-            (row) => !row.measuringItem || !row.specification || !row.rank || !row.inspectionInstrument,
-        );
+        const missingFields: string[] = [];
+        const hasEmptyData = form.sdrData.some((row, index) => {
+            const isMissing = !row.measuringItem ||
+                (row.specification === null || row.specification === undefined) ||
+                !row.rank ||
+                !row.inspectionInstrument ||
+                !row.sampleQty ||
+                !row.judgement ||
+                !row.xBar ||
+                !row.r ||
+                !row.cp ||
+                !row.cpk ||
+                row.samples.slice(0, row.sampleQty).some(s => s.value === null);
+
+            if (isMissing) {
+                if (!row.measuringItem) missingFields.push(`Row ${index + 1}: Measuring Item`);
+                if (row.specification === null || row.specification === undefined) missingFields.push(`Row ${index + 1}: Specification`);
+                if (!row.rank) missingFields.push(`Row ${index + 1}: Rank`);
+                if (!row.inspectionInstrument) missingFields.push(`Row ${index + 1}: Inspection Instrument`);
+                if (!row.sampleQty) missingFields.push(`Row ${index + 1}: Sample Qty`);
+                if (!row.judgement) missingFields.push(`Row ${index + 1}: Judgement`);
+                if (!row.xBar) missingFields.push(`Row ${index + 1}: X-Bar`);
+                if (!row.r) missingFields.push(`Row ${index + 1}: R`);
+                if (!row.cp) missingFields.push(`Row ${index + 1}: Cp`);
+                if (!row.cpk) missingFields.push(`Row ${index + 1}: Cpk`);
+                if (row.samples.slice(0, row.sampleQty).some(s => s.value === null)) missingFields.push(`Row ${index + 1}: Samples`);
+            }
+            return isMissing;
+        });
 
         if (hasEmptyData) {
+            console.log('Missing fields:', missingFields);
             toast.current?.show({
                 severity: 'warn',
                 summary: 'Warning',
-                detail: 'Please complete all SDS data fields',
+                detail: `Please complete all SDS data fields. Missing: ${missingFields[0]}`,
             });
             return;
         }
@@ -656,7 +686,7 @@ export default function CreateSDSForm({ page = 'create' }: { page: string }) {
                                                         value: index + 1,
                                                     }))}
                                                     onChange={(e) => updateSdrData(rowIndex, 'sampleQty', e.value)}
-                                                    className="w-full"
+                                                    className={`w-full ${isSubmitted && !row.sampleQty ? 'p-invalid' : ''}`}
                                                     disabled={form.production08_2025 === 'No'}
                                                 />
                                             </td>
@@ -672,7 +702,7 @@ export default function CreateSDSForm({ page = 'create' }: { page: string }) {
                                                             <InputNumber
                                                                 value={sampleValue}
                                                                 onChange={(e) => updateSampleValue(rowIndex, sampleIndex, e.value)}
-                                                                className="w-full"
+                                                                className={`w-full ${isSubmitted && sampleValue === null ? 'p-invalid' : ''}`}
                                                                 inputStyle={{
                                                                     ...isRed ? { backgroundColor: '#fee', color: 'red', fontWeight: 'bold' } : {},
                                                                     width: '100px'
@@ -694,7 +724,7 @@ export default function CreateSDSForm({ page = 'create' }: { page: string }) {
                                                     value={row.judgement}
                                                     options={judgementOptions}
                                                     onChange={(e) => updateSdrData(rowIndex, 'judgement', e.value)}
-                                                    className="w-full"
+                                                    className={`w-full ${isSubmitted && !row.judgement ? 'p-invalid' : ''}`}
                                                     disabled={form.production08_2025 === 'No'}
                                                 />
                                             </td>
@@ -702,7 +732,7 @@ export default function CreateSDSForm({ page = 'create' }: { page: string }) {
                                                 <InputText
                                                     value={row.xBar}
                                                     onChange={(e) => updateSdrData(rowIndex, 'xBar', e.target.value)}
-                                                    className="w-full"
+                                                    className={`w-full ${isSubmitted && !row.xBar ? 'p-invalid' : ''}`}
                                                     disabled={form.production08_2025 === 'No'}
                                                 />
                                             </td>
@@ -710,7 +740,7 @@ export default function CreateSDSForm({ page = 'create' }: { page: string }) {
                                                 <InputText
                                                     value={row.r}
                                                     onChange={(e) => updateSdrData(rowIndex, 'r', e.target.value)}
-                                                    className="w-full"
+                                                    className={`w-full ${isSubmitted && !row.r ? 'p-invalid' : ''}`}
                                                     disabled={form.production08_2025 === 'No'}
                                                 />
                                             </td>
@@ -718,7 +748,7 @@ export default function CreateSDSForm({ page = 'create' }: { page: string }) {
                                                 <InputText
                                                     value={row.cp}
                                                     onChange={(e) => updateSdrData(rowIndex, 'cp', e.target.value)}
-                                                    className="w-full"
+                                                    className={`w-full ${isSubmitted && !row.cp ? 'p-invalid' : ''}`}
                                                     disabled={form.production08_2025 === 'No'}
                                                 />
                                             </td>
@@ -726,7 +756,7 @@ export default function CreateSDSForm({ page = 'create' }: { page: string }) {
                                                 <InputText
                                                     value={row.cpk}
                                                     onChange={(e) => updateSdrData(rowIndex, 'cpk', e.target.value)}
-                                                    className="w-full"
+                                                    className={`w-full ${isSubmitted && !row.cpk ? 'p-invalid' : ''}`}
                                                     disabled={form.production08_2025 === 'No'}
                                                 />
                                             </td>
@@ -735,7 +765,7 @@ export default function CreateSDSForm({ page = 'create' }: { page: string }) {
                                                     value={row.remark}
                                                     options={remarkOptions}
                                                     onChange={(e) => updateSdrData(rowIndex, 'remark', e.value)}
-                                                    className="w-full"
+                                                    className={`w-full ${isSubmitted && !row.remark ? 'p-invalid' : ''}`}
                                                     disabled={form.production08_2025 === 'No'}
                                                 />
                                             </td>
