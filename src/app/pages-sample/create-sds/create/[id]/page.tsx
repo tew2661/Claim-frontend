@@ -122,6 +122,8 @@ export default function CreateSDSForm({ page = 'create' }: { page: string }) {
     const [uploadSdrReportName, setUploadSdrReportName] = useState<string>('');
     const [isLoadingDetail, setIsLoadingDetail] = useState(false);
     const [sheetId, setSheetId] = useState<number | null>(null);
+    const [remarkJtekt, setRemarkJtekt] = useState('');
+    const [statusJtekt, setStatusJtekt] = useState('');
     const isEditMode = Boolean(sheetId);
 
     const productionOptions = [
@@ -219,6 +221,10 @@ export default function CreateSDSForm({ page = 'create' }: { page: string }) {
                                 : prev.sdrData,
                             remark: sheet.remark || prev.remark,
                         }));
+
+                        const remarkApproved = sheet.approvals && sheet.approvals.length > 0 ? sheet.approvals[sheet.approvals.length - 1] : undefined;
+                        setRemarkJtekt(remarkApproved && remarkApproved?.remark || '');
+                        setStatusJtekt(remarkApproved && remarkApproved?.action || '');
                         setAisFileName(sheet.aisFile || '');
                         setSdrFileName(sheet.sdrFile || '');
                         setUploadSdrReportName(sheet.sdrReportFile || '');
@@ -739,8 +745,25 @@ export default function CreateSDSForm({ page = 'create' }: { page: string }) {
                             </table>
                         </div>
 
+                        {remarkJtekt && <div
+                            className='flex flex-col items-left gap-2 mt-4'
+                            style={{
+                                backgroundColor: '#ffe1e1',
+                                padding: '6px 10px',
+                                borderRadius: '10px',
+                                border: '1px solid #e24c4c'
+                            }}>
+                            <label className='font-bold'>Remark {statusJtekt}</label>
+                            <InputTextarea
+                                value={remarkJtekt}
+                                disabled
+                                rows={2}
+                                cols={30}
+                            />
+                        </div>}
+
                         <div className='flex flex-col items-left gap-2 mt-4'>
-                            <label>Remark</label>
+                            <label className='font-bold'>Remark</label>
                             <InputTextarea
                                 value={form.remark}
                                 onChange={(e) => setForm(prev => ({ ...prev, remark: e.target.value }))}

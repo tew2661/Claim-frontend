@@ -85,7 +85,7 @@ export default function PDFApproval() {
                 remark = object8DReportDto && object8DReportDto?.object8D ? (object8DReportDto?.object8D.remark || '') : '';
 
                 if (!object8DReportDto.checker1 && !object8DReportDto.checker2 && !object8DReportDto.checker3 && dataForID?.object8DReportDto.length > 1) {
-                    const afer = ((dataForID?.object8DReportDto.length - 2) >= 0) && dataForID?.object8DReportDto[dataForID?.object8DReportDto.length - 2] ? dataForID?.object8DReportDto[dataForID?.object8DReportDto.length - 2] : undefined ;
+                    const afer = ((dataForID?.object8DReportDto.length - 2) >= 0) && dataForID?.object8DReportDto[dataForID?.object8DReportDto.length - 2] ? dataForID?.object8DReportDto[dataForID?.object8DReportDto.length - 2] : undefined;
                     remark = afer && afer?.object8D ? (afer?.object8D.remark || '') : '';
                 }
             }
@@ -434,7 +434,7 @@ export default function PDFApproval() {
                                                 checked={formData.complain}
                                                 disabled={formData.approve && formData.approve !== 'approve'}
                                                 onChange={(e) => {
-                                                    
+
                                                     setFormData((old: FormData) => {
                                                         return {
                                                             ...old,

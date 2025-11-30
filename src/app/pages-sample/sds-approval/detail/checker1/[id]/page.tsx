@@ -499,6 +499,7 @@ export function Page({ page }: { page: number }) {
                                     setForm((prev) => ({ ...prev, reSubmitDate: dateValue }));
                                 }}
                                 className="w-full"
+                                dateFormat="dd/mm/yy"
                                 placeholder="dd/mm/yy"
                             />
                         </div>

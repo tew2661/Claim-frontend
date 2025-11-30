@@ -327,8 +327,10 @@ export default function SummaryReport() {
             if (filters.sdsStatus && filters.sdsStatus.toLowerCase() !== 'all') {
                 params.sdsStatus = filters.sdsStatus;
             }
-            if (filters.delayNotDelay && filters.delayNotDelay.toLowerCase() !== 'all') {
-                params.hasDelay = filters.delayNotDelay === 'Delay';
+            if (filters.delayNotDelay && filters.delayNotDelay.toLowerCase() === 'delay') {
+                params.hasDelay = true;
+            } else if (filters.delayNotDelay && filters.delayNotDelay.toLowerCase() === 'not delay') {
+                params.notHasDelay = true;
             }
 
             const query = CreateQueryString(params);

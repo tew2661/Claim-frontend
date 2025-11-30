@@ -510,6 +510,7 @@ export function SDSApprovalTable(props: { checker: 1 | 2 | 3 }) {
                                 showIcon
                                 monthNavigator
                                 yearNavigator
+                                placeholder="MM-YYYY"
                                 yearRange="2020:2030"
                                 showButtonBar
                                 className="w-full"
