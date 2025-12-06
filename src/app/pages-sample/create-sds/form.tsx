@@ -140,9 +140,8 @@ export default function CreateSDSForm({ page = 'create' }: { page: string }) {
     ];
 
     const remarkOptions = [
-        { label: 'Edit', value: 'Edit' },
-        { label: 'So let', value: 'So let' },
-        { label: 'Other', value: 'Other' },
+        { label: 'X', value: 'X' },
+        { label: 'O', value: 'O' },
     ];
 
     const judgementOptions = [
