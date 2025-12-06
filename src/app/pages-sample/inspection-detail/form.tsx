@@ -29,7 +29,8 @@ export default function InspectionDetailForm({ mode, data }: Props) {
     const user = userInStorage ? JSON.parse(userInStorage) : null;
 
     // Check if form is locked for supplier mode
-    const isLocked = IsSupplier && mode === 'edit' && data?.supplierEditStatus === 'Locked';
+    
+    const isLocked = (IsSupplier && mode === 'edit' && data?.supplierEditStatus === 'Locked') || (!IsSupplier && user && user.accessMasterManagement !== 'Y');
 
     // Show confirmation dialog for supplier edit mode
     const [showEditConfirmation, setShowEditConfirmation] = useState(false);
