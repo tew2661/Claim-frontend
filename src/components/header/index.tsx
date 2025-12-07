@@ -4,7 +4,7 @@ import Icon from "@/assets/icon/jtekt.png";
 import IconAvatar from '@/assets/icon/profile.png'
 import IconLogout from '@/assets/icon/logout.png'
 import './style.scss'
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { MenuCategory, MenuItem } from './interface';
 import { getSocket } from '../socket/socket';
@@ -18,6 +18,7 @@ const Header = (props: { IsJtekt: boolean, menu: 'claim' | 'sample' }) => {
     const sample = props.menu == 'sample';
     const [menuList, setMenuList] = useState<MenuCategory[]>([])
     const router = useRouter();
+    const path = usePathname();
     const [name, setName] = useState('')
     const [role, setRole] = useState('')
     const [roleSample, setRoleSample] = useState('')
@@ -298,13 +299,13 @@ const Header = (props: { IsJtekt: boolean, menu: 'claim' | 'sample' }) => {
                     <button className="class-custom-button class-custom-avatar">
                         <div className='mr-2 user'>
                             <div>{name}</div>
-                            <div>({sample ? roleSample : role})</div>
+                            <div>({sample && IsJtekt ? roleSample : role})</div>
                         </div>
                         <Image src={IconAvatar} alt="Logo" />
                     </button>
                     <div className="class-custom-dropdown-content class-custom-bar-block class-custom-card-4">
                         <a className="class-custom-bar-item class-custom-button class-custom-menu" onClick={() => {
-                            router.push('/pages-claim/reset-password')
+                            router.push('/pages-claim/reset-password?redirect=' + encodeURIComponent(path))
                         }}>
                             <div className='mr-2'>
                                 <i className='pi pi-sync'></i>

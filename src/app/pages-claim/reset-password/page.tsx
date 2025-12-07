@@ -5,11 +5,13 @@ import { Button } from "primereact/button";
 import { Password } from "primereact/password";
 import { Patch, Put } from "@/components/fetch";
 import { Toast } from "primereact/toast";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 const ResetPassword = () => {
     const toast = useRef<Toast>(null);
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const redirectPath = searchParams.get('redirect') ?? '/system-select';
     const [userPasswords, setUserPasswords] = useState({
         newPassword: '',
         confirmPassword: ''
@@ -44,7 +46,7 @@ const ResetPassword = () => {
         if (response.ok) {
             toast.current?.show({ severity: 'success', summary: 'Success', detail: `Password changed successfully`, life: 3000 });
             setTimeout(() => {
-                router.push('/pages-claim')
+                router.push(redirectPath)
             }, 1000)
         } else {
             toast.current?.show({ severity: 'error', summary: 'Error', detail: `${JSON.stringify((await response.json()).message)}`, life: 3000 });
