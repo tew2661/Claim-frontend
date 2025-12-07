@@ -289,9 +289,9 @@ export function Dashboard() {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {dashboardData?.monthly?.delayData?.map((row) => (
-                                                <tr key={row.no} className="hover:bg-gray-50">
-                                                    <td className="border border-gray-300 px-2 py-1">{row.no}</td>
+                                            {dashboardData?.monthly?.delayData?.map((row, idx) => (
+                                                <tr key={`${row.partNumber}-${idx}`} className="hover:bg-gray-50">
+                                                    <td className="border border-gray-300 px-2 py-1">{idx + 1}</td>
                                                     <td className="border border-gray-300 px-2 py-1">{row.supplier}</td>
                                                     <td className="border border-gray-300 px-2 py-1">{row.partName}</td>
                                                     <td className="border border-gray-300 px-2 py-1">{row.partNumber}</td>
@@ -341,9 +341,9 @@ export function Dashboard() {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {dashboardData?.yearly?.delayData?.map((row) => (
-                                                <tr key={row.no} className="hover:bg-gray-50">
-                                                    <td className="border border-gray-300 px-2 py-1">{row.no}</td>
+                                            {dashboardData?.yearly?.delayData?.map((row, idx) => (
+                                                <tr key={`${row.partNumber}-${idx}`} className="hover:bg-gray-50">
+                                                    <td className="border border-gray-300 px-2 py-1">{idx + 1}</td>
                                                     <td className="border border-gray-300 px-2 py-1">{row.supplier}</td>
                                                     <td className="border border-gray-300 px-2 py-1">{row.partName}</td>
                                                     <td className="border border-gray-300 px-2 py-1">{row.partNumber}</td>
@@ -395,9 +395,9 @@ export function Dashboard() {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {dashboardData?.inspection?.inspectionData?.map((row) => (
-                                                <tr key={row.no} className="hover:bg-gray-50">
-                                                    <td className="border border-gray-300 px-2 py-1">{row.no}</td>
+                                            {dashboardData?.inspection?.inspectionData?.map((row, idx) => (
+                                                <tr key={`${row.partNo}-${idx}`} className="hover:bg-gray-50">
+                                                    <td className="border border-gray-300 px-2 py-1">{idx + 1}</td>
                                                     <td className="border border-gray-300 px-2 py-1">{row.supplier}</td>
                                                     <td className="border border-gray-300 px-2 py-1">{row.partName}</td>
                                                     <td className="border border-gray-300 px-2 py-1">{row.partNo}</td>
