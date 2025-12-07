@@ -298,7 +298,7 @@ const Header = (props: { IsJtekt: boolean, menu: 'claim' | 'sample' }) => {
                     <button className="class-custom-button class-custom-avatar">
                         <div className='mr-2 user'>
                             <div>{name}</div>
-                            <div>({sample ? roleSample : role})</div>
+                            <div>({sample && IsJtekt ? roleSample : role})</div>
                         </div>
                         <Image src={IconAvatar} alt="Logo" />
                     </button>
