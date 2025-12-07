@@ -29,7 +29,7 @@ function LayoutPages({
             } else {
                 
                 if (!user.expiresPassword || (new Date(user.expiresPassword) < new Date())) {
-                    router.push('/pages-claim/reset-password')
+                    router.push('/pages-claim/reset-password?redirect=' + encodeURIComponent(pathname))
                 }
 
                 setPages(<>
