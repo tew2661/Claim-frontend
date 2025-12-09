@@ -67,8 +67,8 @@ const mapInspectionItemsToSdrRows = (items: any[], specialRequest: any | undefin
             judgement: '',
             xBar: '',
             r: '',
-            cp: specialRequest ? specialRequest.cpCpk : '',
-            cpk: specialRequest ? specialRequest.cpCpk : '',
+            cp: '',
+            cpk: '',
         };
     })
 );
@@ -312,6 +312,62 @@ export default function CreateSDSForm({ page = 'create' }: { page: string }) {
     const updateSampleValue = (rowIndex: number, sampleIndex: number, value: number | null) => {
         const newData = [...form.sdrData];
         newData[rowIndex].samples[sampleIndex].value = value;
+        
+        // Auto-calculate xBar, R, Cp, Cpk when sample values change
+        const row = newData[rowIndex];
+        const validSamples = row.samples
+            .slice(0, row.sampleQty)
+            .map(s => s.value)
+            .filter((v): v is number => v !== null);
+
+        console.log('Row:', rowIndex, 'Valid samples:', validSamples.length, '/', row.sampleQty);
+
+        if (validSamples.length === row.sampleQty && validSamples.length > 0) {
+            const spec = Number(row.specification);
+            const tolPlus = Number(row.tolerancePlus || 0);
+            const tolMinus = Number(row.toleranceMinus || 0);
+
+            console.log('Spec:', spec, 'Tol+:', tolPlus, 'Tol-:', tolMinus);
+
+            // คำนวณ USL และ LSL
+            const USL = spec + tolPlus;
+            const LSL = spec - tolMinus;
+
+            // คำนวณ X-Bar (Average/Mean)
+            const mean = validSamples.reduce((sum, val) => sum + val, 0) / validSamples.length;
+
+            // คำนวณ R (Range)
+            const range = Math.max(...validSamples) - Math.min(...validSamples);
+
+            // คำนวณส่วนเบี่ยงเบนมาตรฐาน (Standard Deviation)
+            const variance = validSamples.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / (validSamples.length - 1);
+            const s = Math.sqrt(variance);
+
+            // คำนวณ Cp
+            const Cp = (USL - LSL) / (6 * s);
+
+            // คำนวณ Cpu และ Cpl
+            const Cpu = (USL - mean) / (3 * s);
+            const Cpl = (mean - LSL) / (3 * s);
+
+            // คำนวณ Cpk
+            const Cpk = Math.min(Cpu, Cpl);
+
+            console.log('Calculated - XBar:', mean.toFixed(4), 'R:', range.toFixed(4), 'Cp:', Cp.toFixed(4), 'Cpk:', Cpk.toFixed(4));
+
+            // อัพเดทค่าที่คำนวณได้
+            newData[rowIndex].xBar = mean.toFixed(4);
+            newData[rowIndex].r = range.toFixed(4);
+            newData[rowIndex].cp = Cp.toFixed(4);
+            newData[rowIndex].cpk = Cpk.toFixed(4);
+        } else {
+            // ถ้ายังกรอกไม่ครบ ให้ล้างค่า
+            newData[rowIndex].xBar = '';
+            newData[rowIndex].r = '';
+            newData[rowIndex].cp = '';
+            newData[rowIndex].cpk = '';
+        }
+
         setForm(prev => ({ ...prev, sdrData: newData }));
     };
 
@@ -639,7 +695,7 @@ export default function CreateSDSForm({ page = 'create' }: { page: string }) {
                                         <th className="border p-2 text-center" style={{ minWidth: '80px' }}>R</th>
                                         <th className="border p-2 text-center" style={{ minWidth: '80px' }}>Cp</th>
                                         <th className="border p-2 text-center" style={{ minWidth: '80px' }}>Cpk</th>
-                                        <th className="border p-2 text-center" style={{ minWidth: '120px' }}>X-JUDGEMENT<br />SUPP</th>
+                                        <th className="border p-2 text-center" style={{ minWidth: '120px' }}>JUDGEMENT<br />SUPP</th>
                                     </tr>
                                 </thead>
                                 <tbody>
