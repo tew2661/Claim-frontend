@@ -9,6 +9,8 @@ import { Dialog } from 'primereact/dialog';
 import { useRouter } from 'next/navigation';
 import Footer from '@/components/footer';
 import { Get, Post, Put } from '@/components/fetch';
+import { confirmDialog, ConfirmDialog } from 'primereact/confirmdialog';
+import moment from 'moment';
 
 interface SupplierDropdownOption {
     label: string;
@@ -29,11 +31,12 @@ export default function InspectionDetailForm({ mode, data }: Props) {
     const user = userInStorage ? JSON.parse(userInStorage) : null;
 
     // Check if form is locked for supplier mode
-    
+
     const isLocked = (IsSupplier && mode === 'edit' && data?.supplierEditStatus === 'Locked') || (!IsSupplier && user && user.accessMasterManagement !== 'Y');
 
     // Show confirmation dialog for supplier edit mode
     const [showEditConfirmation, setShowEditConfirmation] = useState(false);
+    const [showDeleteSDSConfirmation, setShowDeleteSDSConfirmation] = useState(false);
 
     const [form, setForm] = useState<any>({
         supplierCode: (user.supplier && user.supplier.supplierCode ? user.supplier.supplierCode : '') || data?.supplierCode,
@@ -43,6 +46,7 @@ export default function InspectionDetailForm({ mode, data }: Props) {
         model: data?.model || '',
         aisFileName: data?.aisFile || '',
         sdrFileName: data?.sdrFile || '',
+        productionDate: data?.productionDate || null,
         inspectionItems: data?.inspectionItems || [{
             no: 1,
             measuringItem: '',
@@ -168,6 +172,7 @@ export default function InspectionDetailForm({ mode, data }: Props) {
                 model: data.model || '',
                 aisFileName: data.aisFile || '',
                 sdrFileName: data.sdrFile || '',
+                productionDate: data?.createdAt || null,
                 inspectionItems: data.inspectionItems || [{
                     no: 1,
                     measuringItem: '',
@@ -315,6 +320,8 @@ export default function InspectionDetailForm({ mode, data }: Props) {
     };
 
     const handleSave = async () => {
+        const recordId = typeof data?.id === 'number' ? data.id : Number(data?.id ?? NaN);
+        const isUpdate = mode === 'edit' && !Number.isNaN(recordId) && recordId > 0;
         // ถ้า form ถูก lock ให้ return ทันที
         if (isLocked) {
             toast.current?.show({
@@ -331,14 +338,14 @@ export default function InspectionDetailForm({ mode, data }: Props) {
         }
 
         if (IsSupplier && mode === 'edit') {
+            const response = await Get({ url: `/sample-data-sheet/by-inspection-id/${recordId}` });
+            setShowDeleteSDSConfirmation(isUpdate && response.ok && (await response.json()).data)
             setShowEditConfirmation(true);
             return;
         }
 
         const payload = buildPayload();
         const formData = buildFormData(payload);
-        const recordId = typeof data?.id === 'number' ? data.id : Number(data?.id ?? NaN);
-        const isUpdate = mode === 'edit' && !Number.isNaN(recordId) && recordId > 0;
         const requestUrl = isUpdate ? `/inspection-detail/${recordId}` : '/inspection-detail';
         const requestFn = isUpdate ? Put : Post;
 
@@ -375,7 +382,7 @@ export default function InspectionDetailForm({ mode, data }: Props) {
     return (
         <div className="bg-white rounded-lg shadow-lg p-6 h-[calc(100vh-250px)] overflow-auto">
             <Toast ref={toast} />
-
+            <ConfirmDialog />
             {/* Edit Confirmation Dialog for Supplier */}
             <Dialog
                 header={
@@ -421,6 +428,14 @@ export default function InspectionDetailForm({ mode, data }: Props) {
                             <span className="text-gray-400 mr-3">:</span>
                             <span className="text-gray-900 font-medium">{form.model}</span>
                         </div>
+                    </div>
+
+                    <div>
+                        {showDeleteSDSConfirmation && (
+                            <p className="text-red-600 font-medium">
+                                ⚠️ Warning: หากยืนยันการแก้ไข ข้อมูล SDS ที่เกี่ยวข้องในเดือน {form.productionDate ? moment(form.productionDate).format('MM-YYYY') : ''} จะถูกลบ คุณต้องการดำเนินการต่อหรือไม่?
+                            </p>
+                        )}
                     </div>
 
                     <div className="flex gap-4 justify-center pt-4">
@@ -632,7 +647,7 @@ export default function InspectionDetailForm({ mode, data }: Props) {
                             <div className="grid grid-cols-12 gap-3 mb-2">
                                 <div className="col-span-1">
                                     <label className="block mb-1">No.</label>
-                                    <InputText value={it.no} readOnly className="w-full" />
+                                    <InputText value={it.no} disabled className="w-full" />
                                 </div>
                                 <div className="col-span-11">
                                     <label className="block mb-1">Measuring Item <span className="text-red-500">*</span></label>

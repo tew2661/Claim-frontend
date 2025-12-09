@@ -110,6 +110,7 @@ export default function CreateSDSForm({ page = 'create' }: { page: string }) {
         aisDocument: null as File | null,
         sdrDocument: null as File | null,
         production08_2025: 'Yes',
+        productionDate: new Date() as Date | null,
         sdrDate: moment().endOf('month').toDate() as Date | null,
         remark: '',
         sdrData: [] as SdrRow[],
@@ -182,6 +183,7 @@ export default function CreateSDSForm({ page = 'create' }: { page: string }) {
                     ? mapInspectionItemsToSdrRows(detail.inspectionItems, specialRequest0)
                     : prev.sdrData,
                 sdrDate: specialRequest0 && specialRequest0.dueDate ? new Date(specialRequest0.dueDate) : prev.sdrDate,
+                productionDate: specialRequest0 && specialRequest0.createdAt ? new Date(specialRequest0.createdAt) : prev.productionDate,
             }));
             setAisFileName(detail.aisFile || '');
             setSdrFileName(detail.sdrFile || '');
@@ -219,6 +221,7 @@ export default function CreateSDSForm({ page = 'create' }: { page: string }) {
                                 ? normalizeSdrRows(sheet.sdrData)
                                 : prev.sdrData,
                             remark: sheet.remark || prev.remark,
+                            productionDate: sheet && sheet.createdAt ? new Date(sheet.createdAt) : prev.productionDate,
                         }));
 
                         const remarkApproved = sheet.approvals && sheet.approvals.length > 0 ? sheet.approvals[sheet.approvals.length - 1] : undefined;
@@ -514,7 +517,7 @@ export default function CreateSDSForm({ page = 'create' }: { page: string }) {
                     {/* Section 1: 08-2025 Production */}
                     <div className="mb-6 py-4 px-2 bg-gray-50 rounded">
                         <div className="flex items-center gap-4">
-                            <span className="font-semibold text-lg">1. {form.sdrDate ? moment(form.sdrDate).format('MM-YYYY') : '-'} Production :</span>
+                            <span className="font-semibold text-lg">1. {form.productionDate ? moment(form.productionDate).format('MM-YYYY') : '-'} Production :</span>
                             <div className="flex gap-4 text-lg">
                                 {productionOptions.map((option) => (
                                     <div key={option.value} className="flex items-center gap-2">
