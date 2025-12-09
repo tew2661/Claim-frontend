@@ -353,13 +353,13 @@ export default function CreateSDSForm({ page = 'create' }: { page: string }) {
             // คำนวณ Cpk
             const Cpk = Math.min(Cpu, Cpl);
 
-            console.log('Calculated - XBar:', mean.toFixed(2), 'R:', range.toFixed(2), 'Cp:', Cp.toFixed(2), 'Cpk:', Cpk.toFixed(2));
+            console.log('Calculated - XBar:', mean.toFixed(4), 'R:', range.toFixed(4), 'Cp:', Cp.toFixed(4), 'Cpk:', Cpk.toFixed(4));
 
             // อัพเดทค่าที่คำนวณได้
-            newData[rowIndex].xBar = mean.toFixed(2);
-            newData[rowIndex].r = range.toFixed(2);
-            newData[rowIndex].cp = Cp.toFixed(2);
-            newData[rowIndex].cpk = Cpk.toFixed(2);
+            newData[rowIndex].xBar = mean.toFixed(4);
+            newData[rowIndex].r = range.toFixed(4);
+            newData[rowIndex].cp = Cp.toFixed(4);
+            newData[rowIndex].cpk = Cpk.toFixed(4);
         } else {
             // ถ้ายังกรอกไม่ครบ ให้ล้างค่า
             newData[rowIndex].xBar = '';
