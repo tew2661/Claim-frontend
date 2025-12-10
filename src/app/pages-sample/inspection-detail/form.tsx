@@ -36,7 +36,6 @@ export default function InspectionDetailForm({ mode, data }: Props) {
 
     // Show confirmation dialog for supplier edit mode
     const [showEditConfirmation, setShowEditConfirmation] = useState(false);
-    const [showDeleteSDSConfirmation, setShowDeleteSDSConfirmation] = useState(false);
 
     const [form, setForm] = useState<any>({
         supplierCode: (user.supplier && user.supplier.supplierCode ? user.supplier.supplierCode : '') || data?.supplierCode,
@@ -51,8 +50,8 @@ export default function InspectionDetailForm({ mode, data }: Props) {
             no: 1,
             measuringItem: '',
             specification: '',
-            tolerancePlus: '',
-            toleranceMinus: '',
+            tolerancePlus: null,
+            toleranceMinus: null,
             inspectionInstrument: '',
             rank: ''
         }],
@@ -63,9 +62,31 @@ export default function InspectionDetailForm({ mode, data }: Props) {
     const [uploadAisFile, setUploadAisFile] = useState<File | null>(null);
     const [uploadSdrFile, setUploadSdrFile] = useState<File | null>(null);
 
-    const handleConfirmEdit = async () => {
+    const handleConfirmUnlock = async () => {
         setShowEditConfirmation(false);
+        const recordId = typeof data?.id === 'number' ? data.id : Number(data?.id ?? NaN);
+        const response = await Put({ url: `/inspection-detail/unlock-request/${recordId}` , body: JSON.stringify({ partNo: form.partNo }) });
+        if (response.ok) {
+            toast.current?.show({
+                severity: 'success',
+                summary: 'Success',
+                detail: 'Unlock request sent successfully',
+            });
 
+            setTimeout(() => {
+                router.push('/pages-sample/inspection-detail');
+            }, 1000);
+        } else {
+            const err: any = await response.json().catch(() => ({}));
+            toast.current?.show({
+                severity: 'error',
+                summary: 'Error',
+                detail: err.message || 'Cannot send unlock request',
+            });
+        } 
+    }
+
+    const handleConfirmEdit = async () => {
         // Actually save the data
         const payload = buildPayload();
         const formData = buildFormData(payload);
@@ -101,8 +122,43 @@ export default function InspectionDetailForm({ mode, data }: Props) {
         }
     };
 
-    const handleCancelEdit = () => {
+    const handleCancelEdit = async () => {
         setShowEditConfirmation(false);
+    };
+
+    const handleUnlockRequest = async () => {
+        setShowEditConfirmation(false);
+
+        const recordId = typeof data?.id === 'number' ? data.id : Number(data?.id ?? NaN);
+
+        try {
+            const res = await Put({
+                url: `/inspection-detail/${recordId}/unlock-request`,
+                body: JSON.stringify({ partNo: form.partNo }),
+            });
+
+            if (!res.ok) {
+                const err: any = await res.json().catch(() => ({}));
+                throw new Error(err.message || 'Failed to send unlock request');
+            }
+
+            toast.current?.show({
+                severity: 'success',
+                summary: 'Success',
+                detail: 'Unlock request sent successfully',
+            });
+
+            setTimeout(() => {
+                router.push('/pages-sample/inspection-detail');
+            }, 1000);
+        } catch (error: any) {
+            console.error('Unlock request error:', error);
+            toast.current?.show({
+                severity: 'error',
+                summary: 'Error',
+                detail: error.message || 'Cannot send unlock request',
+            });
+        }
     };
 
     const [supplierOptions, setSupplierOptions] = useState<SupplierDropdownOption[]>([]);
@@ -177,8 +233,8 @@ export default function InspectionDetailForm({ mode, data }: Props) {
                     no: 1,
                     measuringItem: '',
                     specification: '',
-                    tolerancePlus: '',
-                    toleranceMinus: '',
+                    tolerancePlus: null,
+                    toleranceMinus: null,
                     inspectionInstrument: '',
                     rank: ''
                 }],
@@ -203,6 +259,21 @@ export default function InspectionDetailForm({ mode, data }: Props) {
                 rank: ''
             }]
         }));
+    }
+
+    const deleteInspectionItem = (index: number) => {
+        setForm((old: any) => {
+            const newItems = old.inspectionItems.filter((_: any, idx: number) => idx !== index);
+            // Recalculate no field for all items
+            const updatedItems = newItems.map((item: any, idx: number) => ({
+                ...item,
+                no: idx + 1
+            }));
+            return {
+                ...old,
+                inspectionItems: updatedItems
+            };
+        });
     }
 
     const validateForm = () => {
@@ -296,9 +367,9 @@ export default function InspectionDetailForm({ mode, data }: Props) {
             inspectionItems: form.inspectionItems.map((it: any, idx: number) => ({
                 no: it.no ?? idx + 1,
                 measuringItem: it.measuringItem,
-                specification: it.specification,
-                tolerancePlus: it.tolerancePlus,
-                toleranceMinus: it.toleranceMinus,
+                specification: it.specification ? parseFloat(it.specification) : null,
+                tolerancePlus: it.tolerancePlus ? parseFloat(it.tolerancePlus) : null,
+                toleranceMinus: it.toleranceMinus ? parseFloat(it.toleranceMinus) : null,
                 inspectionInstrument: it.inspectionInstrument,
                 rank: it.rank,
             })),
@@ -337,11 +408,26 @@ export default function InspectionDetailForm({ mode, data }: Props) {
             return;
         }
 
+        // if (IsSupplier && mode === 'edit') {
+        //     const response = await Get({ url: `/sample-data-sheet/by-inspection-id/${recordId}` });
+        //     setShowDeleteSDSConfirmation(isUpdate && response.ok && (await response.json()).data)
+        //     setShowEditConfirmation(true);
+        //     return;
+        // }
+
         if (IsSupplier && mode === 'edit') {
             const response = await Get({ url: `/sample-data-sheet/by-inspection-id/${recordId}` });
-            setShowDeleteSDSConfirmation(isUpdate && response.ok && (await response.json()).data)
-            setShowEditConfirmation(true);
-            return;
+            if (response.ok) {
+                confirmDialog({
+                    message: isUpdate && (await response.json()).data ?
+                        `⚠️ Warning: หากยืนยันการแก้ไข ข้อมูล SDS ที่เกี่ยวข้องในเดือน ${form.productionDate ? moment(form.productionDate).format('MM-YYYY') : ''} จะถูกลบ คุณต้องการดำเนินการต่อหรือไม่?`
+                        : 'คุณต้องการบันทึกการเปลี่ยนแปลงหรือไม่?',
+                    header: 'Confirm Edit',
+                    icon: 'pi pi-exclamation-triangle',
+                    accept: () => handleConfirmEdit(),
+                    reject: () => {}
+                });
+            }
         }
 
         const payload = buildPayload();
@@ -430,14 +516,6 @@ export default function InspectionDetailForm({ mode, data }: Props) {
                         </div>
                     </div>
 
-                    <div>
-                        {showDeleteSDSConfirmation && (
-                            <p className="text-red-600 font-medium">
-                                ⚠️ Warning: หากยืนยันการแก้ไข ข้อมูล SDS ที่เกี่ยวข้องในเดือน {form.productionDate ? moment(form.productionDate).format('MM-YYYY') : ''} จะถูกลบ คุณต้องการดำเนินการต่อหรือไม่?
-                            </p>
-                        )}
-                    </div>
-
                     <div className="flex gap-4 justify-center pt-4">
                         <Button
                             label="Cancel"
@@ -456,7 +534,7 @@ export default function InspectionDetailForm({ mode, data }: Props) {
                         <Button
                             label="Confirm"
                             className="min-w-[160px] transition-all duration-200 hover:shadow-xl"
-                            onClick={handleConfirmEdit}
+                            onClick={handleConfirmUnlock}
                             style={{
                                 background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
                                 border: 'none',
@@ -471,12 +549,32 @@ export default function InspectionDetailForm({ mode, data }: Props) {
                 </div>
             </Dialog>
 
+
             <div className="grid grid-cols-1 gap-2">
                 <h2 className="text-xl font-semibold">Inspection Details</h2>
                 {isLocked && (
                     <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-3 mb-2" role="alert">
-                        <p className="font-bold">🔒 Edit Locked</p>
-                        <p>This Part No. is locked and cannot be edited.</p>
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <p className="font-bold">🔒 Edit Locked</p>
+                                <p>This Part No. is locked and cannot be edited.</p>
+                            </div>
+                            {IsSupplier && (
+                                <Button
+                                    label="Unlock Request"
+                                    className="p-button-warning"
+                                    onClick={() => setShowEditConfirmation(true)}
+                                    style={{
+                                        backgroundColor: '#dc2626',
+                                        border: 'none',
+                                        borderRadius: '8px',
+                                        padding: '10px 20px',
+                                        fontWeight: '600',
+                                        fontSize: '14px'
+                                    }}
+                                />
+                            )}
+                        </div>
                     </div>
                 )}
                 <div className="grid grid-cols-2 gap-3">
@@ -643,7 +741,25 @@ export default function InspectionDetailForm({ mode, data }: Props) {
                 <div className="mt-4">
                     <h3 className="font-medium">Inspection Details <span className="text-red-500">*</span></h3>
                     {form.inspectionItems.map((it: any, idx: number) => (
-                        <div key={idx} className="border border-gray-300 rounded p-3 mb-3">
+                        <div key={idx} className="border border-gray-300 rounded p-3 mb-3 border-dashed">
+                            <div className="flex justify-between items-center mb-2">
+                                <span className="font-semibold text-gray-700">No. {it.no}</span>
+                                {form.inspectionItems.length > 1 && (
+                                    <Button
+                                        icon="pi pi-trash"
+                                        className="p-button-danger p-button-sm"
+                                        onClick={() => deleteInspectionItem(idx)}
+                                        disabled={isLocked}
+                                        tooltip="Delete this item"
+                                        tooltipOptions={{ position: 'top' }}
+                                        style={{
+                                            backgroundColor: '#dc2626',
+                                            border: 'none',
+                                            padding: '6px 12px'
+                                        }}
+                                    />
+                                )}
+                            </div>
                             <div className="grid grid-cols-12 gap-3 mb-2">
                                 <div className="col-span-1">
                                     <label className="block mb-1">No.</label>

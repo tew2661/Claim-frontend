@@ -352,14 +352,12 @@ export default function CreateSDSForm({ page = 'create' }: { page: string }) {
 
             // คำนวณ Cpk
             const Cpk = Math.min(Cpu, Cpl);
-
-            console.log('Calculated - XBar:', mean.toFixed(4), 'R:', range.toFixed(4), 'Cp:', Cp.toFixed(4), 'Cpk:', Cpk.toFixed(4));
-
+            
             // อัพเดทค่าที่คำนวณได้
-            newData[rowIndex].xBar = mean.toFixed(3);
-            newData[rowIndex].r = range.toFixed(3);
-            newData[rowIndex].cp = Cp.toFixed(3);
-            newData[rowIndex].cpk = Cpk.toFixed(3);
+            newData[rowIndex].xBar = mean.toFixed(4);
+            newData[rowIndex].r = range.toFixed(4);
+            newData[rowIndex].cp = Cp.toFixed(4);
+            newData[rowIndex].cpk = Cpk.toFixed(4);
         } else {
             // ถ้ายังกรอกไม่ครบ ให้ล้างค่า
             newData[rowIndex].xBar = '';
@@ -375,16 +373,15 @@ export default function CreateSDSForm({ page = 'create' }: { page: string }) {
     const isOutOfTolerance = (value: number | null, row: SdrRow): boolean => {
         if (value === null || !row.specification) return false;
 
-        const numSpec = row.specification;
-        const tolerancePlus = parseFloat(String(row.tolerancePlus || 0));
-        const toleranceMinus = parseFloat(String(row.toleranceMinus || 0));
+        const numSpec = parseFloat(`${row.specification || 0}`);
+        const tolerancePlus = parseFloat(`${row.tolerancePlus || 0}`);
+        const toleranceMinus = parseFloat(`${row.toleranceMinus || 0}`);
 
         if (isNaN(numSpec)) return false;
 
         const upperLimit = numSpec + tolerancePlus;
         const lowerLimit = numSpec - toleranceMinus;
-
-        return value > upperLimit || value < lowerLimit;
+        return (value > upperLimit) || (value < lowerLimit);
     };
 
     const [isSubmitted, setIsSubmitted] = useState(false);
@@ -770,7 +767,7 @@ export default function CreateSDSForm({ page = 'create' }: { page: string }) {
                                                                 mode="decimal"
                                                                 step={0.01}
                                                                 minFractionDigits={0}
-                                                                maxFractionDigits={3}
+                                                                maxFractionDigits={4}
                                                                 disabled={form.production08_2025 === 'No'}
                                                             />
                                                         ) : (

@@ -419,7 +419,7 @@ export default function InspectionDetail() {
     const [measuringItems, setMeasuringItems] = useState<{ label: string; value: number }[]>([]);
 
     const qtyOptions = [
-        { label: 'All', value: 'All' },
+        // { label: 'All', value: 'All' },
         ...Array.from({ length: 30 }, (_, idx) => ({
             label: `${idx + 1}`,
             value: idx + 1,
@@ -427,7 +427,7 @@ export default function InspectionDetail() {
     ]
 
     const cpCpkOptions = [
-        { label: 'All', value: 'All' },
+        // { label: 'All', value: 'All' },
         { label: 'Yes', value: 'Yes' },
         { label: 'No', value: 'No' }
     ];
