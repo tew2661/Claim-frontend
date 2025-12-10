@@ -26,6 +26,7 @@ interface SdrRow {
     inspectionInstrument: string;
     remark: string;
     sampleQty: number;
+    lockQty: boolean;
     toleranceMinus: number;
     tolerancePlus: number;
     samples: SdrSample[];
@@ -61,6 +62,7 @@ const mapInspectionItemsToSdrRows = (items: any[], specialRequest: any | undefin
             inspectionInstrument: item.inspectionInstrument || '',
             remark: item.remark || '',
             sampleQty: specialRequest && specialRequest.qty ? specialRequest.qty : sampleQty,
+            lockQty: specialRequest && specialRequest.qty ? true : false,
             toleranceMinus: item.toleranceMinus,
             tolerancePlus: item.tolerancePlus,
             samples: createSampleArray(sampleQty, item.samples),
@@ -73,7 +75,7 @@ const mapInspectionItemsToSdrRows = (items: any[], specialRequest: any | undefin
     })
 );
 
-const normalizeSdrRows = (rows: any[]): SdrRow[] => (
+const normalizeSdrRows = (rows: any[], specialRequest: any | undefined): SdrRow[] => (
     rows.map((row: any, index: number) => {
         const sampleQty = Number(row.sampleQty) || DEFAULT_SAMPLE_QTY;
         return {
@@ -84,6 +86,7 @@ const normalizeSdrRows = (rows: any[]): SdrRow[] => (
             inspectionInstrument: row.inspectionInstrument || '',
             remark: row.remark || '',
             sampleQty,
+            lockQty: specialRequest && specialRequest.qty ? true : false,
             toleranceMinus: row.toleranceMinus,
             tolerancePlus: row.tolerancePlus,
             samples: createSampleArray(sampleQty, row.samples),
@@ -208,6 +211,8 @@ export default function CreateSDSForm({ page = 'create' }: { page: string }) {
                     const sheet = sheetPayload?.data;
                     if (sheet) {
                         setSheetId(sheet.id);
+                        const specialRequest = sheet.inspectionDetail?.specialRequest && 
+                        sheet.inspectionDetail?.specialRequest.length ? sheet.inspectionDetail?.specialRequest[0] : undefined
                         setForm((prev) => ({
                             ...prev,
                             supplier: sheet.supplier || prev.supplier,
@@ -218,7 +223,7 @@ export default function CreateSDSForm({ page = 'create' }: { page: string }) {
                             production08_2025: sheet.production08_2025 || prev.production08_2025,
                             sdrDate: sheet.sdrDate ? new Date(sheet.sdrDate) : prev.sdrDate,
                             sdrData: sheet.sdrData && sheet.sdrData.length
-                                ? normalizeSdrRows(sheet.sdrData)
+                                ? normalizeSdrRows(sheet.sdrData, specialRequest)
                                 : prev.sdrData,
                             remark: sheet.remark || prev.remark,
                             productionDate: sheet && sheet.createdAt ? new Date(sheet.createdAt) : prev.productionDate,
@@ -744,7 +749,7 @@ export default function CreateSDSForm({ page = 'create' }: { page: string }) {
                                                     }))}
                                                     onChange={(e) => updateSdrData(rowIndex, 'sampleQty', e.value)}
                                                     className={`w-full ${isSubmitted && !row.sampleQty ? 'p-invalid' : ''}`}
-                                                    disabled={form.production08_2025 === 'No'}
+                                                    disabled={form.production08_2025 === 'No' || row.lockQty}
                                                 />
                                             </td>
                                             {sampleColumns.map((columnIndex) => {
@@ -766,6 +771,7 @@ export default function CreateSDSForm({ page = 'create' }: { page: string }) {
                                                                 }}
                                                                 mode="decimal"
                                                                 step={0.01}
+                                                                
                                                                 minFractionDigits={0}
                                                                 maxFractionDigits={4}
                                                                 disabled={form.production08_2025 === 'No'}
