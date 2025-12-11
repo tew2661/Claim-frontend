@@ -418,16 +418,21 @@ export default function InspectionDetailForm({ mode, data }: Props) {
         if (IsSupplier && mode === 'edit') {
             const response = await Get({ url: `/sample-data-sheet/by-inspection-id/${recordId}` });
             if (response.ok) {
-                confirmDialog({
-                    message: isUpdate && (await response.json()).data ?
-                        `⚠️ Warning: หากยืนยันการแก้ไข ข้อมูล SDS ที่เกี่ยวข้องในเดือน ${form.productionDate ? moment(form.productionDate).format('MM-YYYY') : ''} จะถูกลบ คุณต้องการดำเนินการต่อหรือไม่?`
-                        : 'คุณต้องการบันทึกการเปลี่ยนแปลงหรือไม่?',
-                    header: 'Confirm Edit',
-                    icon: 'pi pi-exclamation-triangle',
-                    accept: () => handleConfirmEdit(),
-                    reject: () => {}
-                });
-                return;
+                const responseJson = await response.json();
+                if (responseJson?.data && 
+                    responseJson?.data?.createdAt &&
+                    moment(responseJson.data.createdAt).format('MM-YYYY') == moment().format('MM-YYYY')) {
+                    confirmDialog({
+                        message: isUpdate ?
+                            `⚠️ Warning: หากยืนยันการแก้ไข ข้อมูล SDS ที่เกี่ยวข้องในเดือน ${form.productionDate ? moment(form.productionDate).format('MM-YYYY') : ''} จะถูกลบ คุณต้องการดำเนินการต่อหรือไม่?`
+                            : 'คุณต้องการบันทึกการเปลี่ยนแปลงหรือไม่?',
+                        header: 'Confirm Edit',
+                        icon: 'pi pi-exclamation-triangle',
+                        accept: () => handleConfirmEdit(),
+                        reject: () => { }
+                    });
+                    return;
+                }
             }
         }
 
