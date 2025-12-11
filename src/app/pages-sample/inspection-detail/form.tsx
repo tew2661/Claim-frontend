@@ -427,6 +427,7 @@ export default function InspectionDetailForm({ mode, data }: Props) {
                     accept: () => handleConfirmEdit(),
                     reject: () => {}
                 });
+                return;
             }
         }
 
