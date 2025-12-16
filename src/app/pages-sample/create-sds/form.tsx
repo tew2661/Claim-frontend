@@ -771,10 +771,10 @@ export default function CreateSDSForm({ page = 'create' }: { page: string }) {
                                                                 }}
                                                                 mode="decimal"
                                                                 step={0.01}
-
                                                                 minFractionDigits={0}
                                                                 maxFractionDigits={4}
                                                                 disabled={form.production08_2025 === 'No'}
+                                                                allowEmpty
                                                             />
                                                         ) : (
                                                             <div className="h-full w-full flex items-center justify-center text-gray-400 text-sm">-</div>

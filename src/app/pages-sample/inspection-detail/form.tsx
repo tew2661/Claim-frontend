@@ -840,7 +840,8 @@ export default function InspectionDetailForm({ mode, data }: Props) {
                                         onChange={(e) => {
                                             const arr = [...form.inspectionItems];
                                             const value = e.target.value;
-                                            if (value === '' || /^\d*\.?\d{0,4}$/.test(value)) {
+                                            // Allow negative numbers with up to 4 decimal places
+                                            if (value === '' || value === '-' || /^-?\d*\.?\d{0,4}$/.test(value)) {
                                                 arr[idx].toleranceMinus = value;
                                                 setForm((old: any) => ({ ...old, inspectionItems: arr }));
                                             }
