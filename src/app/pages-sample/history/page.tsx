@@ -31,7 +31,7 @@ export default function History() {
     const toast = useRef<Toast>(null);
     const router = useRouter();
     const debounceTimer = useRef<NodeJS.Timeout | null>(null);
-
+    const storeRole: string = localStorage.getItem('role')!
     const [filters, setFilters] = useState({
         menu: 'All',
         partNo: '',
@@ -82,16 +82,37 @@ export default function History() {
         { label: 'Approver', value: 'Approver' },
     ];
 
-    const actionByOptions = [
+    const [actionByOptions, setActionByOptions] = useState<{ label: string; value: string }[]>([
         { label: 'All', value: 'All' },
-    ];
+    ]);
+
+    const loadActionByOptions = async (actionRole?: string) => {
+        try {
+            const params = new URLSearchParams();
+            if (actionRole && actionRole !== 'All') {
+                params.append('actionRole', actionRole);
+            }
+            const url = `/sds-log/action-by-options${params.toString() ? `?${params.toString()}` : ''}`;
+            const response = await Get({ url });
+            if (response.ok) {
+                const result = await response.json();
+                const options = (result.data || []).map((name: string) => ({
+                    label: name,
+                    value: name,
+                }));
+                setActionByOptions([{ label: 'All', value: 'All' }, ...options]);
+            }
+        } catch (error) {
+            console.error('Failed to load action by options:', error);
+        }
+    };
 
     const GetDatas = async () => {
         setLoading(true);
         try {
             // Build query parameters
             const params = new URLSearchParams();
-            
+
             if (searchFilters.menu && searchFilters.menu !== 'All') {
                 params.append('menu', searchFilters.menu);
             }
@@ -115,11 +136,15 @@ export default function History() {
                 params.append('actionDateTo', moment(searchFilters.actionDate).endOf('day').toISOString());
             }
 
+            // Add pagination parameters
+            params.append('limit', rows.toString());
+            params.append('offset', first.toString());
+
             const queryString = params.toString();
             const url = `/sds-log${queryString ? `?${queryString}` : ''}`;
-            
+
             const response = await Get({ url });
-            
+
             if (!response.ok) {
                 throw new Error('Failed to fetch history data');
             }
@@ -127,11 +152,11 @@ export default function History() {
             const result = await response.json();
             const logs = result.data || [];
 
-            setTotalRows(logs.length);
-            
-            // Client-side pagination
-            const pageData = logs.slice(first, first + rows);
-            setData(pageData.map((log: any, i: number) => ({
+            // Use total from server-side pagination
+            setTotalRows(result.total || 0);
+
+            // Direct mapping (server already handles pagination)
+            setData(logs.map((log: any, i: number) => ({
                 id: log.id,
                 no: first + i + 1,
                 menu: log.menu,
@@ -162,6 +187,16 @@ export default function History() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [first, rows, searchFilters]);
 
+    useEffect(() => {
+        loadActionByOptions(filters.actionRole);
+        // Reset actionBy when actionRole changes
+        if (filters.actionBy !== 'All') {
+            setFilters(old => ({ ...old, actionBy: 'All' }));
+            setSearchFilters(old => ({ ...old, actionBy: 'All' }));
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [filters.actionRole]);
+
     const handleFilterChange = (value: string | null, field: string) => {
         const newFilters = { ...filters, [field]: value || 'All' };
         setFilters(newFilters);
@@ -170,12 +205,12 @@ export default function History() {
 
     const handlePartNoChange = (value: string) => {
         setFilters(old => ({ ...old, partNo: value }));
-        
+
         // Clear existing timer
         if (debounceTimer.current) {
             clearTimeout(debounceTimer.current);
         }
-        
+
         // Set new timer to update search after 1 second
         debounceTimer.current = setTimeout(() => {
             setSearchFilters(old => ({ ...old, partNo: value }));
@@ -252,16 +287,32 @@ export default function History() {
                                 className="w-full"
                             />
                         </div>
-                        <div className="flex flex-col gap-2 w-full">
-                            <label>Action Role</label>
-                            <Dropdown
-                                value={filters.actionRole}
-                                onChange={(e) => handleFilterChange(e.value, 'actionRole')}
-                                options={actionRoleOptions}
-                                optionLabel="label"
-                                className="w-full"
-                            />
-                        </div>
+                        {
+                            storeRole !== 'Supplier' ? <div className="flex flex-col gap-2 w-full">
+                                <label>Action Role</label>
+                                <Dropdown
+                                    value={filters.actionRole}
+                                    onChange={(e) => handleFilterChange(e.value, 'actionRole')}
+                                    options={actionRoleOptions}
+                                    optionLabel="label"
+                                    className="w-full"
+                                />
+                            </div> : <div className="flex flex-col gap-2 w-full">
+                                <label>Action Date</label>
+                                <div className="flex gap-2">
+                                    <Calendar
+                                        value={filters.actionDate}
+                                        onChange={(e) => handleDateChange(e.value as Date | null)}
+                                        dateFormat="dd/mm/yy"
+                                        showIcon
+                                        className="w-full"
+                                        placeholder="Select Date"
+                                    />
+
+                                </div>
+                            </div>
+                        }
+
                     </div>
                     <div className="w-[100px]">
                         <div className="flex flex-col gap-2">
@@ -274,30 +325,35 @@ export default function History() {
                 <div className="flex gap-2 mx-4 mb-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2 w-[calc(100%-100px)]">
 
-                        <div className="flex flex-col gap-2 w-full">
-                            <label>Action By</label>
-                            <Dropdown
-                                value={filters.actionBy}
-                                onChange={(e) => handleFilterChange(e.value, 'actionBy')}
-                                options={actionByOptions}
-                                optionLabel="label"
-                                className="w-full"
-                            />
-                        </div>
-                        <div className="flex flex-col gap-2 w-full">
-                            <label>Action Date</label>
-                            <div className="flex gap-2">
-                                <Calendar
-                                    value={filters.actionDate}
-                                    onChange={(e) => handleDateChange(e.value as Date | null)}
-                                    dateFormat="dd/mm/yy"
-                                    showIcon
-                                    className="w-full"
-                                    placeholder="Select Date"
-                                />
+                        {
+                            storeRole !== 'Supplier' ? <>
+                                <div className="flex flex-col gap-2 w-full">
+                                    <label>Action By</label>
+                                    <Dropdown
+                                        value={filters.actionBy}
+                                        onChange={(e) => handleFilterChange(e.value, 'actionBy')}
+                                        options={actionByOptions}
+                                        optionLabel="label"
+                                        className="w-full"
+                                    />
+                                </div>
+                                <div className="flex flex-col gap-2 w-full">
+                                    <label>Action Date</label>
+                                    <div className="flex gap-2">
+                                        <Calendar
+                                            value={filters.actionDate}
+                                            onChange={(e) => handleDateChange(e.value as Date | null)}
+                                            dateFormat="dd/mm/yy"
+                                            showIcon
+                                            className="w-full"
+                                            placeholder="Select Date"
+                                        />
 
-                            </div>
-                        </div>
+                                    </div>
+                                </div>
+                            </> : undefined
+                        }
+
                     </div>
                 </div>
 

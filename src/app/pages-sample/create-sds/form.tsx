@@ -114,7 +114,7 @@ export default function CreateSDSForm({ page = 'create' }: { page: string }) {
         sdrDocument: null as File | null,
         production08_2025: 'Yes',
         productionDate: new Date() as Date | null,
-        sdrDate: moment().endOf('month').toDate() as Date | null,
+        sdrDate: null as Date | null,
         remark: '',
         sdrData: [] as SdrRow[],
         inspectionDetailId: '' as string,
@@ -211,8 +211,8 @@ export default function CreateSDSForm({ page = 'create' }: { page: string }) {
                     const sheet = sheetPayload?.data;
                     if (sheet) {
                         setSheetId(sheet.id);
-                        const specialRequest = sheet.inspectionDetail?.specialRequest && 
-                        sheet.inspectionDetail?.specialRequest.length ? sheet.inspectionDetail?.specialRequest[0] : undefined
+                        const specialRequest = sheet.inspectionDetail?.specialRequest &&
+                            sheet.inspectionDetail?.specialRequest.length ? sheet.inspectionDetail?.specialRequest[0] : undefined
                         setForm((prev) => ({
                             ...prev,
                             supplier: sheet.supplier || prev.supplier,
@@ -317,7 +317,7 @@ export default function CreateSDSForm({ page = 'create' }: { page: string }) {
     const updateSampleValue = (rowIndex: number, sampleIndex: number, value: number | null) => {
         const newData = [...form.sdrData];
         newData[rowIndex].samples[sampleIndex].value = value;
-        
+
         // Auto-calculate xBar, R, Cp, Cpk when sample values change
         const row = newData[rowIndex];
         const validSamples = row.samples
@@ -357,7 +357,7 @@ export default function CreateSDSForm({ page = 'create' }: { page: string }) {
 
             // คำนวณ Cpk
             const Cpk = Math.min(Cpu, Cpl);
-            
+
             // อัพเดทค่าที่คำนวณได้
             newData[rowIndex].xBar = mean.toFixed(4);
             newData[rowIndex].r = range.toFixed(4);
@@ -661,7 +661,7 @@ export default function CreateSDSForm({ page = 'create' }: { page: string }) {
                                 {form.production08_2025 === 'No' && <span className="text-red-500 ml-2">(Disabled - Production: No)</span>}
                             </h3>
                             <div className="flex items-center gap-2">
-                                <label className="font-semibold">Date</label>
+                                <label className="font-semibold">Inspection Date</label>
                                 <Calendar
                                     value={form.sdrDate}
                                     onChange={(e) => setForm(prev => ({ ...prev, sdrDate: e.value as Date }))}
@@ -771,7 +771,7 @@ export default function CreateSDSForm({ page = 'create' }: { page: string }) {
                                                                 }}
                                                                 mode="decimal"
                                                                 step={0.01}
-                                                                
+
                                                                 minFractionDigits={0}
                                                                 maxFractionDigits={4}
                                                                 disabled={form.production08_2025 === 'No'}

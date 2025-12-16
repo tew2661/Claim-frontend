@@ -378,8 +378,12 @@ export function SDSApprovalTable(props: { checker: 1 | 2 | 3 }) {
             const payload = await response.json();
             const logs = payload?.data ?? [];
 
+            // Filter to only show Submitted, Approved, Rejected, Completed
+            const allowedActions = ['Submitted', 'Approved', 'Rejected', 'Completed'];
+            const filteredLogs = logs.filter((log: any) => allowedActions.includes(log.action));
+
             // Map to match the interface
-            const mappedLogs = logs.map((log: any) => ({
+            const mappedLogs = filteredLogs.map((log: any) => ({
                 id: log.id,
                 menu: log.menu,
                 action: log.action,

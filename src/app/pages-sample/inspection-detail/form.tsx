@@ -65,7 +65,7 @@ export default function InspectionDetailForm({ mode, data }: Props) {
     const handleConfirmUnlock = async () => {
         setShowEditConfirmation(false);
         const recordId = typeof data?.id === 'number' ? data.id : Number(data?.id ?? NaN);
-        const response = await Put({ url: `/inspection-detail/unlock-request/${recordId}` , body: JSON.stringify({ partNo: form.partNo }) });
+        const response = await Put({ url: `/inspection-detail/unlock-request/${recordId}`, body: JSON.stringify({ partNo: form.partNo }) });
         if (response.ok) {
             toast.current?.show({
                 severity: 'success',
@@ -83,7 +83,7 @@ export default function InspectionDetailForm({ mode, data }: Props) {
                 summary: 'Error',
                 detail: err.message || 'Cannot send unlock request',
             });
-        } 
+        }
     }
 
     const handleConfirmEdit = async () => {
@@ -262,17 +262,28 @@ export default function InspectionDetailForm({ mode, data }: Props) {
     }
 
     const deleteInspectionItem = (index: number) => {
-        setForm((old: any) => {
-            const newItems = old.inspectionItems.filter((_: any, idx: number) => idx !== index);
-            // Recalculate no field for all items
-            const updatedItems = newItems.map((item: any, idx: number) => ({
-                ...item,
-                no: idx + 1
-            }));
-            return {
-                ...old,
-                inspectionItems: updatedItems
-            };
+        confirmDialog({
+            message: `คุณต้องการลบรายการ No. ${index + 1} หรือไม่?`,
+            header: 'ยืนยันการลบ',
+            icon: 'pi pi-exclamation-triangle',
+            acceptLabel: 'ยืนยัน',
+            rejectLabel: 'ยกเลิก',
+            acceptClassName: 'p-button-danger',
+            accept: () => {
+                setForm((old: any) => {
+                    const newItems = old.inspectionItems.filter((_: any, idx: number) => idx !== index);
+                    // Recalculate no field for all items
+                    const updatedItems = newItems.map((item: any, idx: number) => ({
+                        ...item,
+                        no: idx + 1
+                    }));
+                    return {
+                        ...old,
+                        inspectionItems: updatedItems
+                    };
+                });
+            },
+            reject: () => { }
         });
     }
 
@@ -419,7 +430,7 @@ export default function InspectionDetailForm({ mode, data }: Props) {
             const response = await Get({ url: `/sample-data-sheet/by-inspection-id/${recordId}` });
             if (response.ok) {
                 const responseJson = await response.json();
-                if (responseJson?.data && 
+                if (responseJson?.data &&
                     responseJson?.data?.createdAt &&
                     moment(responseJson.data.createdAt).format('MM-YYYY') == moment().format('MM-YYYY')) {
                     confirmDialog({
