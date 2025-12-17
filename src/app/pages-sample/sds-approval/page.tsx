@@ -331,9 +331,11 @@ export function SDSApprovalTable(props: { checker: 1 | 2 | 3 }) {
 
     const dueDateTemplate = (rowData: DataSDS) => {
         return (
-            <div className={rowData.hasDelay ? 'text-red-600 font-medium' : ''}>
+            <div
+            // className={rowData.hasDelay ? 'text-red-600 font-medium' : ''}
+            >
                 {rowData.dueDate}
-                {rowData.hasDelay ? ` (Delay: ${rowData.delayDays} days)` : ''}
+                {/* {rowData.hasDelay ? ` (Delay: ${rowData.delayDays} days)` : ''} */}
             </div>
         );
     }

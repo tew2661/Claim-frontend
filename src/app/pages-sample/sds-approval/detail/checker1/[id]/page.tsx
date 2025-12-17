@@ -8,6 +8,38 @@ import { Toast } from "primereact/toast";
 import { useEffect, useRef, useState } from "react";
 import { Calendar } from 'primereact/calendar';
 import Footer from "@/components/footer";
+import { InputNumber } from "primereact/inputnumber";
+import { Dropdown } from "primereact/dropdown";
+
+interface SdrSample {
+    no: number;
+    value: number | null;
+}
+
+interface SdrRow {
+    id?: number; // database row id
+    no: number;
+    measuringItem: string;
+    specification: number;
+    rank: string;
+    inspectionInstrument: string;
+    remark: string;
+    sampleQty: number;
+    toleranceMinus: number;
+    tolerancePlus: number;
+    samples: SdrSample[];
+    judgement: string;
+    xBar: string;
+    r: string;
+    cp: string;
+    cpk: string;
+    saStatus?: string;
+    dueToImplement?: Date | null;
+}
+
+interface OutOfToleranceRow extends SdrRow {
+    outOfToleranceSamples: number[]; // indices of samples that are out of tolerance
+}
 
 export function Page({ page }: { page: number }) {
 
@@ -20,6 +52,54 @@ export function Page({ page }: { page: number }) {
     const [sdrFileName, setSdrFileName] = useState('');
     const [remarkSupplier, setRemarkSupplier] = useState('');
     const [remarkSdr, setRemarkSdr] = useState('');
+    const [outOfToleranceRows, setOutOfToleranceRows] = useState<OutOfToleranceRow[]>([]);
+
+    const saStatusOptions = [
+        { label: 'Pending', value: 'Pending' },
+        { label: 'Approval', value: 'Approval' },
+        { label: 'Rejected', value: 'Rejected' },
+    ];
+
+    // Function to check if a sample value is out of tolerance
+    const isOutOfTolerance = (value: number | null, specification: number, tolerancePlus: number, toleranceMinus: number): boolean => {
+        if (value === null) return false;
+        const upperLimit = specification + (tolerancePlus || 0);
+        const lowerLimit = specification - (toleranceMinus || 0);
+        return value > upperLimit || value < lowerLimit;
+    };
+
+    // Function to filter rows with out-of-tolerance samples
+    const filterOutOfToleranceRows = (sdrData: SdrRow[]): OutOfToleranceRow[] => {
+        return sdrData
+            .map(row => {
+                const outOfToleranceSamples: number[] = [];
+                row.samples.slice(0, row.sampleQty).forEach((sample, idx) => {
+                    if (isOutOfTolerance(sample.value, row.specification, row.tolerancePlus, row.toleranceMinus)) {
+                        outOfToleranceSamples.push(idx);
+                    }
+                });
+                return { ...row, outOfToleranceSamples };
+            })
+            .filter(row => row.outOfToleranceSamples.length > 0);
+    };
+
+    // Function to update saStatus for a row
+    const updateRowSaStatus = (rowIndex: number, value: string) => {
+        setOutOfToleranceRows(prev => {
+            const newRows = [...prev];
+            newRows[rowIndex] = { ...newRows[rowIndex], saStatus: value };
+            return newRows;
+        });
+    };
+
+    // Function to update dueToImplement for a row
+    const updateRowDueToImplement = (rowIndex: number, value: Date | null) => {
+        setOutOfToleranceRows(prev => {
+            const newRows = [...prev];
+            newRows[rowIndex] = { ...newRows[rowIndex], dueToImplement: value };
+            return newRows;
+        });
+    };
 
     const [form, setForm] = useState({
         id: 0,
@@ -168,6 +248,36 @@ export function Page({ page }: { page: number }) {
                     setRemarkSupplier(sheet.remark || '');
                     setAisFileName(sheet.aisFile || '');
                     setSdrFileName(sheet.sdrFile || '');
+
+                    // Process sdrData and filter out-of-tolerance rows
+                    if (sheet.sdrData && sheet.sdrData.length > 0) {
+                        const normalizedRows: SdrRow[] = sheet.sdrData.map((row: any, index: number) => ({
+                            id: row.id, // database row id
+                            no: Number(row.no ?? index + 1),
+                            measuringItem: row.measuringItem || '',
+                            specification: Number(row.specification) || 0,
+                            rank: row.rank || '',
+                            inspectionInstrument: row.inspectionInstrument || '',
+                            remark: row.remark || '',
+                            sampleQty: Number(row.sampleQty) || 5,
+                            toleranceMinus: row.toleranceMinus ?? 0,
+                            tolerancePlus: row.tolerancePlus ?? 0,
+                            samples: (row.samples || []).map((s: any, i: number) => ({
+                                no: Number(s.no ?? i + 1),
+                                value: s.value !== null && s.value !== undefined ? Number(s.value) : null,
+                            })),
+                            judgement: row.judgement || '',
+                            xBar: row.xBar || '',
+                            r: row.r || '',
+                            cp: row.cp || '',
+                            cpk: row.cpk || '',
+                            saStatus: row.saStatus || '',
+                            dueToImplement: row.dueToImplement ? new Date(row.dueToImplement) : null,
+                        }));
+                        const outOfTolerance = filterOutOfToleranceRows(normalizedRows);
+                        setOutOfToleranceRows(outOfTolerance);
+                    }
+
                     return;
                 }
 
@@ -242,6 +352,28 @@ export function Page({ page }: { page: number }) {
 
     const handleSave = async () => {
         try {
+            // Validate SA Status and Due to Implement for out-of-tolerance rows (only if approving)
+            if (outOfToleranceRows.length > 0 && form.actionSdsApproval !== 'reject') {
+                const missingFields: string[] = [];
+                outOfToleranceRows.forEach((row, index) => {
+                    if (!row.saStatus || row.saStatus === '') {
+                        missingFields.push(`Row ${row.no}: SA Status`);
+                    }
+                    if (!row.dueToImplement) {
+                        missingFields.push(`Row ${row.no}: Due to Implement`);
+                    }
+                });
+
+                if (missingFields.length > 0) {
+                    toast.current?.show({
+                        severity: 'warn',
+                        summary: 'Required Fields',
+                        detail: `Please complete: ${missingFields[0]}${missingFields.length > 1 ? ` and ${missingFields.length - 1} more` : ''}`,
+                    });
+                    return;
+                }
+            }
+
             const payload = {
                 id: sheetId,
                 actionSdrApproval: form.production08_2025 == 'Yes' ? form.actionSdrApproval : form.actionSdsApproval,
@@ -249,7 +381,17 @@ export function Page({ page }: { page: number }) {
                 remark: form.remark,
                 reSubmitDate: form.reSubmitDate ? form.reSubmitDate.toISOString() : null,
                 approveRole: page == 3 ? 'approver' : ('checker' + page),
+                outOfToleranceRows: outOfToleranceRows
+                    .filter(row => row.id !== undefined && row.id !== null)
+                    .map(row => ({
+                        rowId: row.id,
+                        saStatus: row.saStatus || null,
+                        dueToImplement: row.dueToImplement ? row.dueToImplement.toISOString() : null,
+                    })),
             };
+
+            console.log('outOfToleranceRows:', outOfToleranceRows);
+            console.log('payload:', payload);
 
             const response = await Post({
                 url: '/sample-data-sheet/sds-approval',
@@ -443,6 +585,105 @@ export function Page({ page }: { page: number }) {
                             )
                         }
                     </div>
+
+                    {/* Out-of-Tolerance Table Section */}
+                    {outOfToleranceRows.length > 0 && (
+                        <div className="w-full mt-4 border-solid border-gray-200 p-4" style={{ borderRadius: '5px' }}>
+                            <div className="flex justify-between items-center mb-4">
+                                <label className="font-semibold block mb-2 text-red-600">
+                                    ⚠️ Out-of-Tolerance Items ({outOfToleranceRows.length} items)
+                                </label>
+                            </div>
+                            <div className="overflow-x-auto border rounded">
+                                <table className="w-full min-w-[1500px] border-collapse">
+                                    <thead className="bg-gray-800 text-white">
+                                        <tr>
+                                            <th className="border p-2 text-center" style={{ minWidth: '50px' }}>No</th>
+                                            <th className="border p-2 text-center" style={{ minWidth: '150px' }}>Measuring Item</th>
+                                            <th className="border p-2 text-center" style={{ minWidth: '100px' }}>Specification</th>
+                                            <th className="border p-2 text-center" style={{ minWidth: '80px' }}>Tol (+)</th>
+                                            <th className="border p-2 text-center" style={{ minWidth: '80px' }}>Tol (-)</th>
+                                            <th className="border p-2 text-center" style={{ minWidth: '80px' }}>Rank</th>
+                                            <th className="border p-2 text-center" style={{ minWidth: '100px' }}>Sample Qty</th>
+                                            {[1, 2, 3, 4, 5].map((n) => (
+                                                <th key={`sample-h-${n}`} className="border p-2 text-center" style={{ minWidth: '80px' }}>{n}</th>
+                                            ))}
+                                            <th className="border p-2 text-center" style={{ minWidth: '120px' }}>SA Status <span className="text-red-500">*</span></th>
+                                            <th className="border p-2 text-center" style={{ minWidth: '150px' }}>Due to Implement <span className="text-red-500">*</span></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {outOfToleranceRows.map((row, rowIndex) => (
+                                            <tr key={rowIndex} className={rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                                                <td className="border p-2 text-center">{row.no}</td>
+                                                <td className="border p-2">
+                                                    <InputText value={row.measuringItem} className="w-full" disabled />
+                                                </td>
+                                                <td className="border p-2 text-center">
+                                                    <InputNumber value={row.specification} className="w-full" disabled inputStyle={{ width: '80px' }} />
+                                                </td>
+                                                <td className="border p-2 text-center">
+                                                    <InputNumber value={row.tolerancePlus} className="w-full" disabled inputStyle={{ width: '60px' }} />
+                                                </td>
+                                                <td className="border p-2 text-center">
+                                                    <InputNumber value={row.toleranceMinus} className="w-full" disabled inputStyle={{ width: '60px' }} />
+                                                </td>
+                                                <td className="border p-2 text-center">
+                                                    <InputText value={row.rank} className="w-full" disabled />
+                                                </td>
+                                                <td className="border p-2 text-center">
+                                                    <InputText value={String(row.sampleQty)} className="w-full" disabled />
+                                                </td>
+                                                {[0, 1, 2, 3, 4].map((sampleIndex) => {
+                                                    const sample = row.samples[sampleIndex];
+                                                    const sampleValue = sample?.value ?? null;
+                                                    const isRed = row.outOfToleranceSamples.includes(sampleIndex);
+                                                    const showValue = sampleIndex < row.sampleQty;
+                                                    return (
+                                                        <td key={`row-${rowIndex}-sample-${sampleIndex}`} className="border p-2 text-center">
+                                                            {showValue ? (
+                                                                <InputNumber
+                                                                    value={sampleValue}
+                                                                    className="w-full"
+                                                                    disabled
+                                                                    inputStyle={{
+                                                                        width: '70px',
+                                                                        ...(isRed ? { backgroundColor: '#fee', color: 'red', fontWeight: 'bold' } : {}),
+                                                                    }}
+                                                                />
+                                                            ) : (
+                                                                <span className="text-gray-400">-</span>
+                                                            )}
+                                                        </td>
+                                                    );
+                                                })}
+                                                <td className="border p-2">
+                                                    <Dropdown
+                                                        value={row.saStatus || ''}
+                                                        options={saStatusOptions}
+                                                        onChange={(e) => updateRowSaStatus(rowIndex, e.value)}
+                                                        className={`w-full ${!row.saStatus ? 'p-invalid' : ''}`}
+                                                        style={{ minWidth: '100px' }}
+                                                        placeholder="Select Status"
+                                                    />
+                                                </td>
+                                                <td className="border p-2">
+                                                    <Calendar
+                                                        value={row.dueToImplement}
+                                                        onChange={(e) => updateRowDueToImplement(rowIndex, e.value as Date | null)}
+                                                        dateFormat="dd/mm/yy"
+                                                        showIcon
+                                                        className={`w-full ${!row.dueToImplement ? 'p-invalid' : ''}`}
+                                                        inputStyle={{ width: '120px' }}
+                                                    />
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
                     <div className="w-full mt-2 border-solid border-gray-200 p-4"
                         style={{
                             borderRadius: '5px',

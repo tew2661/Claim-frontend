@@ -27,8 +27,8 @@ interface InspectionData {
     partName: string;
     partNo: string;
     ngType: string;
-    sdsStatus: string;
-    dueToInspectionDept: string;
+    saStatus: string;
+    dueToImplement: string;
 }
 
 interface DashboardStats {
@@ -390,8 +390,8 @@ export function Dashboard() {
                                                 <th className="border border-gray-300 px-2 py-1 text-left" style={{ minWidth: '100px' }}>Part name</th>
                                                 <th className="border border-gray-300 px-2 py-1 text-left" style={{ minWidth: '80px' }}>Part No</th>
                                                 <th className="border border-gray-300 px-2 py-1 text-left" style={{ minWidth: '100px' }}>NG Count</th>
-                                                <th className="border border-gray-300 px-2 py-1 text-left" style={{ minWidth: '180px' }}>SDS Status</th>
-                                                <th className="border border-gray-300 px-2 py-1 text-left" style={{ minWidth: '120px' }}>Due To Inspection Dept.</th>
+                                                <th className="border border-gray-300 px-2 py-1 text-left" style={{ minWidth: '120px' }}>SA Status</th>
+                                                <th className="border border-gray-300 px-2 py-1 text-left" style={{ minWidth: '120px' }}>Due to Implement</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -402,8 +402,8 @@ export function Dashboard() {
                                                     <td className="border border-gray-300 px-2 py-1">{row.partName}</td>
                                                     <td className="border border-gray-300 px-2 py-1">{row.partNo}</td>
                                                     <td className="border border-gray-300 px-2 py-1">{row.ngType}</td>
-                                                    <td className="border border-gray-300 px-2 py-1">{row.sdsStatus}</td>
-                                                    <td className="border border-gray-300 px-2 py-1">{row.dueToInspectionDept}</td>
+                                                    <td className="border border-gray-300 px-2 py-1">{row.saStatus}</td>
+                                                    <td className="border border-gray-300 px-2 py-1">{row.dueToImplement}</td>
                                                 </tr>
                                             ))}
                                         </tbody>

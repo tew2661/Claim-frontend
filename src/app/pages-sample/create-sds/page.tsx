@@ -203,9 +203,9 @@ export default function CreateSDS() {
 
     const dueDateBody = (row: CreateSDSData) => {
         return (
-            <div className={row.hasDelay ? 'text-red-600 font-medium' : ''}>
+            <div className={row.hasDelay && row.supplierStatus !== 'Submitted' ? 'text-red-600 font-medium' : ''}>
                 <div>{row.dueDate}</div>
-                <div>{row.hasDelay ? ` (Delay: ${row.delayDays} days)` : ''}</div>
+                <div>{row.hasDelay && row.supplierStatus !== 'Submitted' ? ` (Delay: ${row.delayDays} days)` : ''}</div>
             </div>
         );
     };
