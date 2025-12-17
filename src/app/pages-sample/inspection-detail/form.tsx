@@ -11,6 +11,7 @@ import Footer from '@/components/footer';
 import { Get, Post, Put } from '@/components/fetch';
 import { confirmDialog, ConfirmDialog } from 'primereact/confirmdialog';
 import moment from 'moment';
+import { InputNumber } from 'primereact/inputnumber';
 
 interface SupplierDropdownOption {
     label: string;
@@ -333,15 +334,15 @@ export default function InspectionDetailForm({ mode, data }: Props) {
                 toast.current?.show({ severity: 'warn', summary: 'Warning', detail: `Please enter Measuring Item for row ${i + 1}` });
                 return false;
             }
-            if (!item.specification || item.specification.trim() === '') {
+            if (!item.specification && item.specification !== 0) {
                 toast.current?.show({ severity: 'warn', summary: 'Warning', detail: `Please enter Specification/Standard for row ${i + 1}` });
                 return false;
             }
-            if (!item.tolerancePlus || item.tolerancePlus.trim() === '') {
+            if (!item.tolerancePlus && item.tolerancePlus !== 0) {
                 toast.current?.show({ severity: 'warn', summary: 'Warning', detail: `Please enter Tolerance (+) for row ${i + 1}` });
                 return false;
             }
-            if (!item.toleranceMinus || item.toleranceMinus.trim() === '') {
+            if (!item.toleranceMinus && item.toleranceMinus !== 0) {
                 toast.current?.show({ severity: 'warn', summary: 'Warning', detail: `Please enter Tolerance (-) for row ${i + 1}` });
                 return false;
             }
@@ -800,55 +801,60 @@ export default function InspectionDetailForm({ mode, data }: Props) {
                             <div className="grid grid-cols-12 gap-3 mb-2">
                                 <div className="col-span-3">
                                     <label className="block mb-1">Specification / Standard <span className="text-red-500">*</span></label>
-                                    <InputText
+                                    <InputNumber
                                         value={it.specification}
                                         onChange={(e) => {
                                             const arr = [...form.inspectionItems];
-                                            // Allow only numbers with up to 4 decimal places
-                                            const value = e.target.value;
-                                            if (value === '' || /^\d*\.?\d{0,4}$/.test(value)) {
-                                                arr[idx].specification = value;
-                                                setForm((old: any) => ({ ...old, inspectionItems: arr }));
-                                            }
+                                            arr[idx].specification = e.value;
+                                            setForm((old: any) => ({ ...old, inspectionItems: arr }));
                                         }}
                                         placeholder="0.0000"
                                         className="w-full"
+                                        mode="decimal"
+                                        step={0.01}
+                                        minFractionDigits={0}
+                                        maxFractionDigits={4}
                                         disabled={isLocked}
+                                        allowEmpty
                                     />
+
                                 </div>
                                 <div className="col-span-2">
                                     <label className="block mb-1">Tolerance (+) <span className="text-red-500">*</span></label>
-                                    <InputText
+                                    <InputNumber
                                         value={it.tolerancePlus}
                                         onChange={(e) => {
                                             const arr = [...form.inspectionItems];
-                                            const value = e.target.value;
-                                            if (value === '' || /^\d*\.?\d{0,4}$/.test(value)) {
-                                                arr[idx].tolerancePlus = value;
-                                                setForm((old: any) => ({ ...old, inspectionItems: arr }));
-                                            }
+                                            arr[idx].tolerancePlus = e.value;
+                                            setForm((old: any) => ({ ...old, inspectionItems: arr }));
                                         }}
                                         placeholder="0.0000"
                                         className="w-full"
+                                        mode="decimal"
+                                        step={0.01}
+                                        minFractionDigits={0}
+                                        maxFractionDigits={4}
                                         disabled={isLocked}
+                                        allowEmpty
                                     />
                                 </div>
                                 <div className="col-span-2">
                                     <label className="block mb-1">Tolerance (-) <span className="text-red-500">*</span></label>
-                                    <InputText
+                                    <InputNumber
                                         value={it.toleranceMinus}
                                         onChange={(e) => {
                                             const arr = [...form.inspectionItems];
-                                            const value = e.target.value;
-                                            // Allow negative numbers with up to 4 decimal places
-                                            if (value === '' || value === '-' || /^-?\d*\.?\d{0,4}$/.test(value)) {
-                                                arr[idx].toleranceMinus = value;
-                                                setForm((old: any) => ({ ...old, inspectionItems: arr }));
-                                            }
+                                            arr[idx].toleranceMinus = e.value;
+                                            setForm((old: any) => ({ ...old, inspectionItems: arr }));
                                         }}
                                         placeholder="0.0000"
                                         className="w-full"
+                                        mode="decimal"
+                                        step={0.01}
+                                        minFractionDigits={0}
+                                        maxFractionDigits={4}
                                         disabled={isLocked}
+                                        allowEmpty
                                     />
                                 </div>
                                 <div className="col-span-3">

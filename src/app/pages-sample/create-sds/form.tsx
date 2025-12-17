@@ -172,9 +172,8 @@ export default function CreateSDSForm({ page = 'create' }: { page: string }) {
             }
 
             setSheetId(null);
-            const specialRequest0 = detail.specialRequest && detail.specialRequest.length > 0 ? detail.specialRequest[detail.specialRequest.length - 1] : (
-                detail.dueDate ? detail : undefined
-            )
+            const specialRequest0 = detail.specialRequest && detail.specialRequest.length > 0 ?
+                detail.specialRequest[detail.specialRequest.length - 1] : undefined;
             setForm((prev) => ({
                 ...prev,
                 supplier: detail.supplierName || prev.supplier,
@@ -398,6 +397,15 @@ export default function CreateSDSForm({ page = 'create' }: { page: string }) {
                 severity: 'warn',
                 summary: 'Warning',
                 detail: 'Please upload SDR Report when production is Yes',
+            });
+            return;
+        }
+
+        if (!form.sdrDate) {
+            toast.current?.show({
+                severity: 'warn',
+                summary: 'Warning',
+                detail: 'Please select SDR Date',
             });
             return;
         }
